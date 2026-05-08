@@ -1,50 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-Copyright (C) 2024 Xiaomi Corporation.
-
-The ownership and intellectual property rights of Xiaomi Home Assistant
-Integration and related Xiaomi cloud service API interface provided under this
-license, including source code and object code (collectively, "Licensed Work"),
-are owned by Xiaomi. Subject to the terms and conditions of this License, Xiaomi
-hereby grants you a personal, limited, non-exclusive, non-transferable,
-non-sublicensable, and royalty-free license to reproduce, use, modify, and
-distribute the Licensed Work only for your use of Home Assistant for
-non-commercial purposes. For the avoidance of doubt, Xiaomi does not authorize
-you to use the Licensed Work for any other purpose, including but not limited
-to use Licensed Work to develop applications (APP), Web services, and other
-forms of software.
-
-You may reproduce and distribute copies of the Licensed Work, with or without
-modifications, whether in source or object form, provided that you must give
-any other recipients of the Licensed Work a copy of this License and retain all
-copyright and disclaimers.
-
-Xiaomi provides the Licensed Work on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-CONDITIONS OF ANY KIND, either express or implied, including, without
-limitation, any warranties, undertakes, or conditions of TITLE, NO ERROR OR
-OMISSION, CONTINUITY, RELIABILITY, NON-INFRINGEMENT, MERCHANTABILITY, or
-FITNESS FOR A PARTICULAR PURPOSE. In any event, you are solely responsible
-for any direct, indirect, special, incidental, or consequential damages or
-losses arising from the use or inability to use the Licensed Work.
-
-Xiaomi reserves all rights not expressly granted to you in this License.
-Except for the rights expressly granted by Xiaomi under this License, Xiaomi
-does not authorize you in any form to use the trademarks, copyrights, or other
-forms of intellectual property rights of Xiaomi and its affiliates, including,
-without limitation, without obtaining other written permission from Xiaomi, you
-shall not use "Xiaomi", "Mijia" and other words related to Xiaomi or words that
-may make the public associate with Xiaomi in any form to publicize or promote
-the software or hardware devices that use the Licensed Work.
-
-Xiaomi has the right to immediately terminate all your authorization under this
-License in the event:
-1. You assert patent invalidation, litigation, or other claims against patents
-or other intellectual property rights of Xiaomi or its affiliates; or,
-2. You make, have made, manufacture, sell, or offer to sell products that knock
-off Xiaomi or its affiliates' products.
-
 Conversion rules of MIoT-Spec-V2 instance to Home Assistant entity.
 """
+from types import MappingProxyType
+
 from homeassistant.components.sensor import SensorDeviceClass
 from homeassistant.components.sensor import SensorStateClass
 from homeassistant.components.event import EventDeviceClass
@@ -56,6 +15,11 @@ from homeassistant.const import (CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
                                  UnitOfElectricPotential, UnitOfTemperature,
                                  UnitOfPressure, PERCENTAGE)
 
+# 優化：定義共用的不可變權限常數，減少記憶體重複配置
+_R = frozenset({'read'})
+_W = frozenset({'write'})
+_RW = frozenset({'read', 'write'})
+
 # pylint: disable=pointless-string-statement
 """SPEC_DEVICE_TRANS_MAP
 {
@@ -64,15 +28,15 @@ from homeassistant.const import (CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
             '<service instance name>':{
                 'required':{
                     'properties': {
-                        '<property instance name>': set<property access: str>
+                        '<property instance name>': frozenset<property access: str>
                     },
-                    'events': set<event instance name: str>,
-                    'actions': set<action instance name: str>
+                    'events': frozenset<event instance name: str>,
+                    'actions': frozenset<action instance name: str>
                 },
                 'optional':{
-                    'properties': set<property instance name: str>,
-                    'events': set<event instance name: str>,
-                    'actions': set<action instance name: str>
+                    'properties': frozenset<property instance name: str>,
+                    'events': frozenset<event instance name: str>,
+                    'actions': frozenset<action instance name: str>
                 }
             }
         },
@@ -80,15 +44,15 @@ from homeassistant.const import (CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
             '<service instance name>':{
                 'required':{
                     'properties': {
-                        '<property instance name>': set<property access: str>
+                        '<property instance name>': frozenset<property access: str>
                     },
-                    'events': set<event instance name: str>,
-                    'actions': set<action instance name: str>
+                    'events': frozenset<event instance name: str>,
+                    'actions': frozenset<action instance name: str>
                 },
                 'optional':{
-                    'properties': set<property instance name: str>,
-                    'events': set<event instance name: str>,
-                    'actions': set<action instance name: str>
+                    'properties': frozenset<property instance name: str>,
+                    'events': frozenset<event instance name: str>,
+                    'actions': frozenset<action instance name: str>
                 }
             }
         },
@@ -96,17 +60,19 @@ from homeassistant.const import (CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
     }
 }
 """
-SPEC_DEVICE_TRANS_MAP: dict = {
+
+# 優化：使用 MappingProxyType 與 frozenset 保護常數不被意外竄改
+SPEC_DEVICE_TRANS_MAP = MappingProxyType({
     'humidifier': {
         'required': {
             'humidifier': {
                 'required': {
                     'properties': {
-                        'on': {'read', 'write'}
+                        'on': _RW
                     }
                 },
                 'optional': {
-                    'properties': {'mode', 'target-humidity'}
+                    'properties': frozenset({'mode', 'target-humidity'})
                 }
             }
         },
@@ -114,7 +80,7 @@ SPEC_DEVICE_TRANS_MAP: dict = {
             'environment': {
                 'required': {
                     'properties': {
-                        'relative-humidity': {'read'}
+                        'relative-humidity': _R
                     }
                 }
             }
@@ -126,11 +92,11 @@ SPEC_DEVICE_TRANS_MAP: dict = {
             'dehumidifier': {
                 'required': {
                     'properties': {
-                        'on': {'read', 'write'}
+                        'on': _RW
                     }
                 },
                 'optional': {
-                    'properties': {'mode', 'target-humidity'}
+                    'properties': frozenset({'mode', 'target-humidity'})
                 }
             }
         },
@@ -138,7 +104,7 @@ SPEC_DEVICE_TRANS_MAP: dict = {
             'environment': {
                 'required': {
                     'properties': {
-                        'relative-humidity': {'read'}
+                        'relative-humidity': _R
                     }
                 }
             }
@@ -149,27 +115,25 @@ SPEC_DEVICE_TRANS_MAP: dict = {
         'required': {
             'vacuum': {
                 'required': {
-                    'actions': {'start-sweep', 'stop-sweeping'},
+                    'actions': frozenset({'start-sweep', 'stop-sweeping'}),
                 },
                 'optional': {
-                    'properties': {'status', 'fan-level'},
-                    'actions': {
+                    'properties': frozenset({'status', 'fan-level'}),
+                    'actions': frozenset({
                         'pause-sweeping', 'continue-sweep', 'stop-and-gocharge'
-                    }
+                    })
                 }
             }
         },
         'optional': {
             'identify': {
                 'required': {
-                    'actions': {'identify'}
+                    'actions': frozenset({'identify'})
                 }
             },
             'battery': {
                 'required': {
-                    'actions': {
-                        'start-charge'
-                    }
+                    'actions': frozenset({'start-charge'})
                 }
             }
         },
@@ -180,13 +144,13 @@ SPEC_DEVICE_TRANS_MAP: dict = {
             'air-conditioner': {
                 'required': {
                     'properties': {
-                        'on': {'read', 'write'},
-                        'mode': {'read', 'write'},
-                        'target-temperature': {'read', 'write'}
+                        'on': _RW,
+                        'mode': _RW,
+                        'target-temperature': _RW
                     }
                 },
                 'optional': {
-                    'properties': {'target-humidity'}
+                    'properties': frozenset({'target-humidity'})
                 }
             }
         },
@@ -194,21 +158,21 @@ SPEC_DEVICE_TRANS_MAP: dict = {
             'fan-control': {
                 'required': {},
                 'optional': {
-                    'properties': {
+                    'properties': frozenset({
                         'on', 'fan-level', 'horizontal-swing', 'vertical-swing'
-                    }
+                    })
                 }
             },
             'environment': {
                 'required': {},
                 'optional': {
-                    'properties': {'temperature', 'relative-humidity'}
+                    'properties': frozenset({'temperature', 'relative-humidity'})
                 }
             },
             'air-condition-outlet-matching': {
                 'required': {},
                 'optional': {
-                    'properties': {'ac-state'}
+                    'properties': frozenset({'ac-state'})
                 }
             }
         },
@@ -220,13 +184,13 @@ SPEC_DEVICE_TRANS_MAP: dict = {
             'thermostat': {
                 'required': {
                     'properties': {
-                        'on': {'read', 'write'}
+                        'on': _RW
                     }
                 },
                 'optional': {
-                    'properties': {
+                    'properties': frozenset({
                         'target-temperature', 'mode', 'fan-level', 'temperature'
-                    }
+                    })
                 }
             }
         },
@@ -234,7 +198,7 @@ SPEC_DEVICE_TRANS_MAP: dict = {
             'environment': {
                 'required': {},
                 'optional': {
-                    'properties': {'temperature', 'relative-humidity'}
+                    'properties': frozenset({'temperature', 'relative-humidity'})
                 }
             }
         },
@@ -245,11 +209,11 @@ SPEC_DEVICE_TRANS_MAP: dict = {
             'heater': {
                 'required': {
                     'properties': {
-                        'on': {'read', 'write'}
+                        'on': _RW
                     }
                 },
                 'optional': {
-                    'properties': {'target-temperature', 'heat-level'}
+                    'properties': frozenset({'target-temperature', 'heat-level'})
                 }
             }
         },
@@ -257,7 +221,7 @@ SPEC_DEVICE_TRANS_MAP: dict = {
             'environment': {
                 'required': {},
                 'optional': {
-                    'properties': {'temperature', 'relative-humidity'}
+                    'properties': frozenset({'temperature', 'relative-humidity'})
                 }
             }
         },
@@ -268,11 +232,11 @@ SPEC_DEVICE_TRANS_MAP: dict = {
             'ptc-bath-heater': {
                 'required': {
                     'properties': {
-                        'mode': {'read', 'write'}
+                        'mode': _RW
                     }
                 },
                 'optional': {
-                    'properties': {'target-temperature', 'temperature'}
+                    'properties': frozenset({'target-temperature', 'temperature'})
                 }
             }
         },
@@ -280,15 +244,15 @@ SPEC_DEVICE_TRANS_MAP: dict = {
             'fan-control': {
                 'required': {},
                 'optional': {
-                    'properties': {
+                    'properties': frozenset({
                         'on', 'fan-level', 'horizontal-swing', 'vertical-swing'
-                    }
+                    })
                 }
             },
             'environment': {
                 'required': {},
                 'optional': {
-                    'properties': {'temperature'}
+                    'properties': frozenset({'temperature'})
                 }
             }
         },
@@ -299,12 +263,12 @@ SPEC_DEVICE_TRANS_MAP: dict = {
             'electric-blanket': {
                 'required': {
                     'properties': {
-                        'on': {'read', 'write'},
-                        'target-temperature': {'read', 'write'}
+                        'on': _RW,
+                        'target-temperature': _RW
                     }
                 },
                 'optional': {
-                    'properties': {'mode', 'temperature'}
+                    'properties': frozenset({'mode', 'temperature'})
                 }
             }
         },
@@ -316,23 +280,23 @@ SPEC_DEVICE_TRANS_MAP: dict = {
             'speaker': {
                 'required': {
                     'properties': {
-                        'volume': {'read', 'write'}
+                        'volume': _RW
                     }
                 },
                 'optional': {
-                    'properties': {'mute'}
+                    'properties': frozenset({'mute'})
                 }
             },
             'play-control': {
                 'required': {
                     'properties': {
-                        'playing-state': {'read'}
+                        'playing-state': _R
                     },
-                    'actions': {'play'}
+                    'actions': frozenset({'play'})
                 },
                 'optional': {
-                    'properties': {'play-loop-mode'},
-                    'actions': {'pause', 'stop', 'next', 'previous'}
+                    'properties': frozenset({'play-loop-mode'}),
+                    'actions': frozenset({'pause', 'stop', 'next', 'previous'})
                 }
             }
         },
@@ -344,20 +308,20 @@ SPEC_DEVICE_TRANS_MAP: dict = {
             'speaker': {
                 'required': {
                     'properties': {
-                        'volume': {'read', 'write'}
+                        'volume': _RW
                     }
                 },
                 'optional': {
-                    'properties': {'mute'}
+                    'properties': frozenset({'mute'})
                 }
             },
             'television': {
                 'required': {
-                    'actions': {'turn-off'}
+                    'actions': frozenset({'turn-off'})
                 },
                 'optional': {
-                    'properties': {'input-control'},
-                    'actions': {'turn-on'}
+                    'properties': frozenset({'input-control'}),
+                    'actions': frozenset({'turn-on'})
                 }
             }
         },
@@ -365,12 +329,12 @@ SPEC_DEVICE_TRANS_MAP: dict = {
             'play-control': {
                 'required': {
                     'properties': {
-                        'playing-state': {'read'}
+                        'playing-state': _R
                     }
                 },
                 'optional': {
-                    'properties': {'play-loop-mode'},
-                    'actions': {'play', 'pause', 'stop', 'next', 'previous'}
+                    'properties': frozenset({'play-loop-mode'}),
+                    'actions': frozenset({'play', 'pause', 'stop', 'next', 'previous'})
                 }
             }
         },
@@ -381,19 +345,19 @@ SPEC_DEVICE_TRANS_MAP: dict = {
             'speaker': {
                 'required': {
                     'properties': {
-                        'volume': {'read', 'write'}
+                        'volume': _RW
                     }
                 },
                 'optional': {
-                    'properties': {'mute'}
+                    'properties': frozenset({'mute'})
                 }
             },
             'tv-box': {
                 'required': {
-                    'actions': {'turn-off'}
+                    'actions': frozenset({'turn-off'})
                 },
                 'optional': {
-                    'actions': {'turn-on'}
+                    'actions': frozenset({'turn-on'})
                 }
             }
         },
@@ -401,12 +365,12 @@ SPEC_DEVICE_TRANS_MAP: dict = {
             'play-control': {
                 'required': {
                     'properties': {
-                        'playing-state': {'read'}
+                        'playing-state': _R
                     }
                 },
                 'optional': {
-                    'properties': {'play-loop-mode'},
-                    'actions': {'play', 'pause', 'stop', 'next', 'previous'}
+                    'properties': frozenset({'play-loop-mode'}),
+                    'actions': frozenset({'play', 'pause', 'stop', 'next', 'previous'})
                 }
             }
         },
@@ -417,12 +381,12 @@ SPEC_DEVICE_TRANS_MAP: dict = {
             'watch': {
                 'required': {
                     'properties': {
-                        'longitude': {'read'},
-                        'latitude': {'read'}
+                        'longitude': _R,
+                        'latitude': _R
                     }
                 },
                 'optional': {
-                    'properties': {'area-id'}
+                    'properties': frozenset({'area-id'})
                 }
             }
         },
@@ -430,44 +394,44 @@ SPEC_DEVICE_TRANS_MAP: dict = {
             'battery': {
                 'required': {
                     'properties': {
-                        'battery-level': {'read'}
+                        'battery-level': _R
                     }
                 }
             }
         },
         'entity': 'device_tracker'
     }
-}
+})
 
 """SPEC_SERVICE_TRANS_MAP
 {
     '<service instance name>':{
         'required':{
             'properties': {
-                '<property instance name>': set<property access: str>
+                '<property instance name>': frozenset<property access: str>
             },
-            'events': set<event instance name: str>,
-            'actions': set<action instance name: str>
+            'events': frozenset<event instance name: str>,
+            'actions': frozenset<action instance name: str>
         },
         'optional':{
-            'properties': set<property instance name: str>,
-            'events': set<event instance name: str>,
-            'actions': set<action instance name: str>
+            'properties': frozenset<property instance name: str>,
+            'events': frozenset<event instance name: str>,
+            'actions': frozenset<action instance name: str>
         },
         'entity': str,
         'entity_category'?: str
     }
 }
 """
-SPEC_SERVICE_TRANS_MAP: dict = {
+SPEC_SERVICE_TRANS_MAP = MappingProxyType({
     'light': {
         'required': {
             'properties': {
-                'on': {'read', 'write'}
+                'on': _RW
             }
         },
         'optional': {
-            'properties': {'mode', 'brightness', 'color', 'color-temperature'}
+            'properties': frozenset({'mode', 'brightness', 'color', 'color-temperature'})
         },
         'entity': 'light'
     },
@@ -477,14 +441,14 @@ SPEC_SERVICE_TRANS_MAP: dict = {
     'indicator-light': {
         'required': {
             'properties': {
-                'on': {'read', 'write'}
+                'on': _RW
             }
         },
         'optional': {
-            'properties': {
+            'properties': frozenset({
                 'mode',
                 'brightness',
-            }
+            })
         },
         'entity': 'light',
         'entity_category': EntityCategory.CONFIG
@@ -492,12 +456,12 @@ SPEC_SERVICE_TRANS_MAP: dict = {
     'fan': {
         'required': {
             'properties': {
-                'on': {'read', 'write'},
-                'fan-level': {'read', 'write'}
+                'on': _RW,
+                'fan-level': _RW
             }
         },
         'optional': {
-            'properties': {'mode', 'horizontal-swing', 'wind-reverse'}
+            'properties': frozenset({'mode', 'horizontal-swing', 'wind-reverse'})
         },
         'entity': 'fan'
     },
@@ -508,22 +472,22 @@ SPEC_SERVICE_TRANS_MAP: dict = {
     'water-heater': {
         'required': {
             'properties': {
-                'on': {'read', 'write'}
+                'on': _RW
             }
         },
         'optional': {
-            'properties': {'temperature', 'target-temperature', 'mode'}
+            'properties': frozenset({'temperature', 'target-temperature', 'mode'})
         },
         'entity': 'water_heater'
     },
     'curtain': {
         'required': {
             'properties': {
-                'motor-control': {'write'}
+                'motor-control': _W
             }
         },
         'optional': {
-            'properties': {'status', 'current-position', 'target-position'}
+            'properties': frozenset({'status', 'current-position', 'target-position'})
         },
         'entity': 'cover'
     },
@@ -533,24 +497,24 @@ SPEC_SERVICE_TRANS_MAP: dict = {
     'air-conditioner': {
         'required': {
             'properties': {
-                'on': {'read', 'write'},
-                'mode': {'read', 'write'},
-                'target-temperature': {'read', 'write'}
+                'on': _RW,
+                'mode': _RW,
+                'target-temperature': _RW
             }
         },
         'optional': {
-            'properties': {'target-humidity'}
+            'properties': frozenset({'target-humidity'})
         },
         'entity': 'air-conditioner'
     }
-}
+})
 
 """SPEC_PROP_TRANS_MAP
 {
     'entities':{
         '<entity name>':{
-            'format': set<str>,
-            'access': set<str>
+            'format': frozenset<str>,
+            'access': frozenset<str>
         }
     },
     'properties': {
@@ -563,19 +527,19 @@ SPEC_SERVICE_TRANS_MAP: dict = {
     }
 }
 """
-SPEC_PROP_TRANS_MAP: dict = {
+SPEC_PROP_TRANS_MAP = MappingProxyType({
     'entities': {
         'sensor': {
-            'format': {'int', 'float'},
-            'access': {'read'}
+            'format': frozenset({'int', 'float'}),
+            'access': _R
         },
         'binary_sensor': {
-            'format': {'bool', 'int'},
-            'access': {'read'}
+            'format': frozenset({'bool', 'int'}),
+            'access': _R
         },
         'switch': {
-            'format': {'bool'},
-            'access': {'read', 'write'}
+            'format': frozenset({'bool'}),
+            'access': _RW
         }
     },
     'properties': {
@@ -697,20 +661,20 @@ SPEC_PROP_TRANS_MAP: dict = {
             'unit_of_measurement': UnitOfPower.WATT
         }
     }
-}
+})
 
 """SPEC_EVENT_TRANS_MAP
 {
     '<event instance name>': str
 }
 """
-SPEC_EVENT_TRANS_MAP: dict[str, str] = {
+SPEC_EVENT_TRANS_MAP = MappingProxyType({
     'click': EventDeviceClass.BUTTON,
     'double-click': EventDeviceClass.BUTTON,
     'long-press': EventDeviceClass.BUTTON,
     'motion-detected': EventDeviceClass.MOTION,
     'no-motion': EventDeviceClass.MOTION,
     'doorbell-ring': EventDeviceClass.DOORBELL
-}
+})
 
-SPEC_ACTION_TRANS_MAP = {}
+SPEC_ACTION_TRANS_MAP = MappingProxyType({})
