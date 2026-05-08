@@ -1,48 +1,5 @@
 # -*- coding: utf-8 -*-
 """
-Copyright (C) 2024 Xiaomi Corporation.
-
-The ownership and intellectual property rights of Xiaomi Home Assistant
-Integration and related Xiaomi cloud service API interface provided under this
-license, including source code and object code (collectively, "Licensed Work"),
-are owned by Xiaomi. Subject to the terms and conditions of this License, Xiaomi
-hereby grants you a personal, limited, non-exclusive, non-transferable,
-non-sublicensable, and royalty-free license to reproduce, use, modify, and
-distribute the Licensed Work only for your use of Home Assistant for
-non-commercial purposes. For the avoidance of doubt, Xiaomi does not authorize
-you to use the Licensed Work for any other purpose, including but not limited
-to use Licensed Work to develop applications (APP), Web services, and other
-forms of software.
-
-You may reproduce and distribute copies of the Licensed Work, with or without
-modifications, whether in source or object form, provided that you must give
-any other recipients of the Licensed Work a copy of this License and retain all
-copyright and disclaimers.
-
-Xiaomi provides the Licensed Work on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-CONDITIONS OF ANY KIND, either express or implied, including, without
-limitation, any warranties, undertakes, or conditions of TITLE, NO ERROR OR
-OMISSION, CONTINUITY, RELIABILITY, NON-INFRINGEMENT, MERCHANTABILITY, or
-FITNESS FOR A PARTICULAR PURPOSE. In any event, you are solely responsible
-for any direct, indirect, special, incidental, or consequential damages or
-losses arising from the use or inability to use the Licensed Work.
-
-Xiaomi reserves all rights not expressly granted to you in this License.
-Except for the rights expressly granted by Xiaomi under this License, Xiaomi
-does not authorize you in any form to use the trademarks, copyrights, or other
-forms of intellectual property rights of Xiaomi and its affiliates, including,
-without limitation, without obtaining other written permission from Xiaomi, you
-shall not use "Xiaomi", "Mijia" and other words related to Xiaomi or words that
-may make the public associate with Xiaomi in any form to publicize or promote
-the software or hardware devices that use the Licensed Work.
-
-Xiaomi has the right to immediately terminate all your authorization under this
-License in the event:
-1. You assert patent invalidation, litigation, or other claims against patents
-or other intellectual property rights of Xiaomi or its affiliates; or,
-2. You make, have made, manufacture, sell, or offer to sell products that knock
-off Xiaomi or its affiliates' products.
-
 MIoT network utilities.
 """
 import asyncio
@@ -79,14 +36,14 @@ class NetworkInfo:
 class MIoTNetwork:
     """MIoT network utilities."""
     _IP_ADDRESS_LIST: list[str] = [
-        '1.2.4.8',          # CNNIC sDNS
+        #'1.2.4.8',          # CNNIC sDNS
         '8.8.8.8',          # Google Public DNS
-        '9.9.9.9'           # Quad9
+        '1.1.1.1'           # Cloudflare
     ]
     _URL_ADDRESS_LIST: list[str] = [
         'https://www.bing.com',
         'https://www.google.com',
-        'https://www.baidu.com'
+        #'https://www.baidu.com'
     ]
     _REFRESH_INTERVAL = 30
     _DETECT_TIMEOUT = 6
@@ -95,7 +52,9 @@ class MIoTNetwork:
 
     _ip_addr_map: dict[str, float]
     _http_addr_map: dict[str, float]
-    _http_session: aiohttp.ClientSession
+    
+    # 延遲初始化以確保在正確的 Asyncio Event Loop 內建立
+    _http_session: Optional[aiohttp.ClientSession]
 
     _refresh_interval: int
     _refresh_task: Optional[asyncio.Task]
@@ -119,11 +78,12 @@ class MIoTNetwork:
         self._main_loop = loop or asyncio.get_running_loop()
         self._ip_addr_map = {
             ip: self._DETECT_TIMEOUT for ip in
-            ip_addr_list or self._IP_ADDRESS_LIST}
+            (ip_addr_list or self._IP_ADDRESS_LIST)}
         self._http_addr_map = {
             url: self._DETECT_TIMEOUT for url in
-            url_addr_list or self._URL_ADDRESS_LIST}
-        self._http_session = aiohttp.ClientSession()
+            (url_addr_list or self._URL_ADDRESS_LIST)}
+            
+        self._http_session = None
         self._refresh_interval = refresh_interval or self._REFRESH_INTERVAL
 
         self._refresh_task = None
@@ -138,6 +98,10 @@ class MIoTNetwork:
         self._done_event = asyncio.Event()
 
     async def init_async(self) -> bool:
+        # 在協程內部初始化 ClientSession，遵守 aiohttp 最佳實踐
+        if self._http_session is None:
+            self._http_session = aiohttp.ClientSession()
+            
         self.__refresh_timer_handler()
         # MUST get network info before starting
         return await self._done_event.wait()
@@ -149,7 +113,10 @@ class MIoTNetwork:
         if self._refresh_timer:
             self._refresh_timer.cancel()
             self._refresh_timer = None
-        await self._http_session.close()
+            
+        if self._http_session:
+            await self._http_session.close()
+            self._http_session = None
 
         self._network_status = False
         self._network_info.clear()
@@ -171,14 +138,15 @@ class MIoTNetwork:
         url_addr_list: Optional[list[str]] = None,
     ) -> None:
         new_ip_map: dict = {}
-        for ip in ip_addr_list or self._IP_ADDRESS_LIST:
+        for ip in (ip_addr_list or self._IP_ADDRESS_LIST):
             if ip in self._ip_addr_map:
                 new_ip_map[ip] = self._ip_addr_map[ip]
             else:
                 new_ip_map[ip] = self._DETECT_TIMEOUT
         self._ip_addr_map = new_ip_map
+        
         new_url_map: dict = {}
-        for url in url_addr_list or self._URL_ADDRESS_LIST:
+        for url in (url_addr_list or self._URL_ADDRESS_LIST):
             if url in self._http_addr_map:
                 new_url_map[url] = self._http_addr_map[url]
             else:
@@ -218,6 +186,7 @@ class MIoTNetwork:
                 and await self.ping_multi_async(ip_list=[ip_addr])
             ):
                 return True
+                
             url_addr: str = ''
             url_ts: float = self._DETECT_TIMEOUT
             for http, ts in self._http_addr_map.items():
@@ -229,9 +198,12 @@ class MIoTNetwork:
                 and await self.http_multi_async(url_list=[url_addr])
             ):
                 return True
-            # Detect all addresses
+                
+            # 移除不必要的 list unpacking 寫法
             results = await asyncio.gather(
-                *[self.ping_multi_async(), self.http_multi_async()])
+                self.ping_multi_async(), 
+                self.http_multi_async()
+            )
             return any(results)
         except Exception as err:  # pylint: disable=broad-exception-caught
             _LOGGER.error('get network status error, %s', err)
@@ -245,27 +217,29 @@ class MIoTNetwork:
         self, ip_list: Optional[list[str]] = None
     ) -> bool:
         addr_list = ip_list or list(self._ip_addr_map.keys())
-        tasks = []
-        for addr in addr_list:
-            tasks.append(self.__ping_async(addr))
+        tasks = [self.__ping_async(addr) for addr in addr_list]
         results = await asyncio.gather(*tasks)
+        
         for addr, ts in zip(addr_list, results):
             if addr in self._ip_addr_map:
                 self._ip_addr_map[addr] = ts
-        return any([ts < self._DETECT_TIMEOUT for ts in results])
+                
+        # 改用 Generator 提升效能，遇到第一個 True 即可提前回傳
+        return any(ts < self._DETECT_TIMEOUT for ts in results)
 
     async def http_multi_async(
         self, url_list: Optional[list[str]] = None
     ) -> bool:
         addr_list = url_list or list(self._http_addr_map.keys())
-        tasks = []
-        for addr in addr_list:
-            tasks.append(self.__http_async(url=addr))
+        tasks = [self.__http_async(url=addr) for addr in addr_list]
         results = await asyncio.gather(*tasks)
+        
         for addr, ts in zip(addr_list, results):
             if addr in self._http_addr_map:
                 self._http_addr_map[addr] = ts
-        return any([ts < self._DETECT_TIMEOUT for ts in results])
+                
+        # 改用 Generator 提升效能
+        return any(ts < self._DETECT_TIMEOUT for ts in results)
 
     def __calc_network_address(self, ip: str, netmask: str) -> str:
         return str(ipaddress.IPv4Network(
@@ -286,16 +260,21 @@ class MIoTNetwork:
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL
             )
-            await process.communicate()
+            # 加入 asyncio.wait_for 防止 subprocess 因系統異常而永久卡死
+            await asyncio.wait_for(process.communicate(), timeout=self._DETECT_TIMEOUT + 1)
+            
             if process.returncode == 0:
                 return self._main_loop.time() - start_ts
             return self._DETECT_TIMEOUT
         except Exception as err:  # pylint: disable=broad-exception-caught
-            _LOGGER.debug('ping error, %s',err)
+            _LOGGER.debug('ping error, %s', err)
             return self._DETECT_TIMEOUT
 
     async def __http_async(self, url: str) -> float:
         start_ts: float = self._main_loop.time()
+        if not self._http_session:
+            return self._DETECT_TIMEOUT
+            
         try:
             async with self._http_session.get(
                     url, timeout=self._DETECT_TIMEOUT):
@@ -345,29 +324,31 @@ class MIoTNetwork:
                     self._main_loop.create_task(handler(status))
                 self._network_status = status
 
-            for name in list(self._network_info.keys()):
-                info = infos.pop(name, None)
-                if info:
-                    # Update
-                    if (
-                        info.ip != self._network_info[name].ip
-                        or info.netmask != self._network_info[name].netmask
-                    ):
-                        self._network_info[name] = info
-                        self.__call_network_info_change(
-                            InterfaceStatus.UPDATE, info)
-                else:
-                    # Remove
-                    self.__call_network_info_change(
-                        InterfaceStatus.REMOVE,
-                        self._network_info.pop(name))
-            # Add
+            # 優化：使用 Set 集合運算來處理新增與移除的介面，避免邊歷遍邊修改字典的問題
+            current_names = set(self._network_info.keys())
+            new_names = set(infos.keys())
+
+            # 處理移除的介面 (存在於 current_names 但不在 new_names)
+            for name in (current_names - new_names):
+                removed_info = self._network_info.pop(name)
+                self.__call_network_info_change(InterfaceStatus.REMOVE, removed_info)
+
+            # 處理新增與更新的介面
             for name, info in infos.items():
-                self._network_info[name] = info
-                self.__call_network_info_change(InterfaceStatus.ADD, info)
+                if name not in current_names:
+                    # Add
+                    self._network_info[name] = info
+                    self.__call_network_info_change(InterfaceStatus.ADD, info)
+                else:
+                    # Update
+                    old_info = self._network_info[name]
+                    if old_info.ip != info.ip or old_info.netmask != info.netmask:
+                        self._network_info[name] = info
+                        self.__call_network_info_change(InterfaceStatus.UPDATE, info)
 
             if not self._done_event.is_set():
                 self._done_event.set()
+                
         except asyncio.CancelledError:
             _LOGGER.error('update_status_and_info task was cancelled')
 

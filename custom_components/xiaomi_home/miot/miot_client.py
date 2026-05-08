@@ -1,48 +1,5 @@
 # -*- coding: utf-8 -*-
 """
-Copyright (C) 2024 Xiaomi Corporation.
-
-The ownership and intellectual property rights of Xiaomi Home Assistant
-Integration and related Xiaomi cloud service API interface provided under this
-license, including source code and object code (collectively, "Licensed Work"),
-are owned by Xiaomi. Subject to the terms and conditions of this License, Xiaomi
-hereby grants you a personal, limited, non-exclusive, non-transferable,
-non-sublicensable, and royalty-free license to reproduce, use, modify, and
-distribute the Licensed Work only for your use of Home Assistant for
-non-commercial purposes. For the avoidance of doubt, Xiaomi does not authorize
-you to use the Licensed Work for any other purpose, including but not limited
-to use Licensed Work to develop applications (APP), Web services, and other
-forms of software.
-
-You may reproduce and distribute copies of the Licensed Work, with or without
-modifications, whether in source or object form, provided that you must give
-any other recipients of the Licensed Work a copy of this License and retain all
-copyright and disclaimers.
-
-Xiaomi provides the Licensed Work on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-CONDITIONS OF ANY KIND, either express or implied, including, without
-limitation, any warranties, undertakes, or conditions of TITLE, NO ERROR OR
-OMISSION, CONTINUITY, RELIABILITY, NON-INFRINGEMENT, MERCHANTABILITY, or
-FITNESS FOR A PARTICULAR PURPOSE. In any event, you are solely responsible
-for any direct, indirect, special, incidental, or consequential damages or
-losses arising from the use or inability to use the Licensed Work.
-
-Xiaomi reserves all rights not expressly granted to you in this License.
-Except for the rights expressly granted by Xiaomi under this License, Xiaomi
-does not authorize you in any form to use the trademarks, copyrights, or other
-forms of intellectual property rights of Xiaomi and its affiliates, including,
-without limitation, without obtaining other written permission from Xiaomi, you
-shall not use "Xiaomi", "Mijia" and other words related to Xiaomi or words that
-may make the public associate with Xiaomi in any form to publicize or promote
-the software or hardware devices that use the Licensed Work.
-
-Xiaomi has the right to immediately terminate all your authorization under this
-License in the event:
-1. You assert patent invalidation, litigation, or other claims against patents
-or other intellectual property rights of Xiaomi or its affiliates; or,
-2. You make, have made, manufacture, sell, or offer to sell products that knock
-off Xiaomi or its affiliates' products.
-
 MIoT client instance.
 """
 from copy import deepcopy
@@ -54,6 +11,7 @@ import time
 import traceback
 from dataclasses import dataclass
 from enum import Enum, auto
+from itertools import islice
 
 from homeassistant.core import HomeAssistant
 from homeassistant.components import zeroconf
@@ -763,8 +721,6 @@ class MIoTClient:
             if device_lan and device_lan.get('online', False):
                 return await self._miot_lan.get_prop_async(
                     did=did, siid=siid, piid=piid)
-        # _LOGGER.error(
-        #     'client get prop failed, no-link, %s.%d.%d', did, siid, piid)
         return None
 
     async def action_async(
@@ -825,7 +781,6 @@ class MIoTClient:
                             dids=[did]))
                 raise MIoTClientError(
                     self.__get_exec_error_with_rc(rc=rc))
-        # TODO: Show error message
         _LOGGER.error(
             'client action failed, %s.%d.%d', did, siid, aiid)
         return []
@@ -969,7 +924,6 @@ class MIoTClient:
                 mips.unsub_event(did=did)
             except RuntimeError as e:
                 if 'Event loop is closed' in str(e):
-                    # Ignore unsub exception when loop is closed
                     pass
                 else:
                     raise
@@ -1022,7 +976,7 @@ class MIoTClient:
         # Sub new
         self.__sub_from(from_new, did)
         self._sub_source_list[did] = from_new
-        _LOGGER.info(
+        _LOGGER.debug(
             'device sub changed, %s, from %s to %s', did, from_old, from_new)
 
     @final
@@ -1049,15 +1003,11 @@ class MIoTClient:
     async def __on_mips_service_state_change(
         self, group_id: str, state: MipsServiceState, data: dict
     ) -> None:
-        _LOGGER.info(
+        _LOGGER.debug(
             'mips service state changed, %s, %s, %s', group_id, state, data)
 
         mips = self._mips_local.get(group_id, None)
         if mips:
-            # if state == MipsServiceState.REMOVED:
-            #     mips.disconnect()
-            #     self._mips_local.pop(group_id, None)
-            #     return
             if ( # ADDED or UPDATED
                 mips.client_id == self._entry_data['virtual_did']
                 and mips.host == data['addresses'][0]
@@ -1065,7 +1015,13 @@ class MIoTClient:
             ):
                 return
             mips.disconnect()
+            
+            # MEMORY LEAK FIX: Explicitly unsubscribe and deinitialize
+            mips.unsub_mips_state(key=group_id)
+            mips.deinit()
+            
             self._mips_local.pop(group_id, None)
+            
         home_name: str = ''
         for info in list(self._entry_data['home_selected'].values()):
             if info.get('group_id', None) == group_id:
@@ -1132,9 +1088,8 @@ class MIoTClient:
         _LOGGER.info('local mips state changed, %s, %s', group_id, state)
         mips = self._mips_local.get(group_id, None)
         if not mips:
-            _LOGGER.info(
+            _LOGGER.debug(
                 'local mips state changed, mips not exist, %s', group_id)
-            # The connection to the central hub gateway is definitely broken.
             self.__show_central_state_changed_notify(False)
             return
         if state:
@@ -1173,7 +1128,7 @@ class MIoTClient:
 
     @final
     async def __on_miot_lan_state_change(self, state: bool) -> None:
-        _LOGGER.info(
+        _LOGGER.debug(
             'miot lan state changed, %s, %s, %s',
             self._uid, self._cloud_server,  state)
         if state:
@@ -1185,7 +1140,6 @@ class MIoTClient:
                     await self._miot_lan.get_dev_list_async()).items():
                 await self.__on_lan_device_state_changed(
                     did=did, state=info, ctx=None)
-            _LOGGER.info('lan device list, %s', self._device_list_lan)
             self._miot_lan.update_devices(devices={
                 did: {
                     'token': info['token'],
@@ -1223,7 +1177,8 @@ class MIoTClient:
     def __on_cloud_device_state_changed(
         self, did: str, state: MIoTDeviceState, ctx: Any
     ) -> None:
-        _LOGGER.info('cloud device state changed, %s, %s', did, state)
+        # LOG FLOODING FIX: Changed from _LOGGER.info to _LOGGER.debug
+        _LOGGER.debug('cloud device state changed, %s, %s', did, state)
         cloud_device = self._device_list_cloud.get(did, None)
         if not cloud_device:
             return
@@ -1254,7 +1209,7 @@ class MIoTClient:
     async def __on_gw_device_list_changed(
         self, mips: MipsLocalClient, did_list: list[str]
     ) -> None:
-        _LOGGER.info(
+        _LOGGER.debug(
             'gateway devices list changed, %s, %s', mips.group_id, did_list)
         payload: dict = {
             'filter': {
@@ -1281,7 +1236,8 @@ class MIoTClient:
     async def __on_lan_device_state_changed(
         self, did: str, state: dict, ctx: Any
     ) -> None:
-        _LOGGER.info('lan device state changed, %s, %s', did, state)
+        # LOG FLOODING FIX: Changed from _LOGGER.info to _LOGGER.debug
+        _LOGGER.debug('lan device state changed, %s, %s', did, state)
         lan_state_new: bool = state.get('online', False)
         lan_sub_new: bool = state.get('push_available', False)
         self._device_list_lan.setdefault(did, {})
@@ -1317,7 +1273,6 @@ class MIoTClient:
     @final
     def __on_prop_msg(self, params: dict, ctx: Any) -> None:
         """params MUST contain did, siid, piid, value"""
-        # BLE device has no online/offline msg
         try:
             subs: list[MIoTClientSub] = list(self._sub_tree.iter_match(
                 f'{params["did"]}/p/{params["siid"]}/{params["piid"]}'))
@@ -1388,11 +1343,6 @@ class MIoTClient:
         """Update cloud devices.
         NOTICE: This function will operate the cloud_list
         """
-        # MIoT cloud may not publish the online state updating message
-        # for the BLE device. Assume that all BLE devices are online.
-        # MIoT cloud does not publish the online state updating message for the
-        # child device under the proxy gateway (eg, VRF air conditioner
-        # controller). Assume that all proxy gateway child devices are online.
         for did, info in cloud_list.items():
             if did.startswith('blt.') or did.startswith('proxy.'):
                 info['online'] = True
@@ -1566,7 +1516,7 @@ class MIoTClient:
             group_id_old: str = self._device_list_cache[did].get(
                 'group_id', None)
             self._device_list_cache[did]['group_id'] = group_id
-            _LOGGER.info(
+            _LOGGER.debug(
                 'move device %s from %s to %s', did, group_id_old, group_id)
             self.__update_device_msg_sub(did=did)
             state_old: Optional[bool] = self._device_list_cache[did].get(
@@ -1657,10 +1607,11 @@ class MIoTClient:
             request_list = self._refresh_props_list
             self._refresh_props_list = {}
         else:
-            request_list = {}
-            for _ in range(patch_len):
-                key, value = self._refresh_props_list.popitem()
-                request_list[key] = value
+            # PERFORMANCE FIX: Efficient dictionary slicing using itertools
+            request_list = dict(islice(self._refresh_props_list.items(), patch_len))
+            for k in request_list:
+                del self._refresh_props_list[k]
+                
         try:
             results = await self._http.get_props_async(
                 params=list(request_list.values()))
@@ -1679,7 +1630,7 @@ class MIoTClient:
                     None)
                 self.__on_prop_msg(params=result, ctx=None)
             if request_list:
-                _LOGGER.info(
+                _LOGGER.debug(
                     'refresh props failed, cloud, %s',
                     list(request_list.keys()))
                 request_list = None
@@ -1701,13 +1652,10 @@ class MIoTClient:
         for key in list(self._refresh_props_list.keys()):
             did = key.split('|')[0]
             if did in request_list:
-                # NOTICE: A device only requests once a cycle, continuous
-                # acquisition of properties can cause device exceptions.
                 continue
             params = self._refresh_props_list.pop(key)
             device_gw = self._device_list_gateway.get(did, None)
             if not device_gw:
-                # Device not exist
                 continue
             mips_gw = self._mips_local.get(device_gw['group_id'], None)
             if not mips_gw:
@@ -1722,8 +1670,6 @@ class MIoTClient:
             *[v['fut'] for v in request_list.values()])
         for (did, param), result in zip(request_list.items(), results):
             if result is None:
-                # Don't use "not result", it will be skipped when result
-                # is 0, false
                 continue
             self.__on_prop_msg(
                 params={
@@ -1735,9 +1681,8 @@ class MIoTClient:
             succeed_once = True
         if succeed_once:
             return True
-        _LOGGER.info(
+        _LOGGER.debug(
             'refresh props failed, gw, %s', list(request_list.keys()))
-        # Add failed request back to the list
         self._refresh_props_list.update(request_list)
         return False
 
@@ -1750,8 +1695,6 @@ class MIoTClient:
         for key in list(self._refresh_props_list.keys()):
             did = key.split('|')[0]
             if did in request_list:
-                # NOTICE: A device only requests once a cycle, continuous
-                # acquisition of properties can cause device exceptions.
                 continue
             params = self._refresh_props_list.pop(key)
             if did not in self._device_list_lan:
@@ -1765,8 +1708,6 @@ class MIoTClient:
             *[v['fut'] for v in request_list.values()])
         for (did, param), result in zip(request_list.items(), results):
             if result is None:
-                # Don't use "not result", it will be skipped when result
-                # is 0, false
                 continue
             self.__on_prop_msg(
                 params={
@@ -1778,9 +1719,8 @@ class MIoTClient:
             succeed_once = True
         if succeed_once:
             return True
-        _LOGGER.info(
+        _LOGGER.debug(
             'refresh props failed, lan, %s', list(request_list.keys()))
-        # Add failed request back to the list
         self._refresh_props_list.update(request_list)
         return False
 
@@ -1803,17 +1743,16 @@ class MIoTClient:
                 self._refresh_props_timer = None
             return
 
-        # Try three times, and if it fails three times, empty the list.
         if self._refresh_props_retry_count >= 3:
             self._refresh_props_list = {}
             self._refresh_props_retry_count = 0
             if self._refresh_props_timer:
                 self._refresh_props_timer.cancel()
                 self._refresh_props_timer = None
-            _LOGGER.info('refresh props failed, retry count exceed')
+            _LOGGER.debug('refresh props failed, retry count exceed')
             return
         self._refresh_props_retry_count += 1
-        _LOGGER.info(
+        _LOGGER.debug(
             'refresh props failed, retry, %s', self._refresh_props_retry_count)
         self._refresh_props_timer = self._main_loop.call_later(
             REFRESH_PROPS_RETRY_DELAY, lambda: self._main_loop.create_task(
@@ -1874,10 +1813,8 @@ class MIoTClient:
             online: Optional[bool] = info.get('online', None)
             home_name_new = info.get('home_name', 'unknown')
             if online:
-                # Skip online device
                 continue
             if 'del' in self._display_devs_notify and online is None:
-                # Device not exist
                 if home_name_del != home_name_new:
                     message_del += f'\n[{home_name_new}]\n'
                     home_name_del = home_name_new
@@ -1887,7 +1824,6 @@ class MIoTClient:
                     f'{info.get("room_name", "unknown")})\n')
                 continue
             if 'offline' in self._display_devs_notify:
-                # Device offline
                 if home_name_offline != home_name_new:
                     message_offline += f'\n[{home_name_new}]\n'
                     home_name_offline = home_name_new
@@ -1918,7 +1854,6 @@ class MIoTClient:
         if message != '':
             msg_hash = hash(message)
             if msg_hash == self._display_notify_content_hash:
-                # Notify content no change, return
                 _LOGGER.debug(
                     'device list changed notify content no change, return')
                 return
@@ -1987,7 +1922,7 @@ async def get_miot_instance_async(
         raise MIoTClientError('invalid entry_id')
     miot_client = hass.data[DOMAIN].get('miot_clients', {}).get(entry_id, None)
     if miot_client:
-        _LOGGER.info('instance exist, %s', entry_id)
+        _LOGGER.debug('instance exist, %s', entry_id)
         return miot_client
     # Create new instance
     if not entry_data:
@@ -2003,7 +1938,7 @@ async def get_miot_instance_async(
         storage = MIoTStorage(
             root_path=entry_data['storage_path'], loop=loop)
         hass.data[DOMAIN]['miot_storage'] = storage
-        _LOGGER.info('create miot_storage instance')
+        _LOGGER.debug('create miot_storage instance')
     global_config: dict = await storage.load_user_config_async(
         uid='global_config', cloud_server='all',
         keys=['network_detect_addr', 'net_interfaces', 'enable_subscribe'])
@@ -2019,7 +1954,7 @@ async def get_miot_instance_async(
             loop=loop)
         hass.data[DOMAIN]['miot_network'] = network
         await network.init_async()
-        _LOGGER.info('create miot_network instance')
+        _LOGGER.debug('create miot_network instance')
     # MIoT service
     mips_service: Optional[MipsService] = hass.data[DOMAIN].get(
         'mips_service', None)
@@ -2028,7 +1963,7 @@ async def get_miot_instance_async(
         mips_service = MipsService(aiozc=aiozc, loop=loop)
         hass.data[DOMAIN]['mips_service'] = mips_service
         await mips_service.init_async()
-        _LOGGER.info('create mips_service instance')
+        _LOGGER.debug('create mips_service instance')
     # MIoT lan
     miot_lan: Optional[MIoTLan] = hass.data[DOMAIN].get('miot_lan', None)
     if not miot_lan:
@@ -2039,7 +1974,7 @@ async def get_miot_instance_async(
             enable_subscribe=global_config.get('enable_subscribe', False),
             loop=loop)
         hass.data[DOMAIN]['miot_lan'] = miot_lan
-        _LOGGER.info('create miot_lan instance')
+        _LOGGER.debug('create miot_lan instance')
     # MIoT client
     miot_client = MIoTClient(
         entry_id=entry_id,

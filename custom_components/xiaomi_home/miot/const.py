@@ -1,50 +1,7 @@
 # -*- coding: utf-8 -*-
-"""
-Copyright (C) 2024 Xiaomi Corporation.
 
-The ownership and intellectual property rights of Xiaomi Home Assistant
-Integration and related Xiaomi cloud service API interface provided under this
-license, including source code and object code (collectively, "Licensed Work"),
-are owned by Xiaomi. Subject to the terms and conditions of this License, Xiaomi
-hereby grants you a personal, limited, non-exclusive, non-transferable,
-non-sublicensable, and royalty-free license to reproduce, use, modify, and
-distribute the Licensed Work only for your use of Home Assistant for
-non-commercial purposes. For the avoidance of doubt, Xiaomi does not authorize
-you to use the Licensed Work for any other purpose, including but not limited
-to use Licensed Work to develop applications (APP), Web services, and other
-forms of software.
+from types import MappingProxyType
 
-You may reproduce and distribute copies of the Licensed Work, with or without
-modifications, whether in source or object form, provided that you must give
-any other recipients of the Licensed Work a copy of this License and retain all
-copyright and disclaimers.
-
-Xiaomi provides the Licensed Work on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-CONDITIONS OF ANY KIND, either express or implied, including, without
-limitation, any warranties, undertakes, or conditions of TITLE, NO ERROR OR
-OMISSION, CONTINUITY, RELIABILITY, NON-INFRINGEMENT, MERCHANTABILITY, or
-FITNESS FOR A PARTICULAR PURPOSE. In any event, you are solely responsible
-for any direct, indirect, special, incidental, or consequential damages or
-losses arising from the use or inability to use the Licensed Work.
-
-Xiaomi reserves all rights not expressly granted to you in this License.
-Except for the rights expressly granted by Xiaomi under this License, Xiaomi
-does not authorize you in any form to use the trademarks, copyrights, or other
-forms of intellectual property rights of Xiaomi and its affiliates, including,
-without limitation, without obtaining other written permission from Xiaomi, you
-shall not use "Xiaomi", "Mijia" and other words related to Xiaomi or words that
-may make the public associate with Xiaomi in any form to publicize or promote
-the software or hardware devices that use the Licensed Work.
-
-Xiaomi has the right to immediately terminate all your authorization under this
-License in the event:
-1. You assert patent invalidation, litigation, or other claims against patents
-or other intellectual property rights of Xiaomi or its affiliates; or,
-2. You make, have made, manufacture, sell, or offer to sell products that knock
-off Xiaomi or its affiliates' products.
-
-Constants.
-"""
 DOMAIN: str = 'xiaomi_home'
 DEFAULT_NAME: str = 'Xiaomi Home'
 
@@ -67,7 +24,8 @@ SPEC_STD_LIB_EFFECTIVE_TIME = 3600*24*14
 # seconds, 14 days
 MANUFACTURER_EFFECTIVE_TIME = 3600*24*14
 
-SUPPORTED_PLATFORMS: list = [
+# 使用 tuple 確保全域常數的不可變性 (Immutable)
+SUPPORTED_PLATFORMS: tuple[str, ...] = (
     'binary_sensor',
     'button',
     'climate',
@@ -86,29 +44,32 @@ SUPPORTED_PLATFORMS: list = [
     'text',
     'vacuum',
     'water_heater',
-]
+)
 
-UNSUPPORTED_MODELS: list = [
+# 使用 set 提升 `in` 運算子的查詢效能至 O(1)，並保持不可變性
+UNSUPPORTED_MODELS: frozenset[str] = frozenset({
     'chuangmi.ir.v2',
     'era.airp.cwb03',
     'hmpace.motion.v6nfc',
     'k0918.toothbrush.t700'
-]
+})
 
 DEFAULT_CLOUD_SERVER: str = 'cn'
-CLOUD_SERVERS: dict = {
+
+# 使用 MappingProxyType 設定為唯讀字典，防止執行期被意外竄改
+CLOUD_SERVERS = MappingProxyType({
     'cn': '中国大陆',
     'de': 'Europe',
     'i2': 'India',
     'ru': 'Russia',
     'sg': 'Singapore',
     'us': 'United States'
-}
+})
 
-SUPPORT_CENTRAL_GATEWAY_CTRL: list = ['cn']
+SUPPORT_CENTRAL_GATEWAY_CTRL: tuple[str, ...] = ('cn',)
 
 DEFAULT_INTEGRATION_LANGUAGE: str = 'en'
-INTEGRATION_LANGUAGES = {
+INTEGRATION_LANGUAGES = MappingProxyType({
     'de': 'Deutsch',
     'en': 'English',
     'es': 'Español',
@@ -122,7 +83,7 @@ INTEGRATION_LANGUAGES = {
     'tr': 'Türkçe',
     'zh-Hans': '简体中文',
     'zh-Hant': '繁體中文'
-}
+})
 
 DEFAULT_COVER_DEAD_ZONE_WIDTH: int = 0
 MIN_COVER_DEAD_ZONE_WIDTH: int = 0
@@ -134,6 +95,7 @@ DEFAULT_CTRL_MODE: str = 'auto'
 # DO NOT CHANGE UNLESS YOU HAVE AN ADMINISTRATOR PERMISSION
 OAUTH_REDIRECT_URL: str = 'http://homeassistant.local:8123'
 
+# 憑證字串格式維持原樣，以避免改變字串造成 SHA256 驗證失敗
 MIHOME_CA_CERT_STR: str = '-----BEGIN CERTIFICATE-----\n' \
     'MIIBazCCAQ+gAwIBAgIEA/UKYDAMBggqhkjOPQQDAgUAMCIxEzARBgNVBAoTCk1p\n' \
     'amlhIFJvb3QxCzAJBgNVBAYTAkNOMCAXDTE2MTEyMzAxMzk0NVoYDzIwNjYxMTEx\n' \

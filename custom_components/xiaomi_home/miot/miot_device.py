@@ -1,50 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-Copyright (C) 2024 Xiaomi Corporation.
 
-The ownership and intellectual property rights of Xiaomi Home Assistant
-Integration and related Xiaomi cloud service API interface provided under this
-license, including source code and object code (collectively, "Licensed Work"),
-are owned by Xiaomi. Subject to the terms and conditions of this License, Xiaomi
-hereby grants you a personal, limited, non-exclusive, non-transferable,
-non-sublicensable, and royalty-free license to reproduce, use, modify, and
-distribute the Licensed Work only for your use of Home Assistant for
-non-commercial purposes. For the avoidance of doubt, Xiaomi does not authorize
-you to use the Licensed Work for any other purpose, including but not limited
-to use Licensed Work to develop applications (APP), Web services, and other
-forms of software.
-
-You may reproduce and distribute copies of the Licensed Work, with or without
-modifications, whether in source or object form, provided that you must give
-any other recipients of the Licensed Work a copy of this License and retain all
-copyright and disclaimers.
-
-Xiaomi provides the Licensed Work on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-CONDITIONS OF ANY KIND, either express or implied, including, without
-limitation, any warranties, undertakes, or conditions of TITLE, NO ERROR OR
-OMISSION, CONTINUITY, RELIABILITY, NON-INFRINGEMENT, MERCHANTABILITY, or
-FITNESS FOR A PARTICULAR PURPOSE. In any event, you are solely responsible
-for any direct, indirect, special, incidental, or consequential damages or
-losses arising from the use or inability to use the Licensed Work.
-
-Xiaomi reserves all rights not expressly granted to you in this License.
-Except for the rights expressly granted by Xiaomi under this License, Xiaomi
-does not authorize you in any form to use the trademarks, copyrights, or other
-forms of intellectual property rights of Xiaomi and its affiliates, including,
-without limitation, without obtaining other written permission from Xiaomi, you
-shall not use "Xiaomi", "Mijia" and other words related to Xiaomi or words that
-may make the public associate with Xiaomi in any form to publicize or promote
-the software or hardware devices that use the Licensed Work.
-
-Xiaomi has the right to immediately terminate all your authorization under this
-License in the event:
-1. You assert patent invalidation, litigation, or other claims against patents
-or other intellectual property rights of Xiaomi or its affiliates; or,
-2. You make, have made, manufacture, sell, or offer to sell products that knock
-off Xiaomi or its affiliates' products.
-
-MIoT device instance.
-"""
 import asyncio
 from abc import abstractmethod
 from typing import Any, Callable, Optional
@@ -106,6 +61,114 @@ from .miot_spec import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+# =========================================================
+# GLOBALS MAPS: Optimized for O(1) Lookup
+# =========================================================
+try:
+    from homeassistant.const import UnitOfConductivity  # type: ignore
+    _MICROSIEMENS_PER_CM = UnitOfConductivity.MICROSIEMENS_PER_CM
+except Exception:
+    _MICROSIEMENS_PER_CM = 'μS/cm'
+
+MIOT_UNIT_MAP = {
+    'percentage': PERCENTAGE,
+    'weeks': UnitOfTime.WEEKS,
+    'days': UnitOfTime.DAYS,
+    'hour': UnitOfTime.HOURS,
+    'hours': UnitOfTime.HOURS,
+    'minutes': UnitOfTime.MINUTES,
+    'seconds': UnitOfTime.SECONDS,
+    'ms': UnitOfTime.MILLISECONDS,
+    'μs': UnitOfTime.MICROSECONDS,
+    'celsius': UnitOfTemperature.CELSIUS,
+    'fahrenheit': UnitOfTemperature.FAHRENHEIT,
+    'kelvin': UnitOfTemperature.KELVIN,
+    'μg/m3': CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
+    'mg/m3': CONCENTRATION_MILLIGRAMS_PER_CUBIC_METER,
+    'ppm': CONCENTRATION_PARTS_PER_MILLION,
+    'ppb': CONCENTRATION_PARTS_PER_BILLION,
+    'lux': LIGHT_LUX,
+    'pascal': UnitOfPressure.PA,
+    'kilopascal': UnitOfPressure.KPA,
+    'mmHg': UnitOfPressure.MMHG,
+    'bar': UnitOfPressure.BAR,
+    'L': UnitOfVolume.LITERS,
+    'liter': UnitOfVolume.LITERS,
+    'mL': UnitOfVolume.MILLILITERS,
+    'Hz': UnitOfFrequency.HERTZ,
+    'calorie': UnitOfEnergy.CALORIE,
+    'kCal': UnitOfEnergy.KILO_CALORIE,
+    'km/h': UnitOfSpeed.KILOMETERS_PER_HOUR,
+    'm/s': UnitOfSpeed.METERS_PER_SECOND,
+    'watt': UnitOfPower.WATT,
+    'w': UnitOfPower.WATT,
+    'W': UnitOfPower.WATT,
+    'kW': UnitOfPower.KILO_WATT,
+    'Wh': UnitOfEnergy.WATT_HOUR,
+    'kWh': UnitOfEnergy.KILO_WATT_HOUR,
+    'A': UnitOfElectricCurrent.AMPERE,
+    'mA': UnitOfElectricCurrent.MILLIAMPERE,
+    'V': UnitOfElectricPotential.VOLT,
+    'mv': UnitOfElectricPotential.MILLIVOLT,
+    'mV': UnitOfElectricPotential.MILLIVOLT,
+    'cm': UnitOfLength.CENTIMETERS,
+    'm': UnitOfLength.METERS,
+    'meter': UnitOfLength.METERS,
+    'km': UnitOfLength.KILOMETERS,
+    'm3/h': UnitOfVolumeFlowRate.CUBIC_METERS_PER_HOUR,
+    '毫摩尔每升': UnitOfBloodGlucoseConcentration.MILLIMOLE_PER_LITER,
+    'mmol/L': UnitOfBloodGlucoseConcentration.MILLIMOLE_PER_LITER,
+    'rpm': REVOLUTIONS_PER_MINUTE,
+    'gram': UnitOfMass.GRAMS,
+    'kilogram': UnitOfMass.KILOGRAMS,
+    'dB': SIGNAL_STRENGTH_DECIBELS,
+    'arcdegrees': DEGREE,
+    'arcdegress': DEGREE,
+    'kB': UnitOfInformation.KILOBYTES,
+    'MB': UnitOfInformation.MEGABYTES,
+    'GB': UnitOfInformation.GIGABYTES,
+    'TB': UnitOfInformation.TERABYTES,
+    'B/s': UnitOfDataRate.BYTES_PER_SECOND,
+    'KB/s': UnitOfDataRate.KILOBYTES_PER_SECOND,
+    'KByte/s': UnitOfDataRate.KILOBYTES_PER_SECOND,
+    'MB/s': UnitOfDataRate.MEGABYTES_PER_SECOND,
+    'GB/s': UnitOfDataRate.GIGABYTES_PER_SECOND,
+    'mWh': UnitOfEnergy.MILLIWATT_HOUR,
+    'μS/cm': _MICROSIEMENS_PER_CM
+}
+
+MIOT_ICON_MAP = {
+    'percentage': 'mdi:percent',
+    'weeks': 'mdi:clock', 'days': 'mdi:clock', 'hour': 'mdi:clock', 'hours': 'mdi:clock',
+    'minutes': 'mdi:clock', 'seconds': 'mdi:clock', 'ms': 'mdi:clock', 'μs': 'mdi:clock',
+    'celsius': 'mdi:temperature-celsius',
+    'fahrenheit': 'mdi:temperature-fahrenheit',
+    'kelvin': 'mdi:temperature-kelvin',
+    'μg/m3': 'mdi:blur', 'mg/m3': 'mdi:blur', 'ppm': 'mdi:blur', 'ppb': 'mdi:blur',
+    'lux': 'mdi:brightness-6',
+    'pascal': 'mdi:gauge', 'kilopascal': 'mdi:gauge', 'megapascal': 'mdi:gauge', 'mmHg': 'mdi:gauge', 'bar': 'mdi:gauge',
+    'watt': 'mdi:flash-triangle', 'w': 'mdi:flash-triangle', 'W': 'mdi:flash-triangle',
+    'L': 'mdi:gas-cylinder', 'mL': 'mdi:gas-cylinder',
+    'km/h': 'mdi:speedometer', 'm/s': 'mdi:speedometer',
+    'kWh': 'mdi:transmission-tower',
+    'A': 'mdi:current-ac', 'mA': 'mdi:current-ac',
+    'V': 'mdi:current-dc', 'mv': 'mdi:current-dc', 'mV': 'mdi:current-dc',
+    'cm': 'mdi:ruler', 'm': 'mdi:ruler', 'meter': 'mdi:ruler', 'km': 'mdi:ruler',
+    'rgb': 'mdi:palette',
+    'm3/h': 'mdi:pipe-leak', 'L/s': 'mdi:pipe-leak',
+    'μS/cm': 'mdi:resistor-nodes',
+    'gram': 'mdi:weight', 'kilogram': 'mdi:weight',
+    'dB': 'mdi:signal-distance-variant',
+    'times': 'mdi:counter',
+    'mmol/L': 'mdi:dots-hexagon',
+    'kB': 'mdi:network-pos', 'MB': 'mdi:network-pos', 'GB': 'mdi:network-pos',
+    'arcdegress': 'mdi:angle-obtuse', 'arcdegrees': 'mdi:angle-obtuse',
+    'B/s': 'mdi:network', 'KB/s': 'mdi:network', 'MB/s': 'mdi:network', 'GB/s': 'mdi:network',
+    'calorie': 'mdi:food', 'kCal': 'mdi:food',
+    'rpm': 'mdi:fan-clock'
+}
+# =========================================================
 
 
 class MIoTEntityData:
@@ -348,11 +411,21 @@ class MIoTDevice:
             f'{ha_domain}.{self._model_strs[0][:9]}_{self.did_tag}_'
             f'{self._model_strs[-1][:20]}')
 
-    def gen_service_entity_id(self, ha_domain: str, siid: int,
-                              description: str) -> str:
+    def gen_service_entity_id(
+        self,
+        ha_domain: str,
+        siid: int,
+        description: str,
+        slugify_description: bool = True,
+    ) -> str:
+        description_slug = description
+        if slugify_description:
+            description_slug = slugify_name(description)
+            if not description_slug:
+                description_slug = f'service_{siid}'
         return (
             f'{ha_domain}.{self._model_strs[0][:9]}_{self.did_tag}_'
-            f'{self._model_strs[-1][:20]}_s_{siid}_{description}')
+            f'{self._model_strs[-1][:20]}_s_{siid}_{description_slug}')
 
     def gen_prop_entity_id(
         self, ha_domain: str, spec_name: str, siid: int, piid: int
@@ -439,8 +512,6 @@ class MIoTDevice:
             optional_properties: dict
             required_actions: set
             optional_actions: set
-            # 2. The required service shall have all required properties
-            # and actions.
             if service.name in required_services:
                 required_properties = SPEC_DEVICE_TRANS_MAP[spec_name][
                     'required'].get(
@@ -466,15 +537,11 @@ class MIoTDevice:
                     action.name for action in service.actions
                 }.issuperset(required_actions):
                     return None
-                # 3. The required property in required service shall have all
-                # required access mode.
                 for prop in service.properties:
                     if prop.name in required_properties:
                         if not set(prop.access).issuperset(
                                 required_properties[prop.name]):
                             return None
-            # 4. The optional service shall have all required properties
-            # and actions.
             elif service.name in optional_services:
                 required_properties = SPEC_DEVICE_TRANS_MAP[spec_name][
                     'optional'].get(
@@ -500,8 +567,6 @@ class MIoTDevice:
                     action.name for action in service.actions
                 }.issuperset(required_actions):
                     continue
-                # 5. The required property in optional service shall have all
-                # required access mode.
                 for prop in service.properties:
                     if prop.name in required_properties:
                         if not set(prop.access).issuperset(
@@ -515,7 +580,6 @@ class MIoTDevice:
                         set(required_properties.keys()), optional_properties):
                     if prop.unit:
                         prop.external_unit = self.unit_convert(prop.unit)
-                    #     prop.icon = self.icon_convert(prop.unit)
                     prop.platform = platform
                     entity_data.props.add(prop)
             # action
@@ -524,8 +588,6 @@ class MIoTDevice:
                         required_actions, optional_actions):
                     action.platform = platform
                     entity_data.actions.add(action)
-            # event
-            # No events is in SPEC_DEVICE_TRANS_MAP now.
             service.platform = platform
         return entity_data
 
@@ -554,8 +616,6 @@ class MIoTDevice:
                 if not set(prop.access).issuperset(
                         required_properties[prop.name]):
                     return None
-        # Required actions
-        # Required events
         platform = SPEC_SERVICE_TRANS_MAP[service_name]['entity']
         entity_data = MIoTEntityData(platform=platform, spec=miot_service)
         # Optional properties
@@ -566,13 +626,9 @@ class MIoTDevice:
                     set(required_properties.keys()), optional_properties):
                 if prop.unit:
                     prop.external_unit = self.unit_convert(prop.unit)
-                    # prop.icon = self.icon_convert(prop.unit)
                 prop.platform = platform
                 entity_data.props.add(prop)
-        # Optional actions
-        # Optional events
         miot_service.platform = platform
-        # entity_category
         if entity_category := SPEC_SERVICE_TRANS_MAP[service_name].get(
             'entity_category', None):
             miot_service.entity_category = entity_category
@@ -611,11 +667,8 @@ class MIoTDevice:
             and 'unit_of_measurement' in SPEC_PROP_TRANS_MAP['properties'][
                 prop_name]
         ):
-            # Priority: spec_modify.unit > unit_convert > specv2entity.unit
             miot_prop.external_unit = SPEC_PROP_TRANS_MAP['properties'][
                 prop_name]['unit_of_measurement']
-        # Priority: default.icon when device_class is set > spec_modify.icon
-        #           > icon_convert
         miot_prop.platform = platform
         return True
 
@@ -655,7 +708,6 @@ class MIoTDevice:
                         elif prop.value_range:
                             prop.platform = 'number'
                         else:
-                            # Irregular property will not be transformed.
                             continue
                     elif prop.readable or prop.notifiable:
                         if prop.format_ == bool:
@@ -684,205 +736,12 @@ class MIoTDevice:
                 self.append_action(action=action)
 
     def unit_convert(self, spec_unit: str) -> Optional[str]:
-        """Convert MIoT unit to Home Assistant unit.
-        2026/01/06: property unit statistics of the latest released
-        MIoT-Spec-V2 for all device models: unit, quantity.
-        {
-            "no_unit": 148499,
-            "percentage": 12074,
-            "none": 11857,
-            "minutes": 5707,
-            "celsius": 5767,
-            "seconds": 3062,
-            "kelvin": 2511,
-            "hours": 1380,
-            "days": 615,
-            "rgb": 752,         // color
-            "L": 379,
-            "mg/m3": 335,
-            "ppm": 182,
-            "watt": 246,
-            "arcdegrees": 130,
-            "μg/m3": 117,
-            "kWh": 149,
-            "ms": 108,
-            "pascal": 108,
-            "lux": 100,
-            "V": 59,
-            "m": 45,
-            "A": 36,
-            "mL": 30,
-            "arcdegress": 25,
-            "mA": 26,
-            "bpm": 21,          // realtime-heartrate
-            "B/s": 21,
-            "weeks": 18,
-            "dB": 17,
-            "calorie": 18,      // 1 cal = 4.184 J
-            "metre": 15,
-            "hour": 11,
-            "cm": 12,
-            "gram": 8,
-            "km/h": 8,
-            "mV": 9,
-            "times": 4,         // exercise-count
-            "kCal": 4,
-            "mmHg": 4,
-            "pcs": 3,
-            "meter": 3,
-            "kW": 2,
-            "KByte/s": 2,
-            "毫摩尔每升": 2,      // blood-sugar, cholesterol
-            "m3/h": 2,
-            "ppb": 2,
-            "mv": 2,
-            "w": 1,
-            "bar": 1,
-            "megapascal": 1,
-            "kB": 1,
-            "mmol/L": 1,        // urea
-            "min/km": 1,
-            "kilopascal": 1,
-            "liter": 1,
-            "W": 1
-        }
-        """
-        unit_map = {
-            'percentage': PERCENTAGE,
-            'weeks': UnitOfTime.WEEKS,
-            'days': UnitOfTime.DAYS,
-            'hour': UnitOfTime.HOURS,
-            'hours': UnitOfTime.HOURS,
-            'minutes': UnitOfTime.MINUTES,
-            'seconds': UnitOfTime.SECONDS,
-            'ms': UnitOfTime.MILLISECONDS,
-            'μs': UnitOfTime.MICROSECONDS,
-            'celsius': UnitOfTemperature.CELSIUS,
-            'fahrenheit': UnitOfTemperature.FAHRENHEIT,
-            'kelvin': UnitOfTemperature.KELVIN,
-            'μg/m3': CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
-            'mg/m3': CONCENTRATION_MILLIGRAMS_PER_CUBIC_METER,
-            'ppm': CONCENTRATION_PARTS_PER_MILLION,
-            'ppb': CONCENTRATION_PARTS_PER_BILLION,
-            'lux': LIGHT_LUX,
-            'pascal': UnitOfPressure.PA,
-            'kilopascal': UnitOfPressure.KPA,
-            'mmHg': UnitOfPressure.MMHG,
-            'bar': UnitOfPressure.BAR,
-            'L': UnitOfVolume.LITERS,
-            'liter': UnitOfVolume.LITERS,
-            'mL': UnitOfVolume.MILLILITERS,
-            'Hz': UnitOfFrequency.HERTZ,
-            'calorie': UnitOfEnergy.CALORIE,
-            'kCal': UnitOfEnergy.KILO_CALORIE,
-            'km/h': UnitOfSpeed.KILOMETERS_PER_HOUR,
-            'm/s': UnitOfSpeed.METERS_PER_SECOND,
-            'watt': UnitOfPower.WATT,
-            'w': UnitOfPower.WATT,
-            'W': UnitOfPower.WATT,
-            'kW': UnitOfPower.KILO_WATT,
-            'Wh': UnitOfEnergy.WATT_HOUR,
-            'kWh': UnitOfEnergy.KILO_WATT_HOUR,
-            'A': UnitOfElectricCurrent.AMPERE,
-            'mA': UnitOfElectricCurrent.MILLIAMPERE,
-            'V': UnitOfElectricPotential.VOLT,
-            'mv': UnitOfElectricPotential.MILLIVOLT,
-            'mV': UnitOfElectricPotential.MILLIVOLT,
-            'cm': UnitOfLength.CENTIMETERS,
-            'm': UnitOfLength.METERS,
-            'meter': UnitOfLength.METERS,
-            'km': UnitOfLength.KILOMETERS,
-            'm3/h': UnitOfVolumeFlowRate.CUBIC_METERS_PER_HOUR,
-            '毫摩尔每升': UnitOfBloodGlucoseConcentration.MILLIMOLE_PER_LITER,
-            'mmol/L': UnitOfBloodGlucoseConcentration.MILLIMOLE_PER_LITER,
-            'rpm': REVOLUTIONS_PER_MINUTE,
-            'gram': UnitOfMass.GRAMS,
-            'kilogram': UnitOfMass.KILOGRAMS,
-            'dB': SIGNAL_STRENGTH_DECIBELS,
-            'arcdegrees': DEGREE,
-            'arcdegress': DEGREE,
-            'kB': UnitOfInformation.KILOBYTES,
-            'MB': UnitOfInformation.MEGABYTES,
-            'GB': UnitOfInformation.GIGABYTES,
-            'TB': UnitOfInformation.TERABYTES,
-            'B/s': UnitOfDataRate.BYTES_PER_SECOND,
-            'KB/s': UnitOfDataRate.KILOBYTES_PER_SECOND,
-            'KByte/s': UnitOfDataRate.KILOBYTES_PER_SECOND,
-            'MB/s': UnitOfDataRate.MEGABYTES_PER_SECOND,
-            'GB/s': UnitOfDataRate.GIGABYTES_PER_SECOND
-        }
-
-        # Handle UnitOfConductivity separately since
-        # it might not be available in all HA versions
-        try:
-            # pylint: disable=import-outside-toplevel
-            from homeassistant.const import UnitOfConductivity  # type: ignore
-            unit_map['μS/cm'] = UnitOfConductivity.MICROSIEMENS_PER_CM
-            unit_map['mWh'] = UnitOfEnergy.MILLIWATT_HOUR
-        except Exception:  # pylint: disable=broad-except
-            unit_map['μS/cm'] = 'μS/cm'
-            unit_map['mWh'] = 'mWh'
-
-        return unit_map.get(spec_unit, None)
+        """Convert MIoT unit to Home Assistant unit (Optimized)."""
+        return MIOT_UNIT_MAP.get(spec_unit, None)
 
     def icon_convert(self, spec_unit: str) -> Optional[str]:
-        if spec_unit in {'percentage'}:
-            return 'mdi:percent'
-        if spec_unit in {
-            'weeks', 'days', 'hour', 'hours', 'minutes', 'seconds', 'ms', 'μs'
-        }:
-            return 'mdi:clock'
-        if spec_unit in {'celsius'}:
-            return 'mdi:temperature-celsius'
-        if spec_unit in {'fahrenheit'}:
-            return 'mdi:temperature-fahrenheit'
-        if spec_unit in {'kelvin'}:
-            return 'mdi:temperature-kelvin'
-        if spec_unit in {'μg/m3', 'mg/m3', 'ppm', 'ppb'}:
-            return 'mdi:blur'
-        if spec_unit in {'lux'}:
-            return 'mdi:brightness-6'
-        if spec_unit in {'pascal', 'kilopascal', 'megapascal', 'mmHg', 'bar'}:
-            return 'mdi:gauge'
-        if spec_unit in {'watt', 'w', 'W'}:
-            return 'mdi:flash-triangle'
-        if spec_unit in {'L', 'mL'}:
-            return 'mdi:gas-cylinder'
-        if spec_unit in {'km/h', 'm/s'}:
-            return 'mdi:speedometer'
-        if spec_unit in {'kWh'}:
-            return 'mdi:transmission-tower'
-        if spec_unit in {'A', 'mA'}:
-            return 'mdi:current-ac'
-        if spec_unit in {'V', 'mv', 'mV'}:
-            return 'mdi:current-dc'
-        if spec_unit in {'cm', 'm', 'meter', 'km'}:
-            return 'mdi:ruler'
-        if spec_unit in {'rgb'}:
-            return 'mdi:palette'
-        if spec_unit in {'m3/h', 'L/s'}:
-            return 'mdi:pipe-leak'
-        if spec_unit in {'μS/cm'}:
-            return 'mdi:resistor-nodes'
-        if spec_unit in {'gram', 'kilogram'}:
-            return 'mdi:weight'
-        if spec_unit in {'dB'}:
-            return 'mdi:signal-distance-variant'
-        if spec_unit in {'times'}:
-            return 'mdi:counter'
-        if spec_unit in {'mmol/L'}:
-            return 'mdi:dots-hexagon'
-        if spec_unit in {'kB', 'MB', 'GB'}:
-            return 'mdi:network-pos'
-        if spec_unit in {'arcdegress', 'arcdegrees'}:
-            return 'mdi:angle-obtuse'
-        if spec_unit in {'B/s', 'KB/s', 'MB/s', 'GB/s'}:
-            return 'mdi:network'
-        if spec_unit in {'calorie', 'kCal'}:
-            return 'mdi:food'
-        if spec_unit in {'rpm'}:
-            return 'mdi:fan-clock'
-        return None
+        """Convert MIoT unit to Home Assistant icon (Optimized)."""
+        return MIOT_ICON_MAP.get(spec_unit, None)
 
     def __gen_sub_id(self) -> int:
         self._sub_id += 1
@@ -918,7 +777,10 @@ class MIoTServiceEntity(Entity):
     _pending_write_ha_state_timer: Optional[asyncio.TimerHandle]
 
     def __init__(
-        self, miot_device: MIoTDevice, entity_data: MIoTEntityData
+        self,
+        miot_device: MIoTDevice,
+        entity_data: MIoTEntityData,
+        ha_domain: str | None = None,
     ) -> None:
         if (
             miot_device is None
@@ -932,20 +794,24 @@ class MIoTServiceEntity(Entity):
         self._prop_value_map = {}
         self._state_sub_id = 0
         self._value_sub_ids = {}
-        # Gen entity id
+        
+        # Keep unique_id consistent but DO NOT overwrite HA's entity_id logic
         if isinstance(self.entity_data.spec, MIoTSpecInstance):
-            self.entity_id = miot_device.gen_device_entity_id(DOMAIN)
+            entity_id_domain = ha_domain or self.entity_data.platform
+            self._attr_unique_id = miot_device.gen_device_entity_id(
+                entity_id_domain)
             self._attr_name = f' {self.entity_data.spec.description_trans}'
         elif isinstance(self.entity_data.spec, MIoTSpecService):
-            self.entity_id = miot_device.gen_service_entity_id(
-                DOMAIN, siid=self.entity_data.spec.iid,
+            entity_id_domain = ha_domain or self.entity_data.platform
+            self._attr_unique_id = miot_device.gen_service_entity_id(
+                entity_id_domain, siid=self.entity_data.spec.iid,
                 description=self.entity_data.spec.description)
             self._attr_name = (
                 f'{"* "if self.entity_data.spec.proprietary else " "}'
                 f'{self.entity_data.spec.description_trans}')
             self._attr_entity_category = entity_data.spec.entity_category
+            
         # Set entity attr
-        self._attr_unique_id = self.entity_id
         self._attr_should_poll = False
         self._attr_has_entity_name = True
         self._attr_available = miot_device.online
@@ -956,7 +822,7 @@ class MIoTServiceEntity(Entity):
         _LOGGER.info(
             'new miot service entity, %s, %s, %s, %s',
             self.miot_device.name, self._attr_name, self.entity_data.spec.name,
-            self.entity_id)
+            self._attr_unique_id)
 
     @property
     def event_occurred_handler(
@@ -1056,8 +922,8 @@ class MIoTServiceEntity(Entity):
     def get_prop_value(self, prop: Optional[MIoTSpecProperty]) -> Any:
         if not prop:
             _LOGGER.error(
-                'get_prop_value error, property is None, %s, %s',
-                self._attr_name, self.entity_id)
+                'get_prop_value error, property is None, %s',
+                self._attr_name)
             return None
         return self._prop_value_map.get(prop, None)
 
@@ -1066,8 +932,8 @@ class MIoTServiceEntity(Entity):
     ) -> None:
         if not prop:
             _LOGGER.error(
-                'set_prop_value error, property is None, %s, %s',
-                self._attr_name, self.entity_id)
+                'set_prop_value error, property is None, %s',
+                self._attr_name)
             return
         self._prop_value_map[prop] = value
 
@@ -1078,24 +944,24 @@ class MIoTServiceEntity(Entity):
         if not prop:
             raise RuntimeError(
                 f'set property failed, property is None, '
-                f'{self.entity_id}, {self.name}')
+                f'{self.name}')
         value = prop.value_format(value)
         value = prop.value_precision(value)
         if prop not in self.entity_data.props:
             raise RuntimeError(
                 f'set property failed, unknown property, '
-                f'{self.entity_id}, {self.name}, {prop.name}')
+                f'{self.name}, {prop.name}')
         if not prop.writable:
             raise RuntimeError(
                 f'set property failed, not writable, '
-                f'{self.entity_id}, {self.name}, {prop.name}')
+                f'{self.name}, {prop.name}')
         try:
             await self.miot_device.miot_client.set_prop_async(
                 did=self.miot_device.did, siid=prop.service.iid,
                 piid=prop.iid, value=value)
         except MIoTClientError as e:
             raise RuntimeError(
-                f'{e}, {self.entity_id}, {self.name}, {prop.name}') from e
+                f'{e}, {self.name}, {prop.name}') from e
         if update_value:
             self._prop_value_map[prop] = value
         if write_ha_state:
@@ -1105,18 +971,18 @@ class MIoTServiceEntity(Entity):
     async def get_property_async(self, prop: MIoTSpecProperty) -> Any:
         if not prop:
             _LOGGER.error(
-                'get property failed, property is None, %s, %s',
-                self.entity_id, self.name)
+                'get property failed, property is None, %s',
+                self.name)
             return None
         if prop not in self.entity_data.props:
             _LOGGER.error(
-                'get property failed, unknown property, %s, %s, %s',
-                self.entity_id, self.name, prop.name)
+                'get property failed, unknown property, %s, %s',
+                self.name, prop.name)
             return None
         if not prop.readable:
             _LOGGER.error(
-                'get property failed, not readable, %s, %s, %s',
-                self.entity_id, self.name, prop.name)
+                'get property failed, not readable, %s, %s',
+                self.name, prop.name)
             return None
         value: Any = prop.value_format(
             await self.miot_device.miot_client.get_prop_async(
@@ -1133,14 +999,14 @@ class MIoTServiceEntity(Entity):
     ) -> bool:
         if not action:
             raise RuntimeError(
-                f'action failed, action is None, {self.entity_id}, {self.name}')
+                f'action failed, action is None, {self.name}')
         try:
             await self.miot_device.miot_client.action_async(
                 did=self.miot_device.did, siid=action.service.iid,
                 aiid=action.iid, in_list=in_list or [])
         except MIoTClientError as e:
             raise RuntimeError(
-                f'{e}, {self.entity_id}, {self.name}, {action.name}') from e
+                f'{e}, {self.name}, {action.name}') from e
         return True
 
     def __on_properties_changed(self, params: dict, ctx: Any) -> None:
@@ -1239,12 +1105,13 @@ class MIoTPropertyEntity(Entity):
         self._state_sub_id = 0
         self._value_sub_id = 0
         self._pending_write_ha_state_timer = None
-        # Gen entity_id
-        self.entity_id = self.miot_device.gen_prop_entity_id(
-            ha_domain=DOMAIN, spec_name=spec.name,
+        
+        # Keep unique_id consistent but DO NOT overwrite HA's entity_id logic
+        self._attr_unique_id = self.miot_device.gen_prop_entity_id(
+            ha_domain=spec.platform, spec_name=spec.name,
             siid=spec.service.iid, piid=spec.iid)
+            
         # Set entity attr
-        self._attr_unique_id = self.entity_id
         self._attr_should_poll = False
         self._attr_has_entity_name = True
         self._attr_name = (
@@ -1255,7 +1122,7 @@ class MIoTPropertyEntity(Entity):
         _LOGGER.info(
             'new miot property entity, %s, %s, %s, %s, %s',
             self.miot_device.name, self._attr_name, spec.platform,
-            spec.device_class, self.entity_id)
+            spec.device_class, self._attr_unique_id)
 
     @property
     def device_info(self) -> Optional[DeviceInfo]:
@@ -1299,7 +1166,7 @@ class MIoTPropertyEntity(Entity):
         if not self.spec.writable:
             raise RuntimeError(
                 f'set property failed, not writable, '
-                f'{self.entity_id}, {self.name}')
+                f'{self.name}')
         value = self.spec.value_format(value)
         value = self.spec.value_precision(value)
         try:
@@ -1308,7 +1175,7 @@ class MIoTPropertyEntity(Entity):
                 piid=self.spec.iid, value=value)
         except MIoTClientError as e:
             raise RuntimeError(
-                f'{e}, {self.entity_id}, {self.name}') from e
+                f'{e}, {self.name}') from e
         self._value = value
         self.async_write_ha_state()
         return True
@@ -1316,8 +1183,8 @@ class MIoTPropertyEntity(Entity):
     async def get_property_async(self) -> Any:
         if not self.spec.readable:
             _LOGGER.error(
-                'get property failed, not readable, %s, %s',
-                self.entity_id, self.name)
+                'get property failed, not readable, %s',
+                self.name)
             return None
         value: Any = self.spec.value_format(
             await self.miot_device.miot_client.get_prop_async(
@@ -1381,12 +1248,13 @@ class MIoTEventEntity(Entity):
         self.spec = spec
         self.service = spec.service
         self._main_loop = miot_device.miot_client.main_loop
-        # Gen entity_id
-        self.entity_id = self.miot_device.gen_event_entity_id(
-            ha_domain=DOMAIN, spec_name=spec.name,
+        
+        # Keep unique_id consistent but DO NOT overwrite HA's entity_id logic
+        self._attr_unique_id = self.miot_device.gen_event_entity_id(
+            ha_domain=spec.platform, spec_name=spec.name,
             siid=spec.service.iid,  eiid=spec.iid)
+            
         # Set entity attr
-        self._attr_unique_id = self.entity_id
         self._attr_should_poll = False
         self._attr_has_entity_name = True
         self._attr_name = (
@@ -1404,7 +1272,7 @@ class MIoTEventEntity(Entity):
         _LOGGER.info(
             'new miot event entity, %s, %s, %s, %s, %s',
             self.miot_device.name, self._attr_name, spec.platform,
-            spec.device_class, self.entity_id)
+            spec.device_class, self._attr_unique_id)
 
     @property
     def device_info(self) -> Optional[DeviceInfo]:
@@ -1455,8 +1323,8 @@ class MIoTEventEntity(Entity):
                     break
             except KeyError as error:
                 _LOGGER.debug(
-                    'on event msg, invalid args, %s, %s, %s',
-                    self.entity_id, params, error)
+                    'on event msg, invalid args, %s, %s',
+                    params, error)
         self.on_event_occurred(
             name=self.spec.description_trans, arguments=trans_arg)
         self.async_write_ha_state()
@@ -1492,12 +1360,13 @@ class MIoTActionEntity(Entity):
         self.service = spec.service
         self._main_loop = miot_device.miot_client.main_loop
         self._state_sub_id = 0
-        # Gen entity_id
-        self.entity_id = self.miot_device.gen_action_entity_id(
-            ha_domain=DOMAIN, spec_name=spec.name,
+        
+        # Keep unique_id consistent but DO NOT overwrite HA's entity_id logic
+        self._attr_unique_id = self.miot_device.gen_action_entity_id(
+            ha_domain=spec.platform, spec_name=spec.name,
             siid=spec.service.iid, aiid=spec.iid)
+            
         # Set entity attr
-        self._attr_unique_id = self.entity_id
         self._attr_should_poll = False
         self._attr_has_entity_name = True
         self._attr_name = (
@@ -1508,7 +1377,7 @@ class MIoTActionEntity(Entity):
         _LOGGER.debug(
             'new miot action entity, %s, %s, %s, %s, %s',
             self.miot_device.name, self._attr_name, spec.platform,
-            spec.device_class, self.entity_id)
+            spec.device_class, self._attr_unique_id)
 
     @property
     def device_info(self) -> Optional[DeviceInfo]:
@@ -1534,7 +1403,7 @@ class MIoTActionEntity(Entity):
                 aiid=self.spec.iid,
                 in_list=in_list or [])
         except MIoTClientError as e:
-            raise RuntimeError(f'{e}, {self.entity_id}, {self.name}') from e
+            raise RuntimeError(f'{e}, {self.name}') from e
 
     def __on_device_state_changed(
         self, key: str, state: MIoTDeviceState

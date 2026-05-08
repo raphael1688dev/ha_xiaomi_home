@@ -1,48 +1,5 @@
 # -*- coding: utf-8 -*-
 """
-Copyright (C) 2024 Xiaomi Corporation.
-
-The ownership and intellectual property rights of Xiaomi Home Assistant
-Integration and related Xiaomi cloud service API interface provided under this
-license, including source code and object code (collectively, "Licensed Work"),
-are owned by Xiaomi. Subject to the terms and conditions of this License, Xiaomi
-hereby grants you a personal, limited, non-exclusive, non-transferable,
-non-sublicensable, and royalty-free license to reproduce, use, modify, and
-distribute the Licensed Work only for your use of Home Assistant for
-non-commercial purposes. For the avoidance of doubt, Xiaomi does not authorize
-you to use the Licensed Work for any other purpose, including but not limited
-to use Licensed Work to develop applications (APP), Web services, and other
-forms of software.
-
-You may reproduce and distribute copies of the Licensed Work, with or without
-modifications, whether in source or object form, provided that you must give
-any other recipients of the Licensed Work a copy of this License and retain all
-copyright and disclaimers.
-
-Xiaomi provides the Licensed Work on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-CONDITIONS OF ANY KIND, either express or implied, including, without
-limitation, any warranties, undertakes, or conditions of TITLE, NO ERROR OR
-OMISSION, CONTINUITY, RELIABILITY, NON-INFRINGEMENT, MERCHANTABILITY, or
-FITNESS FOR A PARTICULAR PURPOSE. In any event, you are solely responsible
-for any direct, indirect, special, incidental, or consequential damages or
-losses arising from the use or inability to use the Licensed Work.
-
-Xiaomi reserves all rights not expressly granted to you in this License.
-Except for the rights expressly granted by Xiaomi under this License, Xiaomi
-does not authorize you in any form to use the trademarks, copyrights, or other
-forms of intellectual property rights of Xiaomi and its affiliates, including,
-without limitation, without obtaining other written permission from Xiaomi, you
-shall not use "Xiaomi", "Mijia" and other words related to Xiaomi or words that
-may make the public associate with Xiaomi in any form to publicize or promote
-the software or hardware devices that use the Licensed Work.
-
-Xiaomi has the right to immediately terminate all your authorization under this
-License in the event:
-1. You assert patent invalidation, litigation, or other claims against patents
-or other intellectual property rights of Xiaomi or its affiliates; or,
-2. You make, have made, manufacture, sell, or offer to sell products that knock
-off Xiaomi or its affiliates' products.
-
 MIoT-Spec-V2 parser.
 """
 import asyncio
@@ -337,54 +294,25 @@ class _SpecStdLib:
                             'https://cdn.cnbj1.fds.api.mi-img.com/res-conf/'
                             f'xiaomi-home/std_ex_{name}.json'))
                 results = await asyncio.gather(*tasks)
-                if results[0]:
-                    for key, value in results[0].items():
-                        if key in std_libs['devices']:
-                            std_libs['devices'][key].update(value)
-                        else:
-                            std_libs['devices'][key] = value
-                else:
-                    _LOGGER.error('get external std lib failed, devices')
-                if results[1]:
-                    for key, value in results[1].items():
-                        if key in std_libs['services']:
-                            std_libs['services'][key].update(value)
-                        else:
-                            std_libs['services'][key] = value
-                else:
-                    _LOGGER.error('get external std lib failed, services')
-                if results[2]:
-                    for key, value in results[2].items():
-                        if key in std_libs['properties']:
-                            std_libs['properties'][key].update(value)
-                        else:
-                            std_libs['properties'][key] = value
-                else:
-                    _LOGGER.error('get external std lib failed, properties')
-                if results[3]:
-                    for key, value in results[3].items():
-                        if key in std_libs['events']:
-                            std_libs['events'][key].update(value)
-                        else:
-                            std_libs['events'][key] = value
-                else:
-                    _LOGGER.error('get external std lib failed, events')
-                if results[4]:
-                    for key, value in results[4].items():
-                        if key in std_libs['actions']:
-                            std_libs['actions'][key].update(value)
-                        else:
-                            std_libs['actions'][key] = value
-                else:
-                    _LOGGER.error('get external std lib failed, actions')
-                if results[5]:
-                    for key, value in results[5].items():
-                        if key in std_libs['values']:
-                            std_libs['values'][key].update(value)
-                        else:
-                            std_libs['values'][key] = value
-                else:
-                    _LOGGER.error('get external std lib failed, values')
+                
+                # Helper function for merging results
+                def merge_results(res_idx: int, target_key: str):
+                    if results[res_idx]:
+                        for k, v in results[res_idx].items():
+                            if k in std_libs[target_key]:
+                                std_libs[target_key][k].update(v)
+                            else:
+                                std_libs[target_key][k] = v
+                    else:
+                        _LOGGER.error('get external std lib failed, %s', target_key)
+
+                merge_results(0, 'devices')
+                merge_results(1, 'services')
+                merge_results(2, 'properties')
+                merge_results(3, 'events')
+                merge_results(4, 'actions')
+                merge_results(5, 'values')
+                
                 return std_libs
             except Exception as err:  # pylint: disable=broad-exception-caught
                 _LOGGER.error('update spec std lib error, retry, %d, %s', index,
@@ -589,8 +517,8 @@ class MIoTSpecProperty(_MIoTSpecBase):
         if not self.expr:
             return src_value
         try:
-            # pylint: disable=eval-used
-            return eval(self.expr, {'src_value': src_value})
+            # 優化：強制移除 __builtins__ 以阻絕 eval 可能造成的 RCE 系統漏洞
+            return eval(self.expr, {"__builtins__": {}}, {'src_value': src_value})
         except Exception as err:  # pylint: disable=broad-exception-caught
             _LOGGER.error('eval expression error, %s, %s, %s, %s', self.iid,
                           src_value, self.expr, err)
@@ -771,35 +699,23 @@ class MIoTSpecInstance:
                                                  'precision', None),
                                              expr=prop.get('expr', None))
                 spec_service.properties.append(spec_prop)
+                
+            # 優化: 建立屬性的 O(1) 快取查找表，取代原有的 O(N^2) 尋找寫法
+            prop_map = {prop.iid: prop for prop in spec_service.properties}
+
             for event in service['events']:
                 spec_event = MIoTSpecEvent(spec=event, service=spec_service)
-                arg_list: list[MIoTSpecProperty] = []
-                for piid in event['argument']:
-                    for prop in spec_service.properties:
-                        if prop.iid == piid:
-                            arg_list.append(prop)
-                            break
-                spec_event.argument = arg_list
+                spec_event.argument = [prop_map[piid] for piid in event['argument'] if piid in prop_map]
                 spec_service.events.append(spec_event)
+                
             for action in service['actions']:
                 spec_action = MIoTSpecAction(spec=action,
                                              service=spec_service,
                                              in_=action['in'])
-                in_list: list[MIoTSpecProperty] = []
-                for piid in action['in']:
-                    for prop in spec_service.properties:
-                        if prop.iid == piid:
-                            in_list.append(prop)
-                            break
-                spec_action.in_ = in_list
-                out_list: list[MIoTSpecProperty] = []
-                for piid in action['out']:
-                    for prop in spec_service.properties:
-                        if prop.iid == piid:
-                            out_list.append(prop)
-                            break
-                spec_action.out = out_list
+                spec_action.in_ = [prop_map[piid] for piid in action['in'] if piid in prop_map]
+                spec_action.out = [prop_map[piid] for piid in action['out'] if piid in prop_map]
                 spec_service.actions.append(spec_action)
+                
             instance.services.append(spec_service)
         return instance
 
@@ -1044,7 +960,9 @@ class _SpecFilter:
         if not isinstance(filter_data, dict):
             _LOGGER.error('spec filter, invalid spec filter content')
             return
-        for values in list(filter_data.values()):
+            
+        # 優化: 移除不必要的 list() 包裝，減少記憶體複製
+        for values in filter_data.values():
             if not isinstance(values, dict):
                 _LOGGER.error('spec filter, invalid spec filter data')
                 return
@@ -1457,10 +1375,15 @@ class MIoTSpecParser:
                 continue
             if type_strs[1] != 'miot-spec-v2':
                 spec_service.proprietary = True
+            
+            # 優化：預先組合字串，避免在後續重複操作
+            type_strs_prefix_5 = ':'.join(type_strs[:5])
+                
             spec_service.description_trans = (
                 self._multi_lang.translate(f's:{service["iid"]}') or
-                self._std_lib.service_translate(key=':'.join(type_strs[:5])) or
+                self._std_lib.service_translate(key=type_strs_prefix_5) or
                 service['description'] or spec_service.name)
+                
             # Parse service property
             for property_ in service.get('properties', []):
                 if ('iid' not in property_ or 'type' not in property_ or
@@ -1488,11 +1411,14 @@ class MIoTSpecParser:
                     continue
                 if p_type_strs[1] != 'miot-spec-v2':
                     spec_prop.proprietary = spec_service.proprietary or True
+                    
+                p_type_strs_prefix_5 = ':'.join(p_type_strs[:5])
+                    
                 spec_prop.description_trans = (
                     self._multi_lang.translate(
                         f'p:{service["iid"]}:{property_["iid"]}') or
                     self._std_lib.property_translate(
-                        key=':'.join(p_type_strs[:5])) or
+                        key=p_type_strs_prefix_5) or
                     property_['description'] or spec_prop.name)
                 # Modify value-list before translation
                 v_list: list[dict] = self._spec_modify.get_prop_value_list(
@@ -1513,7 +1439,7 @@ class MIoTSpecParser:
                 if 'value-range' in property_:
                     spec_prop.value_range = property_['value-range']
                 elif property_['format'] == 'bool':
-                    v_tag = ':'.join(p_type_strs[:5])
+                    v_tag = p_type_strs_prefix_5
                     v_descriptions = (await
                                       self._bool_trans.translate_async(urn=v_tag
                                                                       ))
@@ -1545,6 +1471,10 @@ class MIoTSpecParser:
                     siid=service['iid'], piid=property_['iid'])
                 if custom_name:
                     spec_prop.name = custom_name
+                    
+            # 優化：建立 O(1) 字典查找表，取代下方事件與動作解析時的巢狀迴圈
+            prop_map = {prop.iid: prop for prop in spec_service.properties}
+            
             # Parse service event
             for event in service.get('events', []):
                 if ('iid' not in event or 'type' not in event or
@@ -1569,14 +1499,11 @@ class MIoTSpecParser:
                         f'e:{service["iid"]}:{event["iid"]}') or
                     self._std_lib.event_translate(key=':'.join(e_type_strs[:5]))
                     or event['description'] or spec_event.name)
-                arg_list: list[MIoTSpecProperty] = []
-                for piid in event['arguments']:
-                    for prop in spec_service.properties:
-                        if prop.iid == piid:
-                            arg_list.append(prop)
-                            break
-                spec_event.argument = arg_list
+                    
+                # 優化：使用查找表直接關聯
+                spec_event.argument = [prop_map[piid] for piid in event['arguments'] if piid in prop_map]
                 spec_service.events.append(spec_event)
+                
             # Parse service action
             for action in service.get('actions', []):
                 if ('iid' not in action or 'type' not in action or
@@ -1602,21 +1529,12 @@ class MIoTSpecParser:
                     self._std_lib.action_translate(
                         key=':'.join(a_type_strs[:5])) or
                     action['description'] or spec_action.name)
-                in_list: list[MIoTSpecProperty] = []
-                for piid in action['in']:
-                    for prop in spec_service.properties:
-                        if prop.iid == piid:
-                            in_list.append(prop)
-                            break
-                spec_action.in_ = in_list
-                out_list: list[MIoTSpecProperty] = []
-                for piid in action['out']:
-                    for prop in spec_service.properties:
-                        if prop.iid == piid:
-                            out_list.append(prop)
-                            break
-                spec_action.out = out_list
+                    
+                # 優化：使用查找表直接關聯
+                spec_action.in_ = [prop_map[piid] for piid in action['in'] if piid in prop_map]
+                spec_action.out = [prop_map[piid] for piid in action['out'] if piid in prop_map]
                 spec_service.actions.append(spec_action)
+                
             spec_instance.services.append(spec_service)
 
         await self.__cache_set(urn=urn, data=spec_instance.dump())

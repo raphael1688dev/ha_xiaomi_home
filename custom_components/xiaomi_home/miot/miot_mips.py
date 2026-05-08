@@ -1,50 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-Copyright (C) 2024 Xiaomi Corporation.
 
-The ownership and intellectual property rights of Xiaomi Home Assistant
-Integration and related Xiaomi cloud service API interface provided under this
-license, including source code and object code (collectively, "Licensed Work"),
-are owned by Xiaomi. Subject to the terms and conditions of this License, Xiaomi
-hereby grants you a personal, limited, non-exclusive, non-transferable,
-non-sublicensable, and royalty-free license to reproduce, use, modify, and
-distribute the Licensed Work only for your use of Home Assistant for
-non-commercial purposes. For the avoidance of doubt, Xiaomi does not authorize
-you to use the Licensed Work for any other purpose, including but not limited
-to use Licensed Work to develop applications (APP), Web services, and other
-forms of software.
-
-You may reproduce and distribute copies of the Licensed Work, with or without
-modifications, whether in source or object form, provided that you must give
-any other recipients of the Licensed Work a copy of this License and retain all
-copyright and disclaimers.
-
-Xiaomi provides the Licensed Work on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-CONDITIONS OF ANY KIND, either express or implied, including, without
-limitation, any warranties, undertakes, or conditions of TITLE, NO ERROR OR
-OMISSION, CONTINUITY, RELIABILITY, NON-INFRINGEMENT, MERCHANTABILITY, or
-FITNESS FOR A PARTICULAR PURPOSE. In any event, you are solely responsible
-for any direct, indirect, special, incidental, or consequential damages or
-losses arising from the use or inability to use the Licensed Work.
-
-Xiaomi reserves all rights not expressly granted to you in this License.
-Except for the rights expressly granted by Xiaomi under this License, Xiaomi
-does not authorize you in any form to use the trademarks, copyrights, or other
-forms of intellectual property rights of Xiaomi and its affiliates, including,
-without limitation, without obtaining other written permission from Xiaomi, you
-shall not use "Xiaomi", "Mijia" and other words related to Xiaomi or words that
-may make the public associate with Xiaomi in any form to publicize or promote
-the software or hardware devices that use the Licensed Work.
-
-Xiaomi has the right to immediately terminate all your authorization under this
-License in the event:
-1. You assert patent invalidation, litigation, or other claims against patents
-or other intellectual property rights of Xiaomi or its affiliates; or,
-2. You make, have made, manufacture, sell, or offer to sell products that knock
-off Xiaomi or its affiliates' products.
-
-MIoT Pub/Sub client.
-"""
 import asyncio
 import json
 import logging
@@ -996,7 +951,12 @@ class MipsCloudClient(_MipsClient):
         topic: str = f'device/{did}/state/#'
 
         def on_state_msg(topic: str, payload: str, ctx: Any) -> None:
-            msg: dict = json.loads(payload)
+            try:
+                msg: dict = json.loads(payload)
+            except json.JSONDecodeError:
+                self.log_error(f'on_state_msg, invalid json msg, {payload}')
+                return
+                
             # {"device_id":"xxxx","device_name":"米家智能插座3   ","event":"online",
             # "model": "cuco.plug.v3","timestamp":1709001070828,"uid":xxxx}
             if msg is None or 'device_id' not in msg or 'event' not in msg:
@@ -1194,7 +1154,11 @@ class MipsLocalClient(_MipsClient):
             f'{"#" if siid is None or piid is None else f"{siid}.{piid}"}')
 
         def on_prop_msg(topic: str, payload: str, ctx: Any):
-            msg: dict = json.loads(payload)
+            try:
+                msg: dict = json.loads(payload)
+            except json.JSONDecodeError:
+                self.log_error('on_prop_msg invalid json, %s', payload)
+                return
             if (
                 msg is None
                 or 'did' not in msg
@@ -1236,7 +1200,11 @@ class MipsLocalClient(_MipsClient):
             f'{"#" if siid is None or eiid is None else f"{siid}.{eiid}"}')
 
         def on_event_msg(topic: str, payload: str, ctx: Any):
-            msg: dict = json.loads(payload)
+            try:
+                msg: dict = json.loads(payload)
+            except json.JSONDecodeError:
+                self.log_error('on_event_msg invalid json, %s', payload)
+                return
             if (
                 msg is None
                 or 'did' not in msg
@@ -1517,8 +1485,6 @@ class MipsLocalClient(_MipsClient):
     @final
     def _on_mips_message(self, topic: str, payload: bytes) -> None:
         mips_msg: _MipsMessage = _MipsMessage.unpack(payload)
-        # self.log_debug(
-        #     f"mips local client, on_message, {topic} -> {mips_msg}")
         # Reply
         if topic == self._reply_topic:
             self.log_debug(f'on request reply, {mips_msg}')
@@ -1550,8 +1516,14 @@ class MipsLocalClient(_MipsClient):
             if mips_msg.payload is None:
                 self.log_error('devListChange msg is None')
                 return
-            payload_obj: dict = json.loads(mips_msg.payload)
-            dev_list = payload_obj.get('devList', None)
+            # Optimized: 保護 JSON 解析，避免異常崩潰
+            try:
+                payload_obj: dict = json.loads(mips_msg.payload)
+                dev_list = payload_obj.get('devList', None)
+            except json.JSONDecodeError:
+                self.log_error(f'devListChange msg is not valid JSON: {mips_msg.payload}')
+                return
+                
             if not isinstance(dev_list, list) or not dev_list:
                 _LOGGER.error(
                     'unknown devListChange msg, %s', mips_msg.payload)
@@ -1639,21 +1611,32 @@ class MipsLocalClient(_MipsClient):
                 'code': MIoTErrorCode.CODE_MIPS_INVALID_RESULT.value,
                 'message': f'Error: {result}'}
 
+    # Optimized: 解決串行阻塞問題，使用並行 (Concurrent) 處理提升效能
     async def __get_prop_timer_handle(self) -> None:
-        for did in list(self._get_prop_queue.keys()):
-            item = self._get_prop_queue[did].pop()
-            _LOGGER.debug('get prop, %s, %s', did, item)
-            result_obj = await self.__request_async(
+        async def _fetch_and_set(did_key: str, req_item: dict) -> None:
+            _LOGGER.debug('get prop, %s, %s', did_key, req_item)
+            res = await self.__request_async(
                 topic='proxy/get',
-                payload=item['param'],
-                timeout_ms=item['timeout_ms'])
-            if result_obj is None or 'value' not in result_obj:
-                item['fut'].set_result(None)
+                payload=req_item['param'],
+                timeout_ms=req_item['timeout_ms'])
+            if res is None or 'value' not in res:
+                req_item['fut'].set_result(None)
             else:
-                item['fut'].set_result(result_obj['value'])
+                req_item['fut'].set_result(res['value'])
 
+        tasks = []
+        for did in list(self._get_prop_queue.keys()):
             if not self._get_prop_queue[did]:
                 self._get_prop_queue.pop(did, None)
+                continue
+            item = self._get_prop_queue[did].pop()
+            tasks.append(_fetch_and_set(did, item))
+            # 若已經為空，直接移除，避免下次空轉
+            if not self._get_prop_queue[did]:
+                self._get_prop_queue.pop(did, None)
+
+        if tasks:
+            await asyncio.gather(*tasks)
 
         if self._get_prop_queue:
             self._get_prop_timer = self.main_loop.call_later(

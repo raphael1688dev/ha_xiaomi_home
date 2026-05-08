@@ -1,53 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-Copyright (C) 2024 Xiaomi Corporation.
-
-The ownership and intellectual property rights of Xiaomi Home Assistant
-Integration and related Xiaomi cloud service API interface provided under this
-license, including source code and object code (collectively, "Licensed Work"),
-are owned by Xiaomi. Subject to the terms and conditions of this License, Xiaomi
-hereby grants you a personal, limited, non-exclusive, non-transferable,
-non-sublicensable, and royalty-free license to reproduce, use, modify, and
-distribute the Licensed Work only for your use of Home Assistant for
-non-commercial purposes. For the avoidance of doubt, Xiaomi does not authorize
-you to use the Licensed Work for any other purpose, including but not limited
-to use Licensed Work to develop applications (APP), Web services, and other
-forms of software.
-
-You may reproduce and distribute copies of the Licensed Work, with or without
-modifications, whether in source or object form, provided that you must give
-any other recipients of the Licensed Work a copy of this License and retain all
-copyright and disclaimers.
-
-Xiaomi provides the Licensed Work on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-CONDITIONS OF ANY KIND, either express or implied, including, without
-limitation, any warranties, undertakes, or conditions of TITLE, NO ERROR OR
-OMISSION, CONTINUITY, RELIABILITY, NON-INFRINGEMENT, MERCHANTABILITY, or
-FITNESS FOR A PARTICULAR PURPOSE. In any event, you are solely responsible
-for any direct, indirect, special, incidental, or consequential damages or
-losses arising from the use or inability to use the Licensed Work.
-
-Xiaomi reserves all rights not expressly granted to you in this License.
-Except for the rights expressly granted by Xiaomi under this License, Xiaomi
-does not authorize you in any form to use the trademarks, copyrights, or other
-forms of intellectual property rights of Xiaomi and its affiliates, including,
-without limitation, without obtaining other written permission from Xiaomi, you
-shall not use "Xiaomi", "Mijia" and other words related to Xiaomi or words that
-may make the public associate with Xiaomi in any form to publicize or promote
-the software or hardware devices that use the Licensed Work.
-
-Xiaomi has the right to immediately terminate all your authorization under this
-License in the event:
-1. You assert patent invalidation, litigation, or other claims against patents
-or other intellectual property rights of Xiaomi or its affiliates; or,
-2. You make, have made, manufacture, sell, or offer to sell products that knock
-off Xiaomi or its affiliates' products.
-
 MIoT storage and certificate management.
 """
 import os
 import asyncio
-import binascii
 import json
 import shutil
 import time
@@ -110,16 +66,23 @@ class MIoTStorage:
 
         _LOGGER.debug('root path, %s', self._root_path)
 
+    def _safe_join(self, *paths: str) -> str:
+        """Security Check: Prevent Path Traversal Vulnerability."""
+        target_path = os.path.abspath(os.path.join(self._root_path, *[str(p) for p in paths if p]))
+        if not target_path.startswith(self._root_path):
+            raise ValueError(f"Security Alert: Path traversal detected - {target_path}")
+        return target_path
+
     def __get_full_path(self, domain: str, name: str, suffix: str) -> str:
-        return os.path.join(
-            self._root_path, domain, f'{name}.{suffix}')
+        return self._safe_join(domain, f'{name}.{suffix}')
 
     def __add_file_future(
         self, key: str, op_type: MIoTStorageType, fut: asyncio.Future
     ) -> None:
-        def fut_done_callback(fut: asyncio.Future):
-            del fut
-            self._file_future.pop(key, None)
+        def fut_done_callback(f: asyncio.Future):
+            # 優化：防止 Race condition，確保要移除的 Future 是自己本身
+            if self._file_future.get(key, (None, None))[1] is f:
+                self._file_future.pop(key, None)
 
         fut.add_done_callback(fut_done_callback)
         self._file_future[key] = op_type, fut
@@ -136,9 +99,10 @@ class MIoTStorage:
         try:
             with open(full_path, 'rb') as r_file:
                 r_data: bytes = r_file.read()
-                if r_data is None:
+                if not r_data:
                     _LOGGER.error('load error, empty file, %s', full_path)
                     return None
+                    
                 data_bytes: bytes
                 # Hash check
                 if with_hash_check:
@@ -152,6 +116,7 @@ class MIoTStorage:
                         return None
                 else:
                     data_bytes = r_data
+                    
                 if type_ == bytes:
                     return data_bytes
                 if type_ == str:
@@ -220,6 +185,7 @@ class MIoTStorage:
                     'save error, unsupported data type, %s',
                     type(data).__name__)
                 return False
+                
             with open(full_path, 'wb') as w_file:
                 w_file.write(w_bytes)
                 if with_hash:
@@ -286,11 +252,11 @@ class MIoTStorage:
         return True
 
     def remove_domain(self, domain: str) -> bool:
-        full_path = os.path.join(self._root_path, domain)
+        full_path = self._safe_join(domain)
         return self.__remove_domain(full_path=full_path)
 
     async def remove_domain_async(self, domain: str) -> bool:
-        full_path = os.path.join(self._root_path, domain)
+        full_path = self._safe_join(domain)
         if full_path in self._file_future:
             # Waiting for the last task to be completed
             op_type, fut = self._file_future[full_path]
@@ -310,7 +276,7 @@ class MIoTStorage:
         return await fut
 
     def get_names(self, domain: str, type_: type) -> list[str]:
-        path: str = os.path.join(self._root_path, domain)
+        path = self._safe_join(domain)
         type_str = f'.{type_.__name__}'
         names: list[str] = []
         for item in Path(path).glob(f'*{type_str}'):
@@ -320,8 +286,7 @@ class MIoTStorage:
         return names
 
     def file_exists(self, domain: str, name_with_suffix: str) -> bool:
-        return os.path.exists(
-            os.path.join(self._root_path, domain, name_with_suffix))
+        return os.path.exists(self._safe_join(domain, name_with_suffix))
 
     def save_file(
         self, domain: str, name_with_suffix: str, data: bytes
@@ -329,7 +294,7 @@ class MIoTStorage:
         if not isinstance(data, bytes):
             _LOGGER.error('save file error, file must be bytes')
             return False
-        full_path = os.path.join(self._root_path, domain, name_with_suffix)
+        full_path = self._safe_join(domain, name_with_suffix)
         return self.__save(full_path=full_path, data=data,  with_hash=False)
 
     async def save_file_async(
@@ -338,7 +303,7 @@ class MIoTStorage:
         if not isinstance(data, bytes):
             _LOGGER.error('save file error, file must be bytes')
             return False
-        full_path = os.path.join(self._root_path, domain, name_with_suffix)
+        full_path = self._safe_join(domain, name_with_suffix)
         if full_path in self._file_future:
             # Waiting for the last task to be completed
             fut = self._file_future[full_path][1]
@@ -350,7 +315,7 @@ class MIoTStorage:
         return await fut
 
     def load_file(self, domain: str, name_with_suffix: str) -> Optional[bytes]:
-        full_path = os.path.join(self._root_path, domain, name_with_suffix)
+        full_path = self._safe_join(domain, name_with_suffix)
         return self.__load(
             full_path=full_path, type_=bytes,
             with_hash_check=False)  # type: ignore
@@ -358,7 +323,7 @@ class MIoTStorage:
     async def load_file_async(
         self, domain: str, name_with_suffix: str
     ) -> Optional[bytes]:
-        full_path = os.path.join(self._root_path, domain, name_with_suffix)
+        full_path = self._safe_join(domain, name_with_suffix)
         if full_path in self._file_future:
             # Waiting for the last task to be completed
             op_type, fut = self._file_future[full_path]
@@ -374,13 +339,13 @@ class MIoTStorage:
         return await fut  # type: ignore
 
     def remove_file(self, domain: str, name_with_suffix: str) -> bool:
-        full_path = os.path.join(self._root_path, domain, name_with_suffix)
+        full_path = self._safe_join(domain, name_with_suffix)
         return self.__remove(full_path=full_path)
 
     async def remove_file_async(
         self, domain: str, name_with_suffix: str
     ) -> bool:
-        full_path = os.path.join(self._root_path, domain, name_with_suffix)
+        full_path = self._safe_join(domain, name_with_suffix)
         if full_path in self._file_future:
             # Waiting for the last task to be completed
             op_type, fut = self._file_future[full_path]
@@ -446,18 +411,7 @@ class MIoTStorage:
         self, uid: str, cloud_server: str, config: Optional[dict[str, Any]],
         replace: bool = False
     ) -> bool:
-        """Update user configuration.
-
-        Args:
-            uid (str): user_id
-            config (Optional[dict[str]]):
-                remove config file if config is None
-            replace (bool, optional):
-                replace all config item. Defaults to False.
-
-        Returns:
-            bool: result code
-        """
+        """Update user configuration."""
         if config is not None and len(config) == 0:
             # Do nothing
             return True
@@ -499,16 +453,7 @@ class MIoTStorage:
     async def load_user_config_async(
         self, uid: str, cloud_server: str, keys: Optional[list[str]] = None
     ) -> dict:
-        """Load user configuration.
-
-        Args:
-            uid (str): user id
-            keys (list[str]):
-                query key list, return all config item if keys is None
-
-        Returns:
-            dict[str, Any]: query result
-        """
+        """Load user configuration."""
         if isinstance(keys, list) and len(keys) == 0:
             # Do nothing
             return {}
@@ -529,12 +474,11 @@ class MIoTStorage:
         name_with_suffix: Optional[str] = None
     ) -> str:
         """Generate file path."""
-        result = self._root_path
-        if domain:
-            result = os.path.join(result, domain)
-            if name_with_suffix:
-                result = os.path.join(result, name_with_suffix)
-        return result
+        if not domain:
+            return self._root_path
+        if not name_with_suffix:
+            return self._safe_join(domain)
+        return self._safe_join(domain, name_with_suffix)
 
 
 class MIoTCert:
@@ -595,9 +539,9 @@ class MIoTCert:
             if ca_data is None:
                 raise MIoTStorageError('ca cert load failed')
             _LOGGER.debug('ca cert save success')
-        # Compare the file sha256sum
-        ca_cert_hash = hashlib.sha256(ca_data).digest()
-        hash_str = binascii.hexlify(ca_cert_hash).decode('utf-8')
+            
+        # 優化：使用內建 C 方法的 .hex()，移除多餘的 binascii 模組依賴
+        hash_str = hashlib.sha256(ca_data).digest().hex()
         if hash_str != MIHOME_CA_CERT_SHA256:
             return False
         return True
@@ -605,11 +549,7 @@ class MIoTCert:
     async def user_cert_remaining_time_async(
         self, cert_data: Optional[bytes] = None, did: Optional[str] = None
     ) -> int:
-        """Get the remaining time of user certificate validity.
-
-        Returns:
-            If the certificate is not valid, return 0.
-        """
+        """Get the remaining time of user certificate validity."""
         if cert_data is None:
             cert_data = await self._storage.load_file_async(
                 domain=self.CERT_DOMAIN, name_with_suffix=self._cert_name)
@@ -723,7 +663,8 @@ class MIoTCert:
     def __did_hash(self, did: str) -> str:
         sha1_hash = hashes.Hash(hashes.SHA1(), backend=default_backend())
         sha1_hash.update(did.encode('utf-8'))
-        return binascii.hexlify(sha1_hash.finalize()).decode('utf-8')
+        # 優化：使用內建 C 方法的 .hex()
+        return sha1_hash.finalize().hex()
 
 
 class DeviceManufacturer:
@@ -737,7 +678,8 @@ class DeviceManufacturer:
         self, storage: MIoTStorage,
         loop: Optional[asyncio.AbstractEventLoop] = None
     ) -> None:
-        self._main_loop = loop or asyncio.get_event_loop()
+        # 優化：修正棄用的 get_event_loop()
+        self._main_loop = loop or asyncio.get_running_loop()
         self._storage = storage
         self._data = {}
 
