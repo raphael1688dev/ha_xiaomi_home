@@ -24,10 +24,12 @@ async def async_setup_entry(
     device_list: list[MIoTDevice] = hass.data[DOMAIN]['devices'][
         config_entry.entry_id]
 
-    new_entities = []
-    for miot_device in device_list:
-        for prop in miot_device.prop_list.get('number', []):
-            new_entities.append(Number(miot_device=miot_device, spec=prop))
+    # 優化: 扁平化巢狀迴圈改用 List Comprehension，提升初始化載入效能
+    new_entities = [
+        Number(miot_device=miot_device, spec=prop)
+        for miot_device in device_list
+        for prop in miot_device.prop_list.get('number', [])
+    ]
 
     if new_entities:
         async_add_entities(new_entities)
@@ -37,7 +39,7 @@ class Number(MIoTPropertyEntity, NumberEntity):
     """Number entities for Xiaomi Home."""
 
     def __init__(self, miot_device: MIoTDevice, spec: MIoTSpecProperty) -> None:
-        """Initialize the Notify."""
+        """Initialize the Number."""
         super().__init__(miot_device=miot_device, spec=spec)
         # Set device_class
         self._attr_device_class = spec.device_class
@@ -49,15 +51,22 @@ class Number(MIoTPropertyEntity, NumberEntity):
             self._attr_icon = self.spec.icon
         # Set value range
         if self._value_range:
-            self._attr_native_min_value = self._value_range.min_
-            self._attr_native_max_value = self._value_range.max_
-            self._attr_native_step = self._value_range.step
+            # 優化: 嚴格轉換為 float 型別，符合 HA 核心對 NumberEntity 的規範
+            self._attr_native_min_value = float(self._value_range.min_)
+            self._attr_native_max_value = float(self._value_range.max_)
+            self._attr_native_step = float(self._value_range.step)
 
     @property
     def native_value(self) -> Optional[float]:
         """Return the current value of the number."""
-        return self._value
+        # 優化: 防止啟動時 value 為 None 造成的異常，並嚴格轉換為 float
+        if self._value is None:
+            return None
+        try:
+            return float(self._value)
+        except (ValueError, TypeError):
+            return None
 
     async def async_set_native_value(self, value: float) -> None:
-        """Update the current value."""
+        """Set new value."""
         await self.set_property_async(value=value)

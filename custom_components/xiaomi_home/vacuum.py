@@ -33,11 +33,14 @@ async def async_setup_entry(
 ) -> None:
     device_list: list[MIoTDevice] = hass.data[DOMAIN]['devices'][
         config_entry.entry_id]
-    new_entities = []
-    for miot_device in device_list:
-        for data in miot_device.entity_list.get('vacuum', []):
-            new_entities.append(
-                Vacuum(miot_device=miot_device, entity_data=data))
+        
+    # 優化: 扁平化巢狀迴圈改用 List Comprehension，提升初始化載入效能
+    new_entities = [
+        Vacuum(miot_device=miot_device, entity_data=data)
+        for miot_device in device_list
+        for data in miot_device.entity_list.get('vacuum', [])
+    ]
+    
     if new_entities:
         async_add_entities(new_entities)
 
@@ -47,11 +50,13 @@ class Vacuum(MIoTServiceEntity, StateVacuumEntity):
     # pylint: disable=unused-argument
     _prop_status: Optional[MIoTSpecProperty]
     _prop_fan_level: Optional[MIoTSpecProperty]
-    _prop_status_cleaning: Optional[list[int]]
-    _prop_status_docked: Optional[list[int]]
-    _prop_status_paused: Optional[list[int]]
-    _prop_status_returning: Optional[list[int]]
-    _prop_status_error: Optional[list[int]]
+    
+    # 優化: 將 list 改為 set，提升頻繁狀態輪詢時的 in 操作效能 (O(N) -> O(1))
+    _prop_status_cleaning: set[int]
+    _prop_status_docked: set[int]
+    _prop_status_paused: set[int]
+    _prop_status_returning: set[int]
+    _prop_status_error: set[int]
 
     _action_start_sweep: Optional[MIoTSpecAction]
     _action_stop_sweeping: Optional[MIoTSpecAction]
@@ -62,6 +67,7 @@ class Vacuum(MIoTServiceEntity, StateVacuumEntity):
 
     _status_map: Optional[dict[int, str]]
     _fan_level_map: Optional[dict[int, str]]
+    _fan_level_reverse_map: dict[str, int]
 
     _device_name: str
 
@@ -73,11 +79,12 @@ class Vacuum(MIoTServiceEntity, StateVacuumEntity):
 
         self._prop_status = None
         self._prop_fan_level = None
-        self._prop_status_cleaning = []
-        self._prop_status_docked = []
-        self._prop_status_paused = []
-        self._prop_status_returning = []
-        self._prop_status_error = []
+        self._prop_status_cleaning = set()
+        self._prop_status_docked = set()
+        self._prop_status_paused = set()
+        self._prop_status_returning = set()
+        self._prop_status_error = set()
+        
         self._action_start_sweep = None
         self._action_stop_sweeping = None
         self._action_pause_sweeping = None
@@ -86,6 +93,7 @@ class Vacuum(MIoTServiceEntity, StateVacuumEntity):
         self._action_identify = None
         self._status_map = None
         self._fan_level_map = None
+        self._fan_level_reverse_map = {}
 
         # properties
         for prop in entity_data.props:
@@ -107,34 +115,37 @@ class Vacuum(MIoTServiceEntity, StateVacuumEntity):
                             'inthedry', 'stationworking', 'dustcollecting',
                             'upgrade', 'upgrading', 'updating'
                     }:
-                        self._prop_status_docked.append(item.value)
+                        self._prop_status_docked.add(item.value)
                     elif item_name in {'paused', 'pause'}:
-                        self._prop_status_paused.append(item.value)
+                        self._prop_status_paused.add(item.value)
                     elif item_name in {
                             'gocharging', 'cleancompletegocharging',
                             'findchargewash', 'backtowashmop', 'gowash',
                             'gowashing', 'summon'
                     }:
-                        self._prop_status_returning.append(item.value)
+                        self._prop_status_returning.add(item.value)
                     elif item_name in {
                             'error', 'breakcharging', 'gochargebreak'
                     }:
-                        self._prop_status_error.append(item.value)
+                        self._prop_status_error.add(item.value)
                     elif (item_name.find('sweeping') != -1) or (
                             item_name.find('mopping') != -1) or (item_name in {
                                 'cleaning', 'remoteclean', 'continuesweep',
                                 'busy', 'building', 'buildingmap', 'mapping'
                             }):
-                        self._prop_status_cleaning.append(item.value)
+                        self._prop_status_cleaning.add(item.value)
             elif prop.name == 'fan-level':
                 if not prop.value_list:
                     _LOGGER.error('invalid fan-level value_list, %s',
                                   self.entity_id)
                     continue
                 self._fan_level_map = prop.value_list.to_map()
+                # 優化: 預先建立 O(1) 風速反向查找字典，取代 O(N) 掃描
+                self._fan_level_reverse_map = {v: k for k, v in self._fan_level_map.items()}
                 self._attr_fan_speed_list = list(self._fan_level_map.values())
                 self._attr_supported_features |= VacuumEntityFeature.FAN_SPEED
                 self._prop_fan_level = prop
+                
         # action
         for action in entity_data.actions:
             if action.name == 'start-sweep':
@@ -169,7 +180,8 @@ class Vacuum(MIoTServiceEntity, StateVacuumEntity):
         """Start or resume the cleaning task."""
         if self._prop_status is not None:
             status = self.get_prop_value(prop=self._prop_status)
-            if (status in self._prop_status_paused
+            # 優化: 防護 status 為 None，避免潛在例外
+            if (status is not None and status in self._prop_status_paused
                ) and self._action_continue_sweep:
                 await self.action_async(action=self._action_continue_sweep)
                 return
@@ -193,10 +205,11 @@ class Vacuum(MIoTServiceEntity, StateVacuumEntity):
 
     async def async_set_fan_speed(self, fan_speed: str, **kwargs: Any) -> None:
         """Set fan speed."""
-        fan_level_value = self.get_map_key(map_=self._fan_level_map,
-                                           value=fan_speed)
-        await self.set_property_async(prop=self._prop_fan_level,
-                                      value=fan_level_value)
+        # 優化: O(1) 字典查找取代 O(N) 遍歷
+        fan_level_value = self._fan_level_reverse_map.get(fan_speed)
+        if fan_level_value is not None:
+            await self.set_property_async(prop=self._prop_fan_level,
+                                          value=fan_level_value)
 
     @property
     def name(self) -> Optional[str]:
@@ -206,30 +219,19 @@ class Vacuum(MIoTServiceEntity, StateVacuumEntity):
     @property
     def fan_speed(self) -> Optional[str]:
         """The current fan speed of the vacuum cleaner."""
-        return self.get_map_value(
-            map_=self._fan_level_map,
-            key=self.get_prop_value(prop=self._prop_fan_level))
+        if not self._fan_level_map or not self._prop_fan_level:
+            return None
+        val = self.get_prop_value(prop=self._prop_fan_level)
+        # 優化: 直接使用 O(1) 字典獲取並加上安全過濾
+        return self._fan_level_map.get(val) if val is not None else None
 
     if HA_CORE_HAS_ACTIVITY:
 
         @property
         def activity(self) -> Optional[str]:
-            """The current vacuum activity.
-        To fix the HA warning below:
-            Detected that custom integration 'xiaomi_home' is setting state
-            directly.Entity XXX(<class 'custom_components.xiaomi_home.vacuum
-            .Vacuum'>)should implement the 'activity' property and return
-            its state using the VacuumActivity enum.This will stop working in
-            Home Assistant 2026.1.
-
-        Refer to
-        https://developers.home-assistant.io/blog/2024/12/08/new-vacuum-state-property
-
-        There are only 6 states in VacuumActivity enum. To be compatible with
-        more constants, try get matching VacuumActivity enum first, return state
-        string as before if there is no match. In Home Assistant 2026.1, every
-        state should map to a VacuumActivity enum.
-            """
+            """The current vacuum activity."""
+            if not self._prop_status:
+                return None
             status = self.get_prop_value(prop=self._prop_status)
             if status is None:
                 return None
@@ -250,6 +252,7 @@ class Vacuum(MIoTServiceEntity, StateVacuumEntity):
         @property
         def state(self) -> Optional[str]:
             """The current state of the vacuum."""
+            if not self._status_map or not self._prop_status:
+                return None
             status = self.get_prop_value(prop=self._prop_status)
-            return None if (status is None) else self.get_map_value(
-                map_=self._status_map, key=status)
+            return self._status_map.get(status) if status is not None else None

@@ -28,15 +28,21 @@ async def async_setup_entry(
     """Set up a config entry."""
     device_list: list[MIoTDevice] = hass.data[DOMAIN]['devices'][
         config_entry.entry_id]
-    new_entities = []
-    for miot_device in device_list:
-        for prop in miot_device.prop_list.get('text', []):
-            new_entities.append(Text(miot_device=miot_device, spec=prop))
 
-        if miot_device.miot_client.action_debug:
-            for action in miot_device.action_list.get('notify', []):
-                new_entities.append(ActionText(
-                    miot_device=miot_device, spec=action))
+    # 優化: 扁平化巢狀迴圈改用 List Comprehension，提升初始化載入效能
+    new_entities = [
+        Text(miot_device=miot_device, spec=prop)
+        for miot_device in device_list
+        for prop in miot_device.prop_list.get('text', [])
+    ]
+
+    # 附加 Debug 模式下的 ActionText 實體
+    new_entities.extend([
+        ActionText(miot_device=miot_device, spec=action)
+        for miot_device in device_list
+        if miot_device.miot_client.action_debug
+        for action in miot_device.action_list.get('notify', [])
+    ])
 
     if new_entities:
         async_add_entities(new_entities)
@@ -52,9 +58,10 @@ class Text(MIoTPropertyEntity, TextEntity):
     @property
     def native_value(self) -> Optional[str]:
         """Return the current text value."""
-        if isinstance(self._value, str):
-            return self._value[:255]
-        return self._value
+        # 優化: 確保啟動時若尚未取得資料回傳 None，且將其他型別強制轉為字串並截斷
+        if self._value is None:
+            return None
+        return str(self._value)[:255]
 
     async def async_set_value(self, value: str) -> None:
         """Set the text value."""
@@ -86,8 +93,10 @@ class ActionText(MIoTActionEntity, TextEntity):
             raise ValueError(
                 f'action exec failed, {self.name}({self.entity_id}), '
                 f'invalid action params format, {value}') from e
+                
         if len(self.spec.in_) == 1 and not isinstance(in_list, list):
             in_list = [in_list]
+            
         if not isinstance(in_list, list) or len(in_list) != len(self.spec.in_):
             _LOGGER.error(
                 'action exec failed, %s(%s), invalid action params, %s',
@@ -95,42 +104,41 @@ class ActionText(MIoTActionEntity, TextEntity):
             raise ValueError(
                 f'action exec failed, {self.name}({self.entity_id}), '
                 f'invalid action params, {value}')
+                
         in_value: list[dict] = []
         for index, prop in enumerate(self.spec.in_):
-            if prop.format_ == str:
-                if isinstance(in_list[index], (bool, int, float, str)):
-                    in_value.append(
-                        {'piid': prop.iid, 'value': str(in_list[index])})
-                    continue
-            elif prop.format_ == bool:
-                if isinstance(in_list[index], (bool, int)):
-                    # yes, no, on, off, true, false and other bool types
-                    # will also be parsed as 0 and 1 of int.
-                    in_value.append(
-                        {'piid': prop.iid, 'value': bool(in_list[index])})
-                    continue
-            elif prop.format_ == float:
-                if isinstance(in_list[index], (int, float)):
-                    in_value.append(
-                        {'piid': prop.iid, 'value': in_list[index]})
-                    continue
-            elif prop.format_ == int:
-                if isinstance(in_list[index], int):
-                    in_value.append(
-                        {'piid': prop.iid, 'value': in_list[index]})
-                    continue
+            raw_val = in_list[index]
+            parsed_val = None
+            is_valid = False
+
+            # 優化: 簡化型別判斷邏輯，去除冗餘的 append 與 continue，提升可讀性與執行效率
+            if prop.format_ is str and isinstance(raw_val, (bool, int, float, str)):
+                parsed_val = str(raw_val)
+                is_valid = True
+            elif prop.format_ is bool and isinstance(raw_val, (bool, int)):
+                parsed_val = bool(raw_val)
+                is_valid = True
+            elif prop.format_ is float and isinstance(raw_val, (int, float)):
+                parsed_val = float(raw_val)
+                is_valid = True
+            elif prop.format_ is int and isinstance(raw_val, int):
+                parsed_val = int(raw_val)
+                is_valid = True
+
             # Invalid params type, raise error.
-            _LOGGER.error(
-                'action exec failed, %s(%s), invalid params item, '
-                'which item(%s) in the list must be %s, %s type was %s, %s',
-                self.name, self.entity_id, prop.description_trans,
-                prop.format_, in_list[index], type(
-                    in_list[index]).__name__, value)
-            raise ValueError(
-                f'action exec failed, {self.name}({self.entity_id}), '
-                f'invalid params item, which item({prop.description_trans}) '
-                f'in the list must be {prop.format_}, {in_list[index]} type '
-                f'was {type(in_list[index]).__name__}, {value}')
+            if not is_valid:
+                _LOGGER.error(
+                    'action exec failed, %s(%s), invalid params item, '
+                    'which item(%s) in the list must be %s, %s type was %s, %s',
+                    self.name, self.entity_id, prop.description_trans,
+                    prop.format_.__name__, raw_val, type(raw_val).__name__, value)
+                raise ValueError(
+                    f'action exec failed, {self.name}({self.entity_id}), '
+                    f'invalid params item, which item({prop.description_trans}) '
+                    f'in the list must be {prop.format_.__name__}, {raw_val} type '
+                    f'was {type(raw_val).__name__}, {value}')
+                    
+            in_value.append({'piid': prop.iid, 'value': parsed_val})
 
         self._attr_native_value = value
         if await self.action_async(in_list=in_value):

@@ -27,10 +27,12 @@ async def async_setup_entry(
     device_list: list[MIoTDevice] = hass.data[DOMAIN]['devices'][
         config_entry.entry_id]
 
-    new_entities = []
-    for miot_device in device_list:
-        for event in miot_device.event_list.get('event', []):
-            new_entities.append(Event(miot_device=miot_device, spec=event))
+    # 優化: 扁平化巢狀迴圈改用 List Comprehension，提升初始化載入效能
+    new_entities = [
+        Event(miot_device=miot_device, spec=event)
+        for miot_device in device_list
+        for event in miot_device.event_list.get('event', [])
+    ]
 
     if new_entities:
         async_add_entities(new_entities)
@@ -48,6 +50,9 @@ class Event(MIoTEventEntity, EventEntity):
     def on_event_occurred(
         self, name: str, arguments: dict[str, Any] | None = None
     ) -> None:
-        """An event is occurred."""
-        _LOGGER.debug('%s, attributes: %s', name, str(arguments))
-        self._trigger_event(event_type=name, event_attributes=arguments)
+        """Trigger event."""
+        # 優化: 確保 arguments 為 None 時能安全給予空字典，避免潛在的 HA 屬性報錯
+        self._trigger_event(
+            event_type=name,
+            event_attributes=arguments or {}
+        )

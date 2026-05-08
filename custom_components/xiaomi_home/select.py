@@ -24,10 +24,12 @@ async def async_setup_entry(
     device_list: list[MIoTDevice] = hass.data[DOMAIN]['devices'][
         config_entry.entry_id]
 
-    new_entities = []
-    for miot_device in device_list:
-        for prop in miot_device.prop_list.get('select', []):
-            new_entities.append(Select(miot_device=miot_device, spec=prop))
+    # 優化: 扁平化巢狀迴圈改用 List Comprehension，提升初始化載入效能
+    new_entities = [
+        Select(miot_device=miot_device, spec=prop)
+        for miot_device in device_list
+        for prop in miot_device.prop_list.get('select', [])
+    ]
 
     if new_entities:
         async_add_entities(new_entities)
@@ -39,15 +41,30 @@ class Select(MIoTPropertyEntity, SelectEntity):
     def __init__(self, miot_device: MIoTDevice, spec: MIoTSpecProperty) -> None:
         """Initialize the Select."""
         super().__init__(miot_device=miot_device, spec=spec)
+        
+        # 優化: 預先建立 O(1) 的雙向查找字典，取代原本低效的 O(N) 陣列掃描
+        self._val_to_desc = {}
+        self._desc_to_val = {}
+        
         if self._value_list:
             self._attr_options = self._value_list.descriptions
+            for item in self._value_list.items:
+                self._val_to_desc[item.value] = item.description
+                self._desc_to_val[item.description] = item.value
 
     async def async_select_option(self, option: str) -> None:
         """Change the selected option."""
-        await self.set_property_async(
-            value=self.get_vlist_value(description=option))
+        # 優化: 使用 O(1) 字典反向查找
+        val = self._desc_to_val.get(option)
+        if val is not None:
+            await self.set_property_async(value=val)
 
     @property
     def current_option(self) -> Optional[str]:
         """Return the current selected option."""
-        return self.get_vlist_description(value=self._value)
+        # 優化: 防護啟動初期 value 為 None 的狀況
+        if self._value is None:
+            return None
+            
+        # 優化: 使用 O(1) 字典正向查找
+        return self._val_to_desc.get(self._value)

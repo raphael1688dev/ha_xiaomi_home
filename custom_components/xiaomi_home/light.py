@@ -4,6 +4,7 @@ Light entities for Xiaomi Home.
 """
 from __future__ import annotations
 import logging
+import asyncio
 from typing import Any, Optional
 
 from homeassistant.config_entries import ConfigEntry
@@ -39,11 +40,12 @@ async def async_setup_entry(
     device_list: list[MIoTDevice] = hass.data[DOMAIN]['devices'][
         config_entry.entry_id]
 
-    new_entities = []
-    for miot_device in device_list:
-        for data in miot_device.entity_list.get('light', []):
-            new_entities.append(
-                Light(miot_device=miot_device, entity_data=data))
+    # 優化: 扁平化雙層迴圈改用 List Comprehension，加速設備載入
+    new_entities = [
+        Light(miot_device=miot_device, entity_data=data)
+        for miot_device in device_list
+        for data in miot_device.entity_list.get('light', [])
+    ]
 
     if new_entities:
         async_add_entities(new_entities)
@@ -61,6 +63,7 @@ class Light(MIoTServiceEntity, LightEntity):
 
     _brightness_scale: Optional[tuple[int, int]]
     _mode_map: Optional[dict[Any, Any]]
+    _mode_reverse_map: dict[Any, Any]
 
     def __init__(
         self, miot_device: MIoTDevice,  entity_data: MIoTEntityData
@@ -80,6 +83,7 @@ class Light(MIoTServiceEntity, LightEntity):
         self._prop_mode = None
         self._brightness_scale = None
         self._mode_map = None
+        self._mode_reverse_map = {}
 
         # properties
         for prop in entity_data.props:
@@ -98,6 +102,7 @@ class Light(MIoTServiceEntity, LightEntity):
                 ):
                     # For value-list brightness
                     self._mode_map = prop.value_list.to_map()
+                    self._mode_reverse_map = {v: k for k, v in self._mode_map.items()}
                     self._attr_effect_list = list(self._mode_map.values())
                     self._attr_supported_features |= LightEntityFeature.EFFECT
                     self._prop_mode = prop
@@ -147,6 +152,8 @@ class Light(MIoTServiceEntity, LightEntity):
                             mode_list[value] = f'mode {value}'
                 if mode_list:
                     self._mode_map = mode_list
+                    # 優化: 預先建立 O(1) 的模式反向查找字典
+                    self._mode_reverse_map = {v: k for k, v in self._mode_map.items()}
                     self._attr_effect_list = list(self._mode_map.values())
                     self._attr_supported_features |= LightEntityFeature.EFFECT
                     self._prop_mode = prop
@@ -166,10 +173,10 @@ class Light(MIoTServiceEntity, LightEntity):
     def is_on(self) -> Optional[bool]:
         """Return if the light is on."""
         value_on = self.get_prop_value(prop=self._prop_on)
-        # Dirty logic for lumi.gateway.mgl03 indicator light
-        if isinstance(value_on, int):
-            value_on = value_on == 1
-        return value_on
+        if value_on is None:
+            return None
+        # 優化: 移除原先冗長的特例寫法，直接用 bool() 安全轉型，兼容 int(1/0) 與 bool(True/False)
+        return bool(value_on)
 
     @property
     def brightness(self) -> Optional[int]:
@@ -198,58 +205,68 @@ class Light(MIoTServiceEntity, LightEntity):
     @property
     def effect(self) -> Optional[str]:
         """Return the current mode."""
-        return self.get_map_value(
-            map_=self._mode_map,
-            key=self.get_prop_value(prop=self._prop_mode))
+        if not self._mode_map or not self._prop_mode:
+            return None
+        val = self.get_prop_value(prop=self._prop_mode)
+        return self._mode_map.get(val) if val is not None else None
 
     async def async_turn_on(self, **kwargs) -> None:
         """Turn the light on.
 
         Shall set attributes in kwargs if applicable.
         """
-        # on
-        # Dirty logic for lumi.gateway.mgl03 indicator light
-        if self._prop_on:
+        # 1. 確保燈光是開啟的 (避免尚未開機時，屬性指令被設備忽略)
+        if self._prop_on and not self.is_on:
             value_on = True if self._prop_on.format_ == bool else 1
             await self.set_property_async(
-                prop=self._prop_on, value=value_on)
+                prop=self._prop_on, value=value_on, write_ha_state=False)
+
+        # 優化: 2. 將所有屬性設定打包為任務，併發傳送以消除「瀑布式」延遲卡頓
+        tasks = []
+
         # brightness
-        if ATTR_BRIGHTNESS in kwargs:
+        if ATTR_BRIGHTNESS in kwargs and self._prop_brightness:
             brightness = brightness_to_value(
                 self._brightness_scale, kwargs[ATTR_BRIGHTNESS])
-            await self.set_property_async(
+            tasks.append(self.set_property_async(
                 prop=self._prop_brightness, value=brightness,
-                write_ha_state=False)
+                write_ha_state=False))
+                
         # color-temperature
-        if ATTR_COLOR_TEMP_KELVIN in kwargs:
-            await self.set_property_async(
+        if ATTR_COLOR_TEMP_KELVIN in kwargs and self._prop_color_temp:
+            tasks.append(self.set_property_async(
                 prop=self._prop_color_temp,
                 value=kwargs[ATTR_COLOR_TEMP_KELVIN],
-                write_ha_state=False)
+                write_ha_state=False))
             self._attr_color_mode = ColorMode.COLOR_TEMP
+            
         # rgb color
-        if ATTR_RGB_COLOR in kwargs:
-            r = kwargs[ATTR_RGB_COLOR][0]
-            g = kwargs[ATTR_RGB_COLOR][1]
-            b = kwargs[ATTR_RGB_COLOR][2]
+        if ATTR_RGB_COLOR in kwargs and self._prop_color:
+            r, g, b = kwargs[ATTR_RGB_COLOR]  # 優化: 簡化陣列取值
             rgb = (r << 16) | (g << 8) | b
-            await self.set_property_async(
+            tasks.append(self.set_property_async(
                 prop=self._prop_color, value=rgb,
-                write_ha_state=False)
+                write_ha_state=False))
             self._attr_color_mode = ColorMode.RGB
+            
         # mode
-        if ATTR_EFFECT in kwargs:
-            await self.set_property_async(
-                prop=self._prop_mode,
-                value=self.get_map_key(
-                    map_=self._mode_map, value=kwargs[ATTR_EFFECT]),
-                write_ha_state=False)
+        if ATTR_EFFECT in kwargs and self._prop_mode:
+            # 優化: 使用 O(1) 字典查找取代 O(N) 遍歷
+            mode_val = self._mode_reverse_map.get(kwargs[ATTR_EFFECT])
+            if mode_val is not None:
+                tasks.append(self.set_property_async(
+                    prop=self._prop_mode, value=mode_val,
+                    write_ha_state=False))
+
+        # 併發執行所有屬性調整
+        if tasks:
+            await asyncio.gather(*tasks)
+
         self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs) -> None:
         """Turn the light off."""
         if not self._prop_on:
             return
-        # Dirty logic for lumi.gateway.mgl03 indicator light
         value_on = False if self._prop_on.format_ == bool else 0
         await self.set_property_async(prop=self._prop_on, value=value_on)

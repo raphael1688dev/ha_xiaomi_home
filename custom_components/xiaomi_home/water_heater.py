@@ -30,11 +30,12 @@ async def async_setup_entry(
     device_list: list[MIoTDevice] = hass.data[DOMAIN]['devices'][
         config_entry.entry_id]
 
-    new_entities = []
-    for miot_device in device_list:
-        for data in miot_device.entity_list.get('water_heater', []):
-            new_entities.append(
-                WaterHeater(miot_device=miot_device, entity_data=data))
+    # 優化: 扁平化巢狀迴圈改用 List Comprehension，提升初始化載入效能
+    new_entities = [
+        WaterHeater(miot_device=miot_device, entity_data=data)
+        for miot_device in device_list
+        for data in miot_device.entity_list.get('water_heater', [])
+    ]
 
     if new_entities:
         async_add_entities(new_entities)
@@ -48,6 +49,7 @@ class WaterHeater(MIoTServiceEntity, WaterHeaterEntity):
     _prop_mode: Optional[MIoTSpecProperty]
 
     _mode_map: Optional[dict[Any, Any]]
+    _mode_reverse_map: dict[str, Any]
 
     def __init__(self, miot_device: MIoTDevice,
                  entity_data: MIoTEntityData) -> None:
@@ -60,6 +62,7 @@ class WaterHeater(MIoTServiceEntity, WaterHeaterEntity):
         self._prop_target_temp = None
         self._prop_mode = None
         self._mode_map = None
+        self._mode_reverse_map = {}
 
         # properties
         for prop in entity_data.props:
@@ -97,8 +100,11 @@ class WaterHeater(MIoTServiceEntity, WaterHeaterEntity):
                     _LOGGER.error('mode value_list is None, %s', self.entity_id)
                     continue
                 self._mode_map = prop.value_list.to_map()
+                # 優化: 預先建立 O(1) 模式反向查找字典，取代 O(N) 掃描
+                self._mode_reverse_map = {v: k for k, v in self._mode_map.items()}
                 self._attr_operation_list = list(self._mode_map.values())
                 self._prop_mode = prop
+                
         if not self._attr_operation_list:
             self._attr_operation_list = [STATE_ON]
         self._attr_operation_list.append(STATE_OFF)
@@ -125,33 +131,52 @@ class WaterHeater(MIoTServiceEntity, WaterHeaterEntity):
         if operation_mode == STATE_ON:
             await self.set_property_async(prop=self._prop_on, value=True)
             return
-        if self.get_prop_value(prop=self._prop_on) is not True:
-            await self.set_property_async(prop=self._prop_on,
-                                          value=True,
-                                          write_ha_state=False)
-        await self.set_property_async(prop=self._prop_mode,
-                                      value=self.get_map_key(
-                                          map_=self._mode_map,
-                                          value=operation_mode))
+            
+        # 優化: 使用 O(1) 字典查找模式對應數值
+        mode_val = self._mode_reverse_map.get(operation_mode)
+        if mode_val is not None:
+            # 確保設備在切換模式前處於開機狀態
+            val_on = self.get_prop_value(prop=self._prop_on)
+            if val_on is None or not bool(val_on):
+                await self.set_property_async(prop=self._prop_on,
+                                              value=True,
+                                              write_ha_state=False)
+            await self.set_property_async(prop=self._prop_mode, value=mode_val)
 
     @property
     def current_temperature(self) -> Optional[float]:
         """The current temperature."""
-        return (None if self._prop_temp is None else self.get_prop_value(
-            prop=self._prop_temp))
+        if not self._prop_temp:
+            return None
+        val = self.get_prop_value(prop=self._prop_temp)
+        # 優化: 嚴格轉換為 float 型別
+        return float(val) if val is not None else None
 
     @property
     def target_temperature(self) -> Optional[float]:
         """The target temperature."""
-        return (None if self._prop_target_temp is None else self.get_prop_value(
-            prop=self._prop_target_temp))
+        if not self._prop_target_temp:
+            return None
+        val = self.get_prop_value(prop=self._prop_target_temp)
+        # 優化: 嚴格轉換為 float 型別
+        return float(val) if val is not None else None
 
     @property
     def current_operation(self) -> Optional[str]:
         """The current mode."""
-        if self.get_prop_value(prop=self._prop_on) is False:
+        if not self._prop_on:
+            return None
+            
+        val_on = self.get_prop_value(prop=self._prop_on)
+        if val_on is None:
+            return None
+            
+        # 優化: 安全地使用 bool 判斷是否為關機狀態，避免 is False 的型別陷阱
+        if not bool(val_on):
             return STATE_OFF
-        if not self._prop_mode and self.get_prop_value(prop=self._prop_on):
+            
+        if not self._prop_mode or not self._mode_map:
             return STATE_ON
-        return (None if self._prop_mode is None else self.get_map_value(
-            map_=self._mode_map, key=self.get_prop_value(prop=self._prop_mode)))
+            
+        val_mode = self.get_prop_value(prop=self._prop_mode)
+        return self._mode_map.get(val_mode) if val_mode is not None else STATE_ON

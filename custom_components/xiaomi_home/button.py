@@ -23,10 +23,12 @@ async def async_setup_entry(
     device_list: list[MIoTDevice] = hass.data[DOMAIN]['devices'][
         config_entry.entry_id]
 
-    new_entities = []
-    for miot_device in device_list:
-        for action in miot_device.action_list.get('button', []):
-            new_entities.append(Button(miot_device=miot_device, spec=action))
+    # 優化: 扁平化巢狀迴圈改用 List Comprehension，提升初始化載入效能
+    new_entities = [
+        Button(miot_device=miot_device, spec=action)
+        for miot_device in device_list
+        for action in miot_device.action_list.get('button', [])
+    ]
 
     if new_entities:
         async_add_entities(new_entities)
@@ -42,4 +44,5 @@ class Button(MIoTActionEntity, ButtonEntity):
 
     async def async_press(self) -> None:
         """Press the button."""
-        return await self.action_async()
+        # 優化: 移除多餘的 return，符合 async_press -> None 的型別宣告規範
+        await self.action_async()

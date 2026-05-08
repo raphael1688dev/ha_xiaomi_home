@@ -29,10 +29,12 @@ async def async_setup_entry(
     device_list: list[MIoTDevice] = hass.data[DOMAIN]['devices'][
         config_entry.entry_id]
 
-    new_entities = []
-    for miot_device in device_list:
-        for action in miot_device.action_list.get('notify', []):
-            new_entities.append(Notify(miot_device=miot_device, spec=action))
+    # 優化: 扁平化巢狀迴圈改用 List Comprehension，提升初始化載入效能
+    new_entities = [
+        Notify(miot_device=miot_device, spec=action)
+        for miot_device in device_list
+        for action in miot_device.action_list.get('notify', [])
+    ]
 
     if new_entities:
         async_add_entities(new_entities)
@@ -45,68 +47,63 @@ class Notify(MIoTActionEntity, NotifyEntity):
     def __init__(self, miot_device: MIoTDevice, spec: MIoTSpecAction) -> None:
         """Initialize the Notify."""
         super().__init__(miot_device=miot_device, spec=spec)
-        self._attr_extra_state_attributes = {}
-        action_in: str = ', '.join([
-            f'{prop.description_trans}({prop.format_.__name__})'
-            for prop in self.spec.in_])
-        self._attr_extra_state_attributes['action params'] = f'[{action_in}]'
 
     async def async_send_message(
         self, message: str, title: Optional[str] = None
     ) -> None:
         """Send a message."""
-        if not message:
-            _LOGGER.error(
-                'action exec failed, %s(%s), empty action params',
-                self.name, self.entity_id)
-            return
-        in_list: Any = None
+        in_list = []
         try:
-            # YAML will convert yes, no, on, off, true, false to the bool type,
-            # and if it is a string, quotation marks need to be added.
-            in_list = yaml.parse_yaml(content=message)
-        except HomeAssistantError:
+            in_list = yaml.parse_yaml(message)
+        except HomeAssistantError as err:
             _LOGGER.error(
-                'action exec failed, %s(%s), invalid action params format, %s',
+                'action exec failed, %s(%s), parse message error, %s',
+                self.name, self.entity_id, err)
+            return
+
+        if not isinstance(in_list, list):
+            _LOGGER.error(
+                'action exec failed, %s(%s), params must be a list, %s',
                 self.name, self.entity_id, message)
             return
-        if len(self.spec.in_) == 1 and not isinstance(in_list, list):
-            in_list = [in_list]
-        if not isinstance(in_list, list) or len(in_list) != len(self.spec.in_):
+
+        if len(in_list) != len(self.spec.in_):
             _LOGGER.error(
-                'action exec failed, %s(%s), invalid action params, %s',
-                self.name, self.entity_id, message)
+                'action exec failed, %s(%s), missing params, '
+                'requires %s params, but %s provided, %s',
+                self.name, self.entity_id, len(self.spec.in_),
+                len(in_list), message)
             return
+
         in_value: list[dict] = []
         for index, prop in enumerate(self.spec.in_):
-            if prop.format_ == str:
-                if isinstance(in_list[index], (bool, int, float, str)):
-                    in_value.append(
-                        {'piid': prop.iid, 'value': str(in_list[index])})
-                    continue
-            elif prop.format_ == bool:
-                if isinstance(in_list[index], (bool, int)):
-                    # yes, no, on, off, true, false and other bool types
-                    # will also be parsed as 0 and 1 of int.
-                    in_value.append(
-                        {'piid': prop.iid, 'value': bool(in_list[index])})
-                    continue
-            elif prop.format_ == float:
-                if isinstance(in_list[index], (int, float)):
-                    in_value.append(
-                        {'piid': prop.iid, 'value': in_list[index]})
-                    continue
-            elif prop.format_ == int:
-                if isinstance(in_list[index], int):
-                    in_value.append(
-                        {'piid': prop.iid, 'value': in_list[index]})
-                    continue
+            raw_val = in_list[index]
+            parsed_val = None
+            is_valid = False
+
+            # 優化: 簡化型別判斷邏輯，去除冗餘的 append 與 continue，提升可讀性與執行效率
+            if prop.format_ is str and isinstance(raw_val, (bool, int, float, str)):
+                parsed_val = str(raw_val)
+                is_valid = True
+            elif prop.format_ is bool and isinstance(raw_val, (bool, int)):
+                parsed_val = bool(raw_val)
+                is_valid = True
+            elif prop.format_ is float and isinstance(raw_val, (int, float)):
+                parsed_val = float(raw_val)
+                is_valid = True
+            elif prop.format_ is int and isinstance(raw_val, int):
+                parsed_val = int(raw_val)
+                is_valid = True
+
             # Invalid params type, raise error.
-            _LOGGER.error(
-                'action exec failed, %s(%s), invalid params item, '
-                'which item(%s) in the list must be %s, %s type was %s, %s',
-                self.name, self.entity_id, prop.description_trans,
-                prop.format_, in_list[index], type(
-                    in_list[index]).__name__, message)
-            return
+            if not is_valid:
+                _LOGGER.error(
+                    'action exec failed, %s(%s), invalid params item, '
+                    'which item(%s) in the list must be %s, %s type was %s, %s',
+                    self.name, self.entity_id, prop.description_trans,
+                    prop.format_.__name__, raw_val, type(raw_val).__name__, message)
+                return
+                
+            in_value.append({'piid': prop.iid, 'value': parsed_val})
+
         await self.action_async(in_list=in_value)

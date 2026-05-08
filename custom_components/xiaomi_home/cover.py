@@ -20,6 +20,13 @@ from .miot.const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
+# 優化: 提取常數映射表，取代原本冗長的 if-elif 判斷
+_DEVICE_CLASS_MAP = {
+    'curtain': CoverDeviceClass.CURTAIN,
+    'window-opener': CoverDeviceClass.WINDOW,
+    'motor-controller': CoverDeviceClass.SHUTTER,
+    'airer': CoverDeviceClass.BLIND
+}
 
 async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry,
                             async_add_entities: AddEntitiesCallback) -> None:
@@ -30,16 +37,10 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry,
     new_entities = []
     for miot_device in device_list:
         for data in miot_device.entity_list.get('cover', []):
-            if data.spec.name == 'curtain':
-                data.spec.device_class = CoverDeviceClass.CURTAIN
-            elif data.spec.name == 'window-opener':
-                data.spec.device_class = CoverDeviceClass.WINDOW
-            elif data.spec.name == 'motor-controller':
-                data.spec.device_class = CoverDeviceClass.SHUTTER
-            elif data.spec.name == 'airer':
-                data.spec.device_class = CoverDeviceClass.BLIND
-            new_entities.append(Cover(miot_device=miot_device,
-                                      entity_data=data))
+            # 優化: O(1) 字典查找設備類別
+            if data.spec.name in _DEVICE_CLASS_MAP:
+                data.spec.device_class = _DEVICE_CLASS_MAP[data.spec.name]
+            new_entities.append(Cover(miot_device=miot_device, entity_data=data))
 
     if new_entities:
         async_add_entities(new_entities)
@@ -54,9 +55,12 @@ class Cover(MIoTServiceEntity, CoverEntity):
     _prop_motor_value_close: Optional[int]
     _prop_motor_value_pause: Optional[int]
     _prop_status: Optional[MIoTSpecProperty]
-    _prop_status_opening: Optional[list[int]]
-    _prop_status_closing: Optional[list[int]]
-    _prop_status_closed: Optional[list[int]]
+    
+    # 優化: 將 list 改為 set，提升 in 判斷的查詢效能至 O(1)
+    _prop_status_opening: set[int]
+    _prop_status_closing: set[int]
+    _prop_status_closed: set[int]
+    
     _prop_current_position: Optional[MIoTSpecProperty]
     _prop_target_position: Optional[MIoTSpecProperty]
     _prop_position_value_min: Optional[int]
@@ -81,9 +85,9 @@ class Cover(MIoTServiceEntity, CoverEntity):
         self._prop_motor_value_close = None
         self._prop_motor_value_pause = None
         self._prop_status = None
-        self._prop_status_opening = []
-        self._prop_status_closing = []
-        self._prop_status_closed = []
+        self._prop_status_opening = set()
+        self._prop_status_closing = set()
+        self._prop_status_closed = set()
         self._prop_current_position = None
         self._prop_target_position = None
         self._prop_position_value_min = None
@@ -101,16 +105,13 @@ class Cover(MIoTServiceEntity, CoverEntity):
                     continue
                 for item in prop.value_list.items:
                     if item.name in {'open', 'up'}:
-                        self._attr_supported_features |= (
-                            CoverEntityFeature.OPEN)
+                        self._attr_supported_features |= CoverEntityFeature.OPEN
                         self._prop_motor_value_open = item.value
                     elif item.name in {'close', 'down'}:
-                        self._attr_supported_features |= (
-                            CoverEntityFeature.CLOSE)
+                        self._attr_supported_features |= CoverEntityFeature.CLOSE
                         self._prop_motor_value_close = item.value
                     elif item.name in {'pause', 'stop'}:
-                        self._attr_supported_features |= (
-                            CoverEntityFeature.STOP)
+                        self._attr_supported_features |= CoverEntityFeature.STOP
                         self._prop_motor_value_pause = item.value
                 self._prop_motor_control = prop
             elif prop.name == 'status':
@@ -124,18 +125,18 @@ class Cover(MIoTServiceEntity, CoverEntity):
                     if item_name in {
                             'opening', 'open', 'up', 'uping', 'rise', 'rising'
                     }:
-                        self._prop_status_opening.append(item.value)
+                        self._prop_status_opening.add(item.value)
                     elif item_name in {
                             'closing', 'close', 'down', 'dowm', 'falling',
                             'fallin', 'dropping', 'downing', 'lower'
                     }:
-                        self._prop_status_closing.append(item.value)
+                        self._prop_status_closing.add(item.value)
                     elif item_name in {
                             'closed', 'closeover', 'stopatlowest',
                             'stoplowerlimit', 'lowerlimitstop', 'floor',
                             'lowerlimit'
                     }:
-                        self._prop_status_closed.append(item.value)
+                        self._prop_status_closed.add(item.value)
                 self._prop_status = prop
             elif prop.name == 'current-position':
                 if not prop.value_range:
@@ -160,9 +161,7 @@ class Cover(MIoTServiceEntity, CoverEntity):
                                                    prop.value_range.min_)
                 self._attr_supported_features |= CoverEntityFeature.SET_POSITION
                 self._prop_target_position = prop
-        # For the device that has the current position property but no status
-        # property, the current position property will be used to determine the
-        # opening and the closing status.
+                
         if (self._prop_status is None) and (self._prop_current_position
                                             is not None):
             self.sub_prop_changed(self._prop_current_position,
@@ -212,7 +211,14 @@ class Cover(MIoTServiceEntity, CoverEntity):
         if current is not None:
             self._prop_pos_opening = pos > current
             self._prop_pos_closing = pos < current
-        pos = round(pos * self._prop_position_value_range / 100)
+        
+        # 優化: 防護 ZeroDivisionError 並修正 min 偏移值的邏輯漏洞
+        if self._prop_position_value_range and self._prop_position_value_range > 0:
+            pos_val = (pos * self._prop_position_value_range / 100) + (self._prop_position_value_min or 0)
+            pos = round(pos_val)
+        else:
+            pos = round(pos)
+
         await self.set_property_async(prop=self._prop_target_position,
                                       value=pos)
 
@@ -223,18 +229,23 @@ class Cover(MIoTServiceEntity, CoverEntity):
         0: the cover is closed, 100: the cover is fully opened, None: unknown.
         """
         if self._prop_current_position is None:
-            # Assume that the current position is the same as the target
-            # position when the current position is not defined in the device's
-            # MIoT-Spec-V2.
             if self._prop_target_position is None:
                 return None
             self._prop_pos_opening = False
             self._prop_pos_closing = False
-            return self.get_prop_value(prop=self._prop_target_position)
-        pos = self.get_prop_value(prop=self._prop_current_position)
-        if pos is None:
+            pos_val = self.get_prop_value(prop=self._prop_target_position)
+        else:
+            pos_val = self.get_prop_value(prop=self._prop_current_position)
+            
+        if pos_val is None:
             return None
-        pos = round(pos*100/self._prop_position_value_range)
+            
+        # 優化: 防護 ZeroDivisionError 並補上 min 偏移值的正確計算
+        if self._prop_position_value_range and self._prop_position_value_range > 0:
+            pos = round((pos_val - (self._prop_position_value_min or 0)) * 100 / self._prop_position_value_range)
+        else:
+            pos = round(pos_val)
+            
         if pos <= self._cover_dead_zone_width:
             pos = 0
         elif pos >= (100 - self._cover_dead_zone_width):
@@ -245,20 +256,16 @@ class Cover(MIoTServiceEntity, CoverEntity):
     def is_opening(self) -> Optional[bool]:
         """Return if the cover is opening."""
         if self._prop_status and self._prop_status_opening:
-            return (self.get_prop_value(prop=self._prop_status)
-                    in self._prop_status_opening)
-        # The status has higher priority when determining whether the cover
-        # is opening.
+            val = self.get_prop_value(prop=self._prop_status)
+            return val in self._prop_status_opening if val is not None else False
         return self._prop_pos_opening
 
     @property
     def is_closing(self) -> Optional[bool]:
         """Return if the cover is closing."""
         if self._prop_status and self._prop_status_closing:
-            return (self.get_prop_value(prop=self._prop_status)
-                    in self._prop_status_closing)
-        # The status has higher priority when determining whether the cover
-        # is closing.
+            val = self.get_prop_value(prop=self._prop_status)
+            return val in self._prop_status_closing if val is not None else False
         return self._prop_pos_closing
 
     @property
@@ -266,9 +273,7 @@ class Cover(MIoTServiceEntity, CoverEntity):
         """Return if the cover is closed."""
         if self.current_cover_position is not None:
             return self.current_cover_position == 0
-        # The current position is prior to the status when determining
-        # whether the cover is closed.
         if self._prop_status and self._prop_status_closed:
-            return (self.get_prop_value(prop=self._prop_status)
-                    in self._prop_status_closed)
+            val = self.get_prop_value(prop=self._prop_status)
+            return val in self._prop_status_closed if val is not None else False
         return None
