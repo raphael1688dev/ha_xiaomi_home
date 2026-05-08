@@ -1,48 +1,5 @@
 # -*- coding: utf-8 -*-
 """
-Copyright (C) 2024 Xiaomi Corporation.
-
-The ownership and intellectual property rights of Xiaomi Home Assistant
-Integration and related Xiaomi cloud service API interface provided under this
-license, including source code and object code (collectively, "Licensed Work"),
-are owned by Xiaomi. Subject to the terms and conditions of this License, Xiaomi
-hereby grants you a personal, limited, non-exclusive, non-transferable,
-non-sublicensable, and royalty-free license to reproduce, use, modify, and
-distribute the Licensed Work only for your use of Home Assistant for
-non-commercial purposes. For the avoidance of doubt, Xiaomi does not authorize
-you to use the Licensed Work for any other purpose, including but not limited
-to use Licensed Work to develop applications (APP), Web services, and other
-forms of software.
-
-You may reproduce and distribute copies of the Licensed Work, with or without
-modifications, whether in source or object form, provided that you must give
-any other recipients of the Licensed Work a copy of this License and retain all
-copyright and disclaimers.
-
-Xiaomi provides the Licensed Work on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-CONDITIONS OF ANY KIND, either express or implied, including, without
-limitation, any warranties, undertakes, or conditions of TITLE, NO ERROR OR
-OMISSION, CONTINUITY, RELIABILITY, NON-INFRINGEMENT, MERCHANTABILITY, or
-FITNESS FOR A PARTICULAR PURPOSE. In any event, you are solely responsible
-for any direct, indirect, special, incidental, or consequential damages or
-losses arising from the use or inability to use the Licensed Work.
-
-Xiaomi reserves all rights not expressly granted to you in this License.
-Except for the rights expressly granted by Xiaomi under this License, Xiaomi
-does not authorize you in any form to use the trademarks, copyrights, or other
-forms of intellectual property rights of Xiaomi and its affiliates, including,
-without limitation, without obtaining other written permission from Xiaomi, you
-shall not use "Xiaomi", "Mijia" and other words related to Xiaomi or words that
-may make the public associate with Xiaomi in any form to publicize or promote
-the software or hardware devices that use the Licensed Work.
-
-Xiaomi has the right to immediately terminate all your authorization under this
-License in the event:
-1. You assert patent invalidation, litigation, or other claims against patents
-or other intellectual property rights of Xiaomi or its affiliates; or,
-2. You make, have made, manufacture, sell, or offer to sell products that knock
-off Xiaomi or its affiliates' products.
-
 The Xiaomi Home integration Init File.
 """
 from __future__ import annotations
@@ -125,6 +82,22 @@ async def async_setup_entry(
         await manufacturer.init_async()
         miot_devices: list[MIoTDevice] = []
         er = entity_registry.async_get(hass=hass)
+        
+        for entry in entity_registry.async_entries_for_config_entry(
+            er, entry_id
+        ):
+            if (
+                entry.entity_id.startswith(f'{DOMAIN}.')
+                or entry.entity_id.split('.', 1)[0] not in SUPPORTED_PLATFORMS
+            ):
+                er.async_remove(entity_id=entry.entity_id)
+                
+        # Helper function for DRY registry cleanup
+        def _remove_from_registry(entity_ids: list[str]):
+            for eid in set(entity_ids):
+                if er.async_get(entity_id_or_uuid=eid):
+                    er.async_remove(entity_id=eid)
+
         for did, info in miot_client.device_list.items():
             spec_instance = await spec_parser.parse(urn=info['urn'])
             if not isinstance(spec_instance, MIoTSpecInstance):
@@ -138,111 +111,89 @@ async def async_setup_entry(
                 spec_instance=spec_instance)
             miot_devices.append(device)
             device.spec_transform()
-            # Remove filter entities and non-standard entities
+            
+            # Remove filter entities and non-standard entities using list reconstruction
             for platform in SUPPORTED_PLATFORMS:
-                # ONLY support filter spec service translate entity
                 if platform in device.entity_list:
-                    filter_entities = list(filter(
-                        lambda entity: (
-                            isinstance(entity.spec, MIoTSpecService)
-                            and (
-                                entity.spec.need_filter
-                                or (
-                                    miot_client.hide_non_standard_entities
-                                    and entity.spec.proprietary))
-                        ),
-                        device.entity_list[platform]))
-                    for entity in filter_entities:
-                        device.entity_list[platform].remove(entity)
-                        entity_id = device.gen_service_entity_id(
-                            ha_domain=platform,
-                            siid=entity.spec.iid,
-                            description=entity.spec.description)
-                        if er.async_get(entity_id_or_uuid=entity_id):
-                            er.async_remove(entity_id=entity_id)
+                    kept_entities = []
+                    for entity in device.entity_list[platform]:
+                        if isinstance(entity.spec, MIoTSpecService) and (
+                            entity.spec.need_filter or (miot_client.hide_non_standard_entities and entity.spec.proprietary)
+                        ):
+                            _remove_from_registry([
+                                device.gen_service_entity_id(ha_domain=platform, siid=entity.spec.iid, description=entity.spec.description, slugify_description=False),
+                                device.gen_service_entity_id(ha_domain=platform, siid=entity.spec.iid, description=entity.spec.description)
+                            ])
+                        else:
+                            kept_entities.append(entity)
+                    device.entity_list[platform] = kept_entities
+
                 if platform in device.prop_list:
-                    filter_props = list(filter(
-                        lambda prop: (
-                            prop.need_filter or (
-                                miot_client.hide_non_standard_entities
-                                and prop.proprietary)),
-                        device.prop_list[platform]))
-                    for prop in filter_props:
-                        device.prop_list[platform].remove(prop)
-                        entity_id = device.gen_prop_entity_id(
-                            ha_domain=platform, spec_name=prop.name,
-                            siid=prop.service.iid, piid=prop.iid)
-                        if er.async_get(entity_id_or_uuid=entity_id):
-                            er.async_remove(entity_id=entity_id)
+                    kept_props = []
+                    for prop in device.prop_list[platform]:
+                        if prop.need_filter or (miot_client.hide_non_standard_entities and prop.proprietary):
+                            _remove_from_registry([
+                                device.gen_prop_entity_id(ha_domain=platform, spec_name=prop.name, siid=prop.service.iid, piid=prop.iid)
+                            ])
+                        else:
+                            kept_props.append(prop)
+                    device.prop_list[platform] = kept_props
+
                 if platform in device.event_list:
-                    filter_events = list(filter(
-                        lambda event: (
-                            event.need_filter or (
-                                miot_client.hide_non_standard_entities
-                                and event.proprietary)),
-                        device.event_list[platform]))
-                    for event in filter_events:
-                        device.event_list[platform].remove(event)
-                        entity_id = device.gen_event_entity_id(
-                            ha_domain=platform, spec_name=event.name,
-                            siid=event.service.iid, eiid=event.iid)
-                        if er.async_get(entity_id_or_uuid=entity_id):
-                            er.async_remove(entity_id=entity_id)
+                    kept_events = []
+                    for event in device.event_list[platform]:
+                        if event.need_filter or (miot_client.hide_non_standard_entities and event.proprietary):
+                            _remove_from_registry([
+                                device.gen_event_entity_id(ha_domain=platform, spec_name=event.name, siid=event.service.iid, eiid=event.iid)
+                            ])
+                        else:
+                            kept_events.append(event)
+                    device.event_list[platform] = kept_events
+
                 if platform in device.action_list:
-                    filter_actions = list(filter(
-                        lambda action: (
-                            action.need_filter or (
-                                miot_client.hide_non_standard_entities
-                                and action.proprietary)),
-                        device.action_list[platform]))
-                    for action in filter_actions:
-                        device.action_list[platform].remove(action)
-                        entity_id = device.gen_action_entity_id(
-                            ha_domain=platform, spec_name=action.name,
-                            siid=action.service.iid, aiid=action.iid)
-                        if er.async_get(entity_id_or_uuid=entity_id):
-                            er.async_remove(entity_id=entity_id)
-                        # Remove non-standard action debug entity
-                        if platform == 'notify':
-                            entity_id = device.gen_action_entity_id(
-                                ha_domain='text', spec_name=action.name,
-                                siid=action.service.iid, aiid=action.iid)
-                            if er.async_get(entity_id_or_uuid=entity_id):
-                                er.async_remove(entity_id=entity_id)
+                    kept_actions = []
+                    for action in device.action_list[platform]:
+                        if action.need_filter or (miot_client.hide_non_standard_entities and action.proprietary):
+                            _remove_from_registry([
+                                device.gen_action_entity_id(ha_domain=platform, spec_name=action.name, siid=action.service.iid, aiid=action.iid)
+                            ])
+                            if platform == 'notify':
+                                _remove_from_registry([
+                                    device.gen_action_entity_id(ha_domain='text', spec_name=action.name, siid=action.service.iid, aiid=action.iid)
+                                ])
+                        else:
+                            kept_actions.append(action)
+                    device.action_list[platform] = kept_actions
+
             # Action debug
             if not miot_client.action_debug:
-                # Remove text entity for debug action
                 for action in device.action_list.get('notify', []):
-                    entity_id = device.gen_action_entity_id(
-                        ha_domain='text', spec_name=action.name,
-                        siid=action.service.iid, aiid=action.iid)
-                    if er.async_get(entity_id_or_uuid=entity_id):
-                        er.async_remove(entity_id=entity_id)
+                    _remove_from_registry([
+                        device.gen_action_entity_id(ha_domain='text', spec_name=action.name, siid=action.service.iid, aiid=action.iid)
+                    ])
+                    
             # Binary sensor display
             if not miot_client.display_binary_bool:
                 for prop in device.prop_list.get('binary_sensor', []):
-                    entity_id = device.gen_prop_entity_id(
-                        ha_domain='binary_sensor', spec_name=prop.name,
-                        siid=prop.service.iid, piid=prop.iid)
-                    if er.async_get(entity_id_or_uuid=entity_id):
-                        er.async_remove(entity_id=entity_id)
+                    _remove_from_registry([
+                        device.gen_prop_entity_id(ha_domain='binary_sensor', spec_name=prop.name, siid=prop.service.iid, piid=prop.iid)
+                    ])
             if not miot_client.display_binary_text:
                 for prop in device.prop_list.get('binary_sensor', []):
-                    entity_id = device.gen_prop_entity_id(
-                        ha_domain='sensor', spec_name=prop.name,
-                        siid=prop.service.iid, piid=prop.iid)
-                    if er.async_get(entity_id_or_uuid=entity_id):
-                        er.async_remove(entity_id=entity_id)
+                    _remove_from_registry([
+                        device.gen_prop_entity_id(ha_domain='sensor', spec_name=prop.name, siid=prop.service.iid, piid=prop.iid)
+                    ])
 
-        hass.data[DOMAIN]['devices'][config_entry.entry_id] = miot_devices
+        hass.data[DOMAIN]['devices'][entry_id] = miot_devices
         await hass.config_entries.async_forward_entry_setups(
             config_entry, SUPPORTED_PLATFORMS)
 
         # Remove the deleted devices
         devices_remove = (await miot_client.miot_storage.load_user_config_async(
-            uid=config_entry.data['uid'],
-            cloud_server=config_entry.data['cloud_server'],
+            uid=entry_data['uid'],
+            cloud_server=entry_data['cloud_server'],
             keys=['devices_remove'])).get('devices_remove', [])
+            
         if isinstance(devices_remove, list) and devices_remove:
             dr = device_registry.async_get(hass)
             for did in devices_remove:
@@ -250,7 +201,7 @@ async def async_setup_entry(
                     identifiers={(
                         DOMAIN,
                         slugify_did(
-                            cloud_server=config_entry.data['cloud_server'],
+                            cloud_server=entry_data['cloud_server'],
                             did=did))},
                     connections=None)
                 if not device_entry:
@@ -260,8 +211,8 @@ async def async_setup_entry(
                 _LOGGER.info(
                     'delete device entry, %s, %s', did, device_entry.id)
             await miot_client.miot_storage.update_user_config_async(
-                uid=config_entry.data['uid'],
-                cloud_server=config_entry.data['cloud_server'],
+                uid=entry_data['uid'],
+                cloud_server=entry_data['cloud_server'],
                 config={'devices_remove': []})
 
         await spec_parser.deinit_async()
@@ -273,8 +224,6 @@ async def async_setup_entry(
             title='Xiaomi Home Oauth Error',
             message=f'Please re-add.\r\nerror: {oauth_error}'
         )
-    except Exception as err:
-        raise err
 
     return True
 
