@@ -2,7 +2,7 @@
     "domain": "xiaomi_home",
     "name": "Xiaomi Home",
     "codeowners": [
-        "@XiaoMi"
+        "@raphael1688dev"
     ],
     "config_flow": true,
     "dependencies": [
@@ -11,10 +11,10 @@
         "ffmpeg",
         "zeroconf"
     ],
-    "documentation": "https://github.com/XiaoMi/ha_xiaomi_home/blob/main/README.md",
+    "documentation": "https://github.com/raphael1688dev/ha_xiaomi_home/blob/main/README.md",
     "integration_type": "hub",
     "iot_class": "cloud_polling",
-    "issue_tracker": "https://github.com/XiaoMi/ha_xiaomi_home/issues",
+    "issue_tracker": "https://github.com/raphael1688dev/ha_xiaomi_home/issues",
     "loggers": [
         "Xiaomi Home"
     ],
@@ -25,7 +25,7 @@
         "cryptography",
         "psutil"
     ],
-    "version": "v0.4.7",
+    "version": "20250508r1",
     "zeroconf": [
         "_miot-central._tcp.local."
     ]
