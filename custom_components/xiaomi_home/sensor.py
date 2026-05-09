@@ -28,7 +28,7 @@ async def async_setup_entry(
     device_list: list[MIoTDevice] = hass.data[DOMAIN]['devices'][
         config_entry.entry_id]
 
-    # 優化: 扁平化巢狀迴圈，改用效能更好的列表推導式
+    # 扁平化巢狀迴圈，改用效能更好的列表推導式
     new_entities = [
         Sensor(miot_device=miot_device, spec=prop)
         for miot_device in device_list
@@ -56,11 +56,11 @@ class Sensor(MIoTPropertyEntity, SensorEntity):
         super().__init__(miot_device=miot_device, spec=spec)
         self._attr_device_class = spec.device_class
         
-        # 優化: 預先建立 O(1) 的數值到描述反查字典，避免頻繁查詢時的效能損耗
+        # 預先建立 O(1) 反查字典，並強制轉為 str 防止 int/str 匹配失誤
         self._val_desc_map = {}
         if spec.value_list:
             self._val_desc_map = {
-                item.value: item.description 
+                str(item.value): item.description 
                 for item in spec.value_list.items
             }
 
@@ -95,7 +95,7 @@ class Sensor(MIoTPropertyEntity, SensorEntity):
     @property
     def native_value(self) -> Any:
         """Return the current value of the sensor."""
-        # 優化: 保護尚未取得設備狀態時的情境
+        # 保護尚未取得設備狀態時的情境
         if self._value is None:
             return None
 
@@ -104,14 +104,26 @@ class Sensor(MIoTPropertyEntity, SensorEntity):
                 self._value < self._value_range.min_
                 or self._value > self._value_range.max_
             ):
-                # 優化: 降級為 debug 避免某些設備回報公差時造成日誌洗頻
                 _LOGGER.debug(
                     '%s, data exception, out of range, %s, %s',
                     self.entity_id, self._value, self._value_range)
                     
         if self._value_list:
-            # 優化: O(1) 字典查找，取代原本的 O(N) 遍歷
-            return self._val_desc_map.get(self._value, self._value)
+            str_val = str(self._value)
+            # O(1) 字典查找
+            if str_val in self._val_desc_map:
+                return self._val_desc_map[str_val]
+                
+            # 修復未定義選項導致的 Enum 報錯：
+            # 若設備回報了 spec 定義以外的數值（例如 0），將其動態加入 _attr_options 放行
+            if str_val not in self._attr_options:
+                self._attr_options = list(self._attr_options) + [str_val]
+                _LOGGER.debug(
+                    "Device returned undocumented value '%s' for %s. Dynamically added to Enum options.", 
+                    str_val, self.entity_id
+                )
+                
+            return str_val
             
         if isinstance(self._value, str):
             return self._value[:255]
