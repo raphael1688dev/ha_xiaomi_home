@@ -8,7 +8,7 @@ Xiaomi Home Integration is an integrated component of Home Assistant supported b
 
 > Home Assistant version requirement:
 >
-> - Core $\geq$ 2024.4.4
+> - Core $\geq$ 2026.5.0
 > - Operating System $\geq$ 13.0
 
 ### Method 1: Git clone from GitHub
