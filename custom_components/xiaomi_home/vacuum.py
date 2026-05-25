@@ -25,6 +25,27 @@ except ImportError:
 
 _LOGGER = logging.getLogger(__name__)
 
+VACUUM_STATUS_DOCKED_WORDS = {
+    'charging', 'charged', 'chargingcompleted',
+    'fullcharge', 'fullpower', 'findchargerpause',
+    'drying', 'washing', 'wash', 'inthewash',
+    'inthedry', 'stationworking', 'dustcollecting',
+    'upgrade', 'upgrading', 'updating'
+}
+VACUUM_STATUS_PAUSED_WORDS = {'paused', 'pause'}
+VACUUM_STATUS_RETURNING_WORDS = {
+    'gocharging', 'cleancompletegocharging',
+    'findchargewash', 'backtowashmop', 'gowash',
+    'gowashing', 'summon'
+}
+VACUUM_STATUS_ERROR_WORDS = {
+    'error', 'breakcharging', 'gochargebreak'
+}
+VACUUM_STATUS_CLEANING_WORDS = {
+    'cleaning', 'remoteclean', 'continuesweep',
+    'busy', 'building', 'buildingmap', 'mapping'
+}
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -75,6 +96,7 @@ class Vacuum(MIoTServiceEntity, StateVacuumEntity):
                  entity_data: MIoTEntityData) -> None:
         super().__init__(miot_device=miot_device, entity_data=entity_data)
         self._device_name = miot_device.name
+        self._attr_name = None
         self._attr_supported_features = VacuumEntityFeature(0)
 
         self._prop_status = None
@@ -108,31 +130,16 @@ class Vacuum(MIoTServiceEntity, StateVacuumEntity):
                 for item in prop.value_list.items:
                     item_str: str = item.name
                     item_name: str = re.sub(r'[^a-z]', '', item_str)
-                    if item_name in {
-                            'charging', 'charged', 'chargingcompleted',
-                            'fullcharge', 'fullpower', 'findchargerpause',
-                            'drying', 'washing', 'wash', 'inthewash',
-                            'inthedry', 'stationworking', 'dustcollecting',
-                            'upgrade', 'upgrading', 'updating'
-                    }:
+                    if item_name in VACUUM_STATUS_DOCKED_WORDS:
                         self._prop_status_docked.add(item.value)
-                    elif item_name in {'paused', 'pause'}:
+                    elif item_name in VACUUM_STATUS_PAUSED_WORDS:
                         self._prop_status_paused.add(item.value)
-                    elif item_name in {
-                            'gocharging', 'cleancompletegocharging',
-                            'findchargewash', 'backtowashmop', 'gowash',
-                            'gowashing', 'summon'
-                    }:
+                    elif item_name in VACUUM_STATUS_RETURNING_WORDS:
                         self._prop_status_returning.add(item.value)
-                    elif item_name in {
-                            'error', 'breakcharging', 'gochargebreak'
-                    }:
+                    elif item_name in VACUUM_STATUS_ERROR_WORDS:
                         self._prop_status_error.add(item.value)
                     elif (item_name.find('sweeping') != -1) or (
-                            item_name.find('mopping') != -1) or (item_name in {
-                                'cleaning', 'remoteclean', 'continuesweep',
-                                'busy', 'building', 'buildingmap', 'mapping'
-                            }):
+                            item_name.find('mopping') != -1) or (item_name in VACUUM_STATUS_CLEANING_WORDS):
                         self._prop_status_cleaning.add(item.value)
             elif prop.name == 'fan-level':
                 if not prop.value_list:
@@ -210,11 +217,6 @@ class Vacuum(MIoTServiceEntity, StateVacuumEntity):
         if fan_level_value is not None:
             await self.set_property_async(prop=self._prop_fan_level,
                                           value=fan_level_value)
-
-    @property
-    def name(self) -> Optional[str]:
-        """Name of the vacuum entity."""
-        return self._device_name
 
     @property
     def fan_speed(self) -> Optional[str]:

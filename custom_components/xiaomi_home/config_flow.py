@@ -27,6 +27,7 @@ from homeassistant.core import callback
 from homeassistant.data_entry_flow import AbortFlow
 from homeassistant.helpers.instance_id import async_get
 import homeassistant.helpers.config_validation as cv
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .miot.const import (
     DEFAULT_CLOUD_SERVER,
@@ -71,6 +72,8 @@ class XiaomiMihomeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     DEFAULT_AREA_NAME_RULE = 'room'
     _main_loop: asyncio.AbstractEventLoop
     _miot_network: MIoTNetwork
+    _miot_oauth: MIoTOauthClient
+    _miot_http: MIoTHttpClient
     _mips_service: MipsService
     _miot_storage: MIoTStorage
     _miot_i18n: MIoTI18n
@@ -173,7 +176,8 @@ class XiaomiMihomeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 ip_addr_list=network_detect_addr.get('ip', []),
                 url_addr_list=network_detect_addr.get('url', []),
                 refresh_interval=NETWORK_REFRESH_INTERVAL,
-                loop=self._main_loop)
+                loop=self._main_loop,
+                session=async_get_clientsession(self.hass))
             self.hass.data[DOMAIN]['miot_network'] = self._miot_network
             await self._miot_network.init_async()
             _LOGGER.info('async_step_user, create miot network')
@@ -392,7 +396,8 @@ class XiaomiMihomeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     redirect_url=self._oauth_redirect_url_full,
                     cloud_server=self._cloud_server,
                     uuid=self._uuid,
-                    loop=self._main_loop)
+                    loop=self._main_loop,
+                    session=async_get_clientsession(self.hass))
                 self._cc_oauth_auth_url = miot_oauth.gen_auth_url(
                     redirect_url=self._oauth_redirect_url_full)
                 self.hass.data[DOMAIN][self._virtual_did]['oauth_state'] = (
@@ -469,7 +474,8 @@ class XiaomiMihomeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     self._miot_http = MIoTHttpClient(
                         cloud_server=self._cloud_server,
                         client_id=OAUTH2_CLIENT_ID,
-                        access_token=auth_info['access_token'])
+                        access_token=auth_info['access_token'],
+                        session=async_get_clientsession(self.hass))
                 else:
                     self._miot_http.update_http_header(
                         cloud_server=self._cloud_server,
@@ -1227,6 +1233,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 cloud_server=self._cloud_server,
                 client_id=OAUTH2_CLIENT_ID,
                 access_token=auth_info['access_token'],
+                session=async_get_clientsession(self.hass),
                 loop=self._main_loop)
             if await m_http.get_uid_async() != self._uid:
                 raise AbortFlow('inconsistent_account')
