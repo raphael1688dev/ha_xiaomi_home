@@ -282,6 +282,8 @@ class _MIoTLanDevice:
                 algorithms.AES128(aes_key),
                 modes.CBC(aex_iv), default_backend())
             _LOGGER.debug('update token, %s', self.did)
+        if 'ip' in info and info['ip']:
+            self.ip = info['ip']
 
     def __subscribe_handler(self, msg: dict, sub_ts: int) -> None:
         if (

@@ -168,5 +168,5 @@ class MIoTControlPathSensor(SensorEntity):
         self._state_sub_id = self.miot_device.sub_device_state(
             key='s.0', handler=self.__on_device_state_changed)
 
-    def __on_device_state_changed(self, state: bool) -> None:
+    def __on_device_state_changed(self, key: str, state: Any) -> None:
         self.schedule_update_ha_state()
