@@ -147,24 +147,32 @@ class MIoTHttp:
     @staticmethod
     async def get_async(
         url: str, params: Optional[dict] = None, headers: Optional[dict] = None,
-        loop: Optional[asyncio.AbstractEventLoop] = None
+        loop: Optional[asyncio.AbstractEventLoop] = None,
+        session: Optional[aiohttp.ClientSession] = None
     ) -> Optional[str]:
         """Async GET utilizing aiohttp for Home Assistant optimization."""
         try:
-            async with aiohttp.ClientSession(headers=headers) as session:
-                async with session.get(url, params=params, timeout=10) as response:
+            if session:
+                async with session.get(url, params=params, headers=headers, timeout=10) as response:
                     if response.status == 200:
                         return await response.text()
                     return None
+            else:
+                async with aiohttp.ClientSession(headers=headers) as session_internal:
+                    async with session_internal.get(url, params=params, timeout=10) as response:
+                        if response.status == 200:
+                            return await response.text()
+                        return None
         except Exception:
             return None
 
     @staticmethod
     async def get_json_async(
         url: str, params: Optional[dict] = None, headers: Optional[dict] = None,
-        loop: Optional[asyncio.AbstractEventLoop] = None
+        loop: Optional[asyncio.AbstractEventLoop] = None,
+        session: Optional[aiohttp.ClientSession] = None
     ) -> Optional[dict]:
-        response = await MIoTHttp.get_async(url, params, headers, loop)
+        response = await MIoTHttp.get_async(url, params, headers, loop, session)
         if not response:
             return None
         try:
@@ -175,7 +183,8 @@ class MIoTHttp:
     @staticmethod
     async def post_async(
         url: str, data: Optional[dict] = None, headers: Optional[dict] = None,
-        loop: Optional[asyncio.AbstractEventLoop] = None
+        loop: Optional[asyncio.AbstractEventLoop] = None,
+        session: Optional[aiohttp.ClientSession] = None
     ) -> Optional[str]:
         """Async POST utilizing aiohttp for Home Assistant optimization."""
         req_headers = headers or {}
@@ -183,22 +192,29 @@ class MIoTHttp:
             req_headers['Content-Type'] = 'application/json'
             
         try:
-            async with aiohttp.ClientSession(headers=req_headers) as session:
-                # If json parameter is used, aiohttp automatically sets Content-Type
-                async with session.post(url, json=data, timeout=10) as response:
+            if session:
+                async with session.post(url, json=data, headers=req_headers, timeout=10) as response:
                     if response.status == 200:
                         return await response.text()
                     return None
+            else:
+                async with aiohttp.ClientSession(headers=req_headers) as session_internal:
+                    # If json parameter is used, aiohttp automatically sets Content-Type
+                    async with session_internal.post(url, json=data, timeout=10) as response:
+                        if response.status == 200:
+                            return await response.text()
+                        return None
         except Exception:
             return None
             
     @staticmethod
     async def post_json_async(
         url: str, data: Optional[dict] = None, headers: Optional[dict] = None,
-        loop: Optional[asyncio.AbstractEventLoop] = None
+        loop: Optional[asyncio.AbstractEventLoop] = None,
+        session: Optional[aiohttp.ClientSession] = None
     ) -> Optional[dict]:
         """Helper to return JSON directly from async POST."""
-        response = await MIoTHttp.post_async(url, data, headers, loop)
+        response = await MIoTHttp.post_async(url, data, headers, loop, session)
         if not response:
             return None
         try:

@@ -73,7 +73,8 @@ class MIoTNetwork:
         ip_addr_list: Optional[list[str]] = None,
         url_addr_list: Optional[list[str]] = None,
         refresh_interval: Optional[int] = None,
-        loop: Optional[asyncio.AbstractEventLoop] = None
+        loop: Optional[asyncio.AbstractEventLoop] = None,
+        session: Optional[aiohttp.ClientSession] = None
     ) -> None:
         self._main_loop = loop or asyncio.get_running_loop()
         self._ip_addr_map = {
@@ -83,7 +84,8 @@ class MIoTNetwork:
             url: self._DETECT_TIMEOUT for url in
             (url_addr_list or self._URL_ADDRESS_LIST)}
             
-        self._http_session = None
+        self._own_session = session is None
+        self._http_session = session
         self._refresh_interval = refresh_interval or self._REFRESH_INTERVAL
 
         self._refresh_task = None
@@ -99,7 +101,7 @@ class MIoTNetwork:
 
     async def init_async(self) -> bool:
         # 在協程內部初始化 ClientSession，遵守 aiohttp 最佳實踐
-        if self._http_session is None:
+        if self._http_session is None and self._own_session:
             self._http_session = aiohttp.ClientSession()
             
         self.__refresh_timer_handler()
@@ -114,7 +116,7 @@ class MIoTNetwork:
             self._refresh_timer.cancel()
             self._refresh_timer = None
             
-        if self._http_session:
+        if self._own_session and self._http_session:
             await self._http_session.close()
             self._http_session = None
 

@@ -39,7 +39,8 @@ class MIoTOauthClient:
 
     def __init__(
             self, client_id: str, redirect_url: str, cloud_server: str,
-            uuid: str, loop: Optional[asyncio.AbstractEventLoop] = None
+            uuid: str, loop: Optional[asyncio.AbstractEventLoop] = None,
+            session: Optional[aiohttp.ClientSession] = None
     ) -> None:
         self._main_loop = loop or asyncio.get_running_loop()
         if client_id is None or client_id.strip() == '':
@@ -60,15 +61,15 @@ class MIoTOauthClient:
         self._device_id = f'ha.{uuid}'
         self._state = hashlib.sha1(
             f'd={self._device_id}'.encode('utf-8')).hexdigest()
-        # 移除已棄用的 loop 參數
-        self._session = aiohttp.ClientSession()
+        self._own_session = session is None
+        self._session = session or aiohttp.ClientSession()
 
     @property
     def state(self) -> str:
         return self._state
 
     async def deinit_async(self) -> None:
-        if self._session and not self._session.closed:
+        if self._own_session and self._session and not self._session.closed:
             await self._session.close()
 
     def set_redirect_url(self, redirect_url: str) -> None:
@@ -175,7 +176,8 @@ class MIoTHttpClient:
 
     def __init__(
             self, cloud_server: str, client_id: str, access_token: str,
-            loop: Optional[asyncio.AbstractEventLoop] = None
+            loop: Optional[asyncio.AbstractEventLoop] = None,
+            session: Optional[aiohttp.ClientSession] = None
     ) -> None:
         self._main_loop = loop or asyncio.get_running_loop()
         self._host = DEFAULT_OAUTH2_API_HOST
@@ -197,8 +199,8 @@ class MIoTHttpClient:
             cloud_server=cloud_server, client_id=client_id,
             access_token=access_token)
 
-        # 移除已棄用的 loop 參數
-        self._session = aiohttp.ClientSession()
+        self._own_session = session is None
+        self._session = session or aiohttp.ClientSession()
 
     async def deinit_async(self) -> None:
         if self._get_prop_timer:
@@ -209,7 +211,7 @@ class MIoTHttpClient:
             if fut:
                 fut.cancel()
         self._get_prop_list.clear()
-        if self._session and not self._session.closed:
+        if self._own_session and self._session and not self._session.closed:
             await self._session.close()
 
     def update_http_header(

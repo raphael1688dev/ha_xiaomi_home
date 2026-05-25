@@ -14,6 +14,7 @@ from enum import Enum, auto
 from itertools import islice
 
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.components import zeroconf
 
 # pylint: disable=relative-beyond-top-level
@@ -240,15 +241,17 @@ class MIoTClient:
         # MIoT oauth client instance
         self._oauth = MIoTOauthClient(
             client_id=OAUTH2_CLIENT_ID,
-            redirect_url=self._entry_data['oauth_redirect_url'],
+            redirect_url=self._entry_data.get('oauth_redirect_url', ''),
             cloud_server=self._cloud_server,
             uuid=self._entry_data["uuid"],
+            session=async_get_clientsession(hass),
             loop=self._main_loop)
         # MIoT http client instance
         self._http = MIoTHttpClient(
             cloud_server=self._cloud_server,
             client_id=OAUTH2_CLIENT_ID,
             access_token=self._user_config['auth_info']['access_token'],
+            session=async_get_clientsession(hass),
             loop=self._main_loop)
         # MIoT cert client
         self._cert = MIoTCert(
@@ -1951,6 +1954,7 @@ async def get_miot_instance_async(
             ip_addr_list=network_detect_addr.get('ip', []),
             url_addr_list=network_detect_addr.get('url', []),
             refresh_interval=NETWORK_REFRESH_INTERVAL,
+            session=async_get_clientsession(hass),
             loop=loop)
         hass.data[DOMAIN]['miot_network'] = network
         await network.init_async()
