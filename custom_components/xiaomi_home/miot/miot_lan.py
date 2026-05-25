@@ -920,24 +920,6 @@ class MIoTLan:
 
 # The following methods SHOULD ONLY be called in the internal loop
 
-    def __scan_devices(self) -> None:
-        # Broadcast probe
-        for if_name, sock in self._broadcast_socks.items():
-            self.__sendto(
-                if_name=if_name, data=self._probe_msg,
-                address='255.255.255.255', port=self.OT_PORT)
-        # Unicast probe to known IPs
-        for device in self._lan_devices.values():
-            if device.ip:
-                # We do not strictly need a specific socket if routing handles it, 
-                # but to ensure reply is received, we can send it out of all broadcast sockets.
-                # Usually one will hit the correct subnet/route.
-                for if_name in self._broadcast_socks:
-                    self.__sendto(
-                        if_name=if_name, data=self._probe_msg,
-                        address=device.ip, port=self.OT_PORT)
-        self._scan_timer = self._internal_loop.call_later(
-            self.__get_next_scan_interval(), self.__scan_devices)
 
     def ping(self, if_name: Optional[str], target_ip: str) -> None:
         if not target_ip:
@@ -1348,8 +1330,14 @@ class MIoTLan:
             self._scan_timer.cancel()
             self._scan_timer = None
         try:
-            # Scan devices
+            # Broadcast probe
             self.ping(if_name=None, target_ip='255.255.255.255')
+            # Unicast probe to known IPs
+            for device in self._lan_devices.values():
+                if device.ip:
+                    # Send unicast probe out of all broadcast sockets to ensure routing handles it
+                    for if_name in self._broadcast_socks:
+                        self.ping(if_name=if_name, target_ip=device.ip)
         except Exception as err:  # pylint: disable=broad-exception-caught
             # Optimized: 移除了多餘且無意義的 pass
             _LOGGER.error('ping device error, %s', err)
