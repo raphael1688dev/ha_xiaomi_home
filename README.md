@@ -4,6 +4,16 @@
 
 Xiaomi Home Integration is an integrated component of Home Assistant supported by Xiaomi official. It allows you to use Xiaomi IoT smart devices in Home Assistant.
 
+## 🚀 Mod Features (raphael1688dev fork)
+
+This custom fork includes several enhancements over the official version:
+- **Local Control for Non-CN Servers**: Enables local LAN control for Wi-Fi devices even when registered to overseas servers (e.g., Singapore), bypassing the official "Gateway Suicide" restriction.
+- **Unicast LAN Probing**: Uses direct Unicast UDP probes for Wi-Fi devices based on their Cloud IP, resolving broadcast limitations caused by VLANs or complex subnets.
+- **Enhanced Configuration Flow**: Adds an integration option to explicitly set the `CtrlMode` (Auto / Cloud / Local) and poll priorities.
+- **New Diagnostic Sensors**:
+  - **Control Path Sensor**: Real-time display of the current device control path (Cloud / LAN / Gateway).
+  - **IP Address Sensor**: Exposes the local IP address of the device natively in the Device Info diagnostics section.
+
 ## Installation
 
 > Home Assistant version requirement:
