@@ -55,7 +55,7 @@ async def async_setup_entry(
     new_entities.extend([
         MIoTIPAddressSensor(miot_device=miot_device)
         for miot_device in device_list
-        if miot_device.local_ip
+        if miot_device.connect_type in [0, 8, 12, 23]
     ])
 
     if new_entities:
@@ -154,8 +154,7 @@ class MIoTControlPathSensor(SensorEntity):
         self._attr_entity_category = EntityCategory.DIAGNOSTIC
         self._attr_icon = "mdi:transit-connection-variant"
         self._attr_has_entity_name = True
-        self._attr_should_poll = False
-        self._state_sub_id = 0
+        self._attr_should_poll = True
 
     @property
     def device_info(self):
@@ -171,13 +170,6 @@ class MIoTControlPathSensor(SensorEntity):
             return self.miot_device.miot_client.get_device_control_path(self.miot_device.did)
         return "Unknown"
 
-    async def async_added_to_hass(self) -> None:
-        self._state_sub_id = self.miot_device.sub_device_state(
-            key='s.0', handler=self.__on_device_state_changed)
-
-    def __on_device_state_changed(self, key: str, state: Any) -> None:
-        self.schedule_update_ha_state()
-
 class MIoTIPAddressSensor(SensorEntity):
     """Diagnostic sensor to display the local IP address of the device."""
 
@@ -188,7 +180,7 @@ class MIoTIPAddressSensor(SensorEntity):
         self._attr_entity_category = EntityCategory.DIAGNOSTIC
         self._attr_icon = "mdi:ip-network"
         self._attr_has_entity_name = True
-        self._attr_should_poll = False
+        self._attr_should_poll = True
 
     @property
     def device_info(self):

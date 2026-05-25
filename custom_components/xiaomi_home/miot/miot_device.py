@@ -404,7 +404,12 @@ class MIoTDevice:
     @property
     def local_ip(self) -> Optional[str]:
         """Local IP Address."""
-        return self._local_ip
+        return self.miot_client.device_list.get(self.did, {}).get('local_ip')
+
+    @property
+    def connect_type(self) -> int:
+        """Connection Type."""
+        return self.miot_client.device_list.get(self.did, {}).get('connect_type', -1)
 
     @property
     def did_tag(self) -> str:
