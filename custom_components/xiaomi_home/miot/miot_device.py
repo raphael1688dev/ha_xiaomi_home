@@ -822,7 +822,11 @@ class MIoTServiceEntity(Entity):
             self._attr_entity_category = entity_data.spec.entity_category
             
         # Set entity attr
-        self._attr_should_poll = False
+        if miot_device.connect_type in [0, 8, 12, 23]:
+            self._attr_should_poll = True
+        else:
+            self._attr_should_poll = False
+            
         self._attr_has_entity_name = True
         self._attr_available = miot_device.online
 
@@ -1245,6 +1249,10 @@ class MIoTPropertyEntity(Entity):
     def __write_ha_state_handler(self) -> None:
         self._pending_write_ha_state_timer = None
         self.async_write_ha_state()
+
+    async def async_update(self) -> None:
+        """Update the entity state by polling the device."""
+        self.__request_refresh_prop()
 
 
 class MIoTEventEntity(Entity):

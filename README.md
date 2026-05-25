@@ -13,6 +13,7 @@ This custom fork includes several enhancements over the official version:
 - **New Diagnostic Sensors**:
   - **Control Path Sensor**: Real-time display of the current device control path (Cloud / LAN / Gateway).
   - **IP Address Sensor**: Exposes the local IP address of the device natively in the Device Info diagnostics section.
+- **Active State Polling for Wi-Fi Devices**: Implements proactive state polling for Wi-Fi devices every 30 seconds, bypassing the official integration's reliance on UDP LAN broadcasts which are often blocked by VLANs. Ensures physical control states sync immediately to Home Assistant.
 
 ## Installation
 
