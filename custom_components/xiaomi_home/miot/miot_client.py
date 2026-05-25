@@ -211,7 +211,7 @@ class MIoTClient:
         self._display_binary_bool = 'bool' in entry_data.get(
             'display_binary_mode', ['text'])
 
-    async def init_async(self) -> None:
+    async def init_async(self, session: Optional[Any] = None) -> None:
         # Load user config and check
         self._user_config = await self._storage.load_user_config_async(
             uid=self._uid, cloud_server=self._cloud_server)
@@ -244,14 +244,14 @@ class MIoTClient:
             redirect_url=self._entry_data.get('oauth_redirect_url', ''),
             cloud_server=self._cloud_server,
             uuid=self._entry_data["uuid"],
-            session=async_get_clientsession(hass),
+            session=session,
             loop=self._main_loop)
         # MIoT http client instance
         self._http = MIoTHttpClient(
             cloud_server=self._cloud_server,
             client_id=OAUTH2_CLIENT_ID,
             access_token=self._user_config['auth_info']['access_token'],
-            session=async_get_clientsession(hass),
+            session=session,
             loop=self._main_loop)
         # MIoT cert client
         self._cert = MIoTCert(
@@ -1992,5 +1992,5 @@ async def get_miot_instance_async(
     miot_client.persistent_notify = persistent_notify
     hass.data[DOMAIN]['miot_clients'].setdefault(entry_id, miot_client)
     _LOGGER.info('new miot_client instance, %s, %s', entry_id, entry_data)
-    await miot_client.init_async()
+    await miot_client.init_async(session=async_get_clientsession(hass))
     return miot_client
