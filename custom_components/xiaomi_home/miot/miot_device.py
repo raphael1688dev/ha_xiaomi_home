@@ -402,6 +402,11 @@ class MIoTDevice:
         return self._did
 
     @property
+    def local_ip(self) -> Optional[str]:
+        """Local IP Address."""
+        return self._local_ip
+
+    @property
     def did_tag(self) -> str:
         return slugify_did(
             cloud_server=self.miot_client.cloud_server, did=self._did)

@@ -51,6 +51,13 @@ async def async_setup_entry(
         for miot_device in device_list
     ])
 
+    # Add IP Address diagnostic sensor
+    new_entities.extend([
+        MIoTIPAddressSensor(miot_device=miot_device)
+        for miot_device in device_list
+        if miot_device.local_ip
+    ])
+
     if new_entities:
         async_add_entities(new_entities)
 
@@ -170,3 +177,27 @@ class MIoTControlPathSensor(SensorEntity):
 
     def __on_device_state_changed(self, key: str, state: Any) -> None:
         self.schedule_update_ha_state()
+
+class MIoTIPAddressSensor(SensorEntity):
+    """Diagnostic sensor to display the local IP address of the device."""
+
+    def __init__(self, miot_device: MIoTDevice) -> None:
+        self.miot_device = miot_device
+        self._attr_unique_id = f"{miot_device.did}_ip_address"
+        self._attr_name = "IP Address"
+        self._attr_entity_category = EntityCategory.DIAGNOSTIC
+        self._attr_icon = "mdi:ip-network"
+        self._attr_has_entity_name = True
+        self._attr_should_poll = False
+
+    @property
+    def device_info(self):
+        return self.miot_device.device_info
+
+    @property
+    def available(self) -> bool:
+        return self.miot_device.online
+
+    @property
+    def native_value(self) -> str:
+        return self.miot_device.local_ip or "Unknown"
