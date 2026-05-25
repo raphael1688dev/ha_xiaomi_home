@@ -14,6 +14,7 @@ This custom fork includes several enhancements over the official version:
   - **Control Path Sensor**: Real-time display of the current device control path (Cloud / LAN / Gateway).
   - **IP Address Sensor**: Exposes the local IP address of the device natively in the Device Info diagnostics section.
 - **Active State Polling for Wi-Fi Devices**: Implements proactive state polling for Wi-Fi devices every 30 seconds, bypassing the official integration's reliance on UDP LAN broadcasts which are often blocked by VLANs. Ensures physical control states sync immediately to Home Assistant.
+  - **Cloud-Ban Prevention**: The native polling handler has been entirely refactored to respect `CtrlMode` and `Poll Priority` locally, routing polling traffic to the LAN instead of flooding the Xiaomi Cloud API. This prevents account rate-limiting while providing lightning-fast state synchronization.
 
 ## Installation
 

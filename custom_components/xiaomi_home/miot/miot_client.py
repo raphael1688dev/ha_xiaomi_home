@@ -1706,7 +1706,6 @@ class MIoTClient:
             did = key.split('|')[0]
             if did in request_list:
                 continue
-            params = self._refresh_props_list.pop(key)
             device_gw = self._device_list_gateway.get(did, None)
             if not device_gw:
                 continue
@@ -1714,6 +1713,7 @@ class MIoTClient:
             if not mips_gw:
                 _LOGGER.error('mips gateway not exist, %s', key)
                 continue
+            params = self._refresh_props_list.pop(key)
             request_list[did] = {
                 **params,
                 'fut': mips_gw.get_prop_async(
@@ -1749,9 +1749,9 @@ class MIoTClient:
             did = key.split('|')[0]
             if did in request_list:
                 continue
-            params = self._refresh_props_list.pop(key)
             if did not in self._device_list_lan:
                 continue
+            params = self._refresh_props_list.pop(key)
             request_list[did] = {
                 **params,
                 'fut': self._miot_lan.get_prop_async(
@@ -1781,12 +1781,26 @@ class MIoTClient:
     async def __refresh_props_handler(self) -> None:
         if not self._refresh_props_list:
             return
-        # Cloud, Central hub gateway, Lan control
-        if (
-            await self.__refresh_props_from_cloud()
-            or await self.__refresh_props_from_gw()
-            or await self.__refresh_props_from_lan()
-        ):
+            
+        handled = False
+        
+        # Determine execution order based on ctrl_mode and poll_priority
+        if self._ctrl_mode == CtrlMode.LOCAL:
+            handlers = [self.__refresh_props_from_lan, self.__refresh_props_from_gw]
+        elif self._ctrl_mode == CtrlMode.CLOUD:
+            handlers = [self.__refresh_props_from_cloud]
+        else: # AUTO
+            if self._entry_data.get('poll_priority', 'cloud_first') == 'local_first':
+                handlers = [self.__refresh_props_from_lan, self.__refresh_props_from_gw, self.__refresh_props_from_cloud]
+            else: # cloud_first
+                handlers = [self.__refresh_props_from_cloud, self.__refresh_props_from_gw, self.__refresh_props_from_lan]
+                
+        for handler in handlers:
+            handled = await handler()
+            if handled:
+                break
+                
+        if handled:
             self._refresh_props_retry_count = 0
             if self._refresh_props_list:
                 self._refresh_props_timer = self._main_loop.call_later(
