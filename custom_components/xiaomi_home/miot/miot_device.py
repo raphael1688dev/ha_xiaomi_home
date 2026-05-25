@@ -1097,6 +1097,10 @@ class MIoTServiceEntity(Entity):
         self._pending_write_ha_state_timer = None
         self.async_write_ha_state()
 
+    async def async_update(self) -> None:
+        """Update the entity state by polling the device."""
+        self.__refresh_props_value()
+
 
 class MIoTPropertyEntity(Entity):
     """MIoT Property Entity."""
@@ -1136,7 +1140,10 @@ class MIoTPropertyEntity(Entity):
             siid=spec.service.iid, piid=spec.iid)
             
         # Set entity attr
-        self._attr_should_poll = False
+        if miot_device.connect_type in [0, 8, 12, 23]:
+            self._attr_should_poll = True
+        else:
+            self._attr_should_poll = False
         self._attr_has_entity_name = True
         self._attr_name = (
             f'{"* "if self.spec.proprietary else " "}'
