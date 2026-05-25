@@ -8,7 +8,12 @@
         },
         "control_mode": {
             "auto": "自动",
-            "cloud": "云端"
+            "cloud": "云端",
+            "local": "纯局域网 (Local)"
+        },
+        "poll_priority": {
+            "cloud_first": "云端优先 (默认)",
+            "local_first": "本地优先 (局域网优先)"
         },
         "room_name_rule": {
             "none": "不同步",

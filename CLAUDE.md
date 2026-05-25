@@ -160,6 +160,8 @@ Body: Detailed description (mandatory except for docs type).
 
 Follow [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html). Use the provided `.pylintrc` for linting.
 
+**Important Rule:** All future code modifications MUST comply with the Home Assistant 2026.5.0 specifications and best practices. Additionally, always analyze and anticipate specifications that Home Assistant plans to deprecate in 2027.
+
 ## Debugging
 
 Enable debug logging in Home Assistant configuration.yaml:

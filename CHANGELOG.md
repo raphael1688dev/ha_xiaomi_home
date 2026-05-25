@@ -1,4 +1,12 @@
 # CHANGELOG
+## v0.4.8 (Mod)
+### Added
+- Add CtrlMode (Auto, Cloud, Local) and poll priority configurations to Integration Config Flow.
+- Add `MIoTControlPathSensor` to expose real-time device control paths (Cloud / LAN / Gateway).
+- Enable Unicast LAN probing for non-China Wi-Fi devices, overcoming VLAN/Subnet broadcast limitations.
+### Changed
+- Disable Gateway suicide logic in `miot_lan` for non-China servers to ensure Wi-Fi direct fallback.
+
 ## v0.4.7
 ### Added
 - Add turkish language in multi_lang.json. [#1593](https://github.com/XiaoMi/ha_xiaomi_home/pull/1593)

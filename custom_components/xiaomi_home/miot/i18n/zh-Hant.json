@@ -8,7 +8,12 @@
         },
         "control_mode": {
             "auto": "自動",
-            "cloud": "雲端"
+            "cloud": "雲端",
+            "local": "純區域網路 (Local)"
+        },
+        "poll_priority": {
+            "cloud_first": "雲端優先 (預設)",
+            "local_first": "本地優先 (區網優先)"
         },
         "statistics_logic": {
             "or": "或邏輯",

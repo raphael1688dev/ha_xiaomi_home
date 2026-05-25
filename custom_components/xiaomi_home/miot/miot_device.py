@@ -848,6 +848,16 @@ class MIoTServiceEntity(Entity):
         self._prop_changed_subs.pop(prop, None)
 
     @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return the state attributes of the device."""
+        attrs = getattr(self, '_attr_extra_state_attributes', {}) or {}
+        if getattr(self, 'miot_device', None) and getattr(self.miot_device, 'miot_client', None):
+            ctrl_path = self.miot_device.miot_client.get_device_control_path(
+                self.miot_device.did)
+            attrs['control_path'] = ctrl_path
+        return attrs
+
+    @property
     def device_info(self) -> Optional[DeviceInfo]:
         return self.miot_device.device_info
 

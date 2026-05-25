@@ -85,6 +85,7 @@ class XiaomiMihomeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     _uid: str
     _uuid: str
     _ctrl_mode: str
+    _poll_priority: str
     _area_name_rule: str
     _action_debug: bool
     _hide_non_standard_entities: bool
@@ -122,6 +123,7 @@ class XiaomiMihomeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._uid = ''
         self._uuid = ''   # MQTT client id
         self._ctrl_mode = DEFAULT_CTRL_MODE
+        self._poll_priority = 'cloud_first'
         self._area_name_rule = self.DEFAULT_AREA_NAME_RULE
         self._action_debug = False
         self._hide_non_standard_entities = False
@@ -705,6 +707,7 @@ class XiaomiMihomeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ):
         if user_input:
             self._ctrl_mode = user_input.get('ctrl_mode', self._ctrl_mode)
+            self._poll_priority = user_input.get('poll_priority', self._poll_priority)
             self._action_debug = user_input.get(
                 'action_debug', self._action_debug)
             self._hide_non_standard_entities = user_input.get(
@@ -726,6 +729,9 @@ class XiaomiMihomeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Required(
                     'ctrl_mode', default=self._ctrl_mode  # type: ignore
                 ): vol.In(self._miot_i18n.translate(key='config.control_mode')),
+                vol.Required(
+                    'poll_priority', default=self._poll_priority  # type: ignore
+                ): vol.In(self._miot_i18n.translate(key='config.poll_priority')),
                 vol.Required(
                     'action_debug', default=self._action_debug  # type: ignore
                 ): bool,
@@ -915,6 +921,7 @@ class XiaomiMihomeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 'cloud_server': self._cloud_server,
                 'oauth_redirect_url': self._oauth_redirect_url_full,
                 'ctrl_mode': self._ctrl_mode,
+                'poll_priority': self._poll_priority,
                 'home_selected': self._home_selected,
                 'devices_filter': self._devices_filter,
                 'area_name_rule': self._area_name_rule,
@@ -959,6 +966,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
     _integration_language: str
     _ctrl_mode: str
+    _poll_priority: str
     _nick_name: str
     _home_selected_list: list
     _devices_filter: dict
@@ -1014,6 +1022,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         self._storage_path = self._entry_data['storage_path']
         self._cloud_server = self._entry_data['cloud_server']
         self._ctrl_mode = self._entry_data.get('ctrl_mode', DEFAULT_CTRL_MODE)
+        self._poll_priority = self._entry_data.get('poll_priority', 'cloud_first')
         self._integration_language = self._entry_data.get(
             'integration_language', DEFAULT_INTEGRATION_LANGUAGE)
         self._cover_dz_width = self._entry_data.get(
@@ -1457,6 +1466,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         if not self._home_selected_list:
             return await self.__show_homes_select_form('no_family_selected')
         self._ctrl_mode = user_input.get('ctrl_mode', self._ctrl_mode)
+        self._poll_priority = user_input.get('poll_priority', self._poll_priority)
         self._home_selected = {}
         for device_source in ['home_list','share_home_list',
                               'separated_shared_list']:
@@ -1496,6 +1506,9 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 vol.Required(
                     'ctrl_mode', default=self._ctrl_mode  # type: ignore
                 ): vol.In(self._miot_i18n.translate(key='config.control_mode')),
+                vol.Required(
+                    'poll_priority', default=self._poll_priority  # type: ignore
+                ): vol.In(self._miot_i18n.translate(key='config.poll_priority')),
             }),
             errors={'base': reason},
             description_placeholders={
@@ -1946,6 +1959,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             self._entry_data['nick_name'] = self._nick_name_new
         if self._update_devices:
             self._entry_data['ctrl_mode'] = self._ctrl_mode
+            self._entry_data['poll_priority'] = self._poll_priority
             self._entry_data['home_selected'] = self._home_selected
             self._entry_data['devices_filter'] = self._devices_filter
             if not await self._miot_storage.save_async(

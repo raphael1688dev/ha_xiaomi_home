@@ -435,6 +435,7 @@ class MIoTLan:
 
     _init_lock: asyncio.Lock
     _init_done: bool
+    _ignore_mips_service: bool
 
 # The following should be called from the main loop
 
@@ -444,6 +445,7 @@ class MIoTLan:
         network: MIoTNetwork,
         mips_service: MipsService,
         enable_subscribe: bool = False,
+        ignore_mips_service: bool = False,
         virtual_did: Optional[int] = None,
         loop: Optional[asyncio.AbstractEventLoop] = None
     ) -> None:
@@ -490,14 +492,15 @@ class MIoTLan:
         self._lan_state_sub_map = {}
         self._lan_ctrl_vote_map = {}
 
+        self._ignore_mips_service = ignore_mips_service
         self._init_lock = asyncio.Lock()
         self._init_done = False
 
         if (
-            len(self._mips_service.get_services()) == 0
+            (self._ignore_mips_service or len(self._mips_service.get_services()) == 0)
             and len(self._net_ifs) > 0
         ):
-            _LOGGER.info('no central hub gateway service, init miot lan')
+            _LOGGER.info('miot lan init condition met (no central hub or ignored), init miot lan')
             self._main_loop.call_later(
                 0, lambda: self._main_loop.create_task(
                     self.init_async()))
@@ -520,6 +523,13 @@ class MIoTLan:
     def init_done(self) -> bool:
         return self._init_done
 
+    def set_ignore_mips_service(self, ignore: bool) -> None:
+        if self._ignore_mips_service == ignore:
+            return
+        self._ignore_mips_service = ignore
+        if self._ignore_mips_service and not self._init_done:
+            self._main_loop.create_task(self.init_async())
+
     async def init_async(self) -> None:
         # Avoid race condition
         async with self._init_lock:
@@ -532,8 +542,8 @@ class MIoTLan:
             if not any(self._lan_ctrl_vote_map.values()):
                 _LOGGER.info('no vote for lan ctrl')
                 return
-            if len(self._mips_service.get_services()) > 0:
-                _LOGGER.info('central hub gateway service exist')
+            if not self._ignore_mips_service and len(self._mips_service.get_services()) > 0:
+                _LOGGER.info('central hub gateway service exist, skipping lan init')
                 return
             for if_name in list(self._network.network_info.keys()):
                 self._available_net_ifs.add(if_name)
@@ -893,6 +903,12 @@ class MIoTLan:
     ) -> None:
         _LOGGER.info(
             'on mips service change, %s, %s, %s',  group_id, state, data)
+        if self._ignore_mips_service:
+            _LOGGER.info('ignore mips service change due to ignore_mips_service flag, init miot lan')
+            if not self._init_done:
+                await self.init_async()
+            return
+
         if len(self._mips_service.get_services()) > 0:
             _LOGGER.info('find central service, deinit miot lan')
             await self.deinit_async()
@@ -901,6 +917,25 @@ class MIoTLan:
             await self.init_async()
 
 # The following methods SHOULD ONLY be called in the internal loop
+
+    def __scan_devices(self) -> None:
+        # Broadcast probe
+        for if_name, sock in self._broadcast_socks.items():
+            self.__sendto(
+                if_name=if_name, data=self._probe_msg,
+                address='255.255.255.255', port=self.OT_PORT)
+        # Unicast probe to known IPs
+        for device in self._lan_devices.values():
+            if device.ip:
+                # We do not strictly need a specific socket if routing handles it, 
+                # but to ensure reply is received, we can send it out of all broadcast sockets.
+                # Usually one will hit the correct subnet/route.
+                for if_name in self._broadcast_socks:
+                    self.__sendto(
+                        if_name=if_name, data=self._probe_msg,
+                        address=device.ip, port=self.OT_PORT)
+        self._scan_timer = self._internal_loop.call_later(
+            self.__get_next_scan_interval(), self.__scan_devices)
 
     def ping(self, if_name: Optional[str], target_ip: str) -> None:
         if not target_ip:

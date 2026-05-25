@@ -8,7 +8,12 @@
         },
         "control_mode": {
             "auto": "Auto",
-            "cloud": "Cloud"
+            "cloud": "Cloud",
+            "local": "Pure Local"
+        },
+        "poll_priority": {
+            "cloud_first": "Cloud First (Default)",
+            "local_first": "Local First"
         },
         "statistics_logic": {
             "or": "OR logic",

@@ -1,0 +1,6 @@
+- `[x]` Update `CtrlMode` in `miot_client.py` to support `LOCAL` mode.
+- `[x]` Update `set_prop_async` and `action_async` to enforce `CtrlMode.LOCAL` (skip cloud fallback).
+- `[x]` Implement `get_device_control_path(did)` in `miot_client.py`.
+- `[x]` Update `get_prop_async` to support customizable `poll_priority` in `miot_client.py`.
+- `[x]` Expose `control_path` in `MIoTServiceEntity.extra_state_attributes` (`miot_device.py`).
+- `[x]` Add `poll_priority` and `LOCAL` options to `config_flow.py` UI schema and translations.
