@@ -807,14 +807,11 @@ class MIoTServiceEntity(Entity):
         
         # Keep unique_id consistent but DO NOT overwrite HA's entity_id logic
         if isinstance(self.entity_data.spec, MIoTSpecInstance):
-            entity_id_domain = ha_domain or self.entity_data.platform
-            self._attr_unique_id = miot_device.gen_device_entity_id(
-                entity_id_domain)
+            self._attr_unique_id = miot_device.gen_device_entity_id(DOMAIN)
             self._attr_name = f' {self.entity_data.spec.description_trans}'
         elif isinstance(self.entity_data.spec, MIoTSpecService):
-            entity_id_domain = ha_domain or self.entity_data.platform
             self._attr_unique_id = miot_device.gen_service_entity_id(
-                entity_id_domain, siid=self.entity_data.spec.iid,
+                DOMAIN, siid=self.entity_data.spec.iid,
                 description=self.entity_data.spec.description)
             self._attr_name = (
                 f'{"* "if self.entity_data.spec.proprietary else " "}'
@@ -1136,7 +1133,7 @@ class MIoTPropertyEntity(Entity):
         
         # Keep unique_id consistent but DO NOT overwrite HA's entity_id logic
         self._attr_unique_id = self.miot_device.gen_prop_entity_id(
-            ha_domain=spec.platform, spec_name=spec.name,
+            ha_domain=DOMAIN, spec_name=spec.name,
             siid=spec.service.iid, piid=spec.iid)
             
         # Set entity attr
@@ -1286,7 +1283,7 @@ class MIoTEventEntity(Entity):
         
         # Keep unique_id consistent but DO NOT overwrite HA's entity_id logic
         self._attr_unique_id = self.miot_device.gen_event_entity_id(
-            ha_domain=spec.platform, spec_name=spec.name,
+            ha_domain=DOMAIN, spec_name=spec.name,
             siid=spec.service.iid,  eiid=spec.iid)
             
         # Set entity attr
@@ -1398,7 +1395,7 @@ class MIoTActionEntity(Entity):
         
         # Keep unique_id consistent but DO NOT overwrite HA's entity_id logic
         self._attr_unique_id = self.miot_device.gen_action_entity_id(
-            ha_domain=spec.platform, spec_name=spec.name,
+            ha_domain=DOMAIN, spec_name=spec.name,
             siid=spec.service.iid, aiid=spec.iid)
             
         # Set entity attr
