@@ -7,7 +7,7 @@ import logging
 from typing import Optional
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.components import persistent_notification
 from homeassistant.helpers import device_registry, entity_registry
 
@@ -83,6 +83,22 @@ async def async_setup_entry(
         miot_devices: list[MIoTDevice] = []
         er = entity_registry.async_get(hass=hass)
         
+        # Migrate old unique_ids to standard format without DOMAIN prefix
+        @callback
+        def async_migrate_unique_ids() -> None:
+            for entry in entity_registry.async_entries_for_config_entry(er, entry_id):
+                old_unique_id = entry.unique_id
+                if old_unique_id.startswith(f"{DOMAIN}."):
+                    new_unique_id = old_unique_id.replace(f"{DOMAIN}.", "", 1)
+                    try:
+                        er.async_update_entity(entry.entity_id, new_unique_id=new_unique_id)
+                        _LOGGER.info("Successfully migrated unique_id from %s to %s", old_unique_id, new_unique_id)
+                    except ValueError:
+                        # New unique ID already exists, ignore
+                        pass
+        
+        async_migrate_unique_ids()
+
         for entry in entity_registry.async_entries_for_config_entry(
             er, entry_id
         ):
@@ -92,11 +108,15 @@ async def async_setup_entry(
             ):
                 er.async_remove(entity_id=entry.entity_id)
                 
-        # Helper function for DRY registry cleanup
-        def _remove_from_registry(entity_ids: list[str]):
-            for eid in set(entity_ids):
-                if er.async_get(entity_id_or_uuid=eid):
-                    er.async_remove(entity_id=eid)
+        # Helper function for DRY registry cleanup using unique_id
+        config_entries_entities = entity_registry.async_entries_for_config_entry(er, entry_id)
+        def _remove_from_registry_by_uid(unique_ids: list[str]):
+            uids_to_check = set(unique_ids)
+            for entry in config_entries_entities:
+                if entry.unique_id in uids_to_check:
+                    # check if still exists before remove
+                    if er.async_get(entry.entity_id):
+                        er.async_remove(entity_id=entry.entity_id)
 
         for did, info in miot_client.device_list.items():
             spec_instance = await spec_parser.parse(urn=info['urn'])
@@ -120,9 +140,9 @@ async def async_setup_entry(
                         if isinstance(entity.spec, MIoTSpecService) and (
                             entity.spec.need_filter or (miot_client.hide_non_standard_entities and entity.spec.proprietary)
                         ):
-                            _remove_from_registry([
-                                device.gen_service_entity_id(ha_domain=platform, siid=entity.spec.iid, description=entity.spec.description, slugify_description=False),
-                                device.gen_service_entity_id(ha_domain=platform, siid=entity.spec.iid, description=entity.spec.description)
+                            _remove_from_registry_by_uid([
+                                device.gen_service_unique_id(siid=entity.spec.iid, description=entity.spec.description, slugify_description=False),
+                                device.gen_service_unique_id(siid=entity.spec.iid, description=entity.spec.description)
                             ])
                         else:
                             kept_entities.append(entity)
@@ -132,8 +152,8 @@ async def async_setup_entry(
                     kept_props = []
                     for prop in device.prop_list[platform]:
                         if prop.need_filter or (miot_client.hide_non_standard_entities and prop.proprietary):
-                            _remove_from_registry([
-                                device.gen_prop_entity_id(ha_domain=platform, spec_name=prop.name, siid=prop.service.iid, piid=prop.iid)
+                            _remove_from_registry_by_uid([
+                                device.gen_prop_unique_id(spec_name=prop.name, siid=prop.service.iid, piid=prop.iid)
                             ])
                         else:
                             kept_props.append(prop)
@@ -143,8 +163,8 @@ async def async_setup_entry(
                     kept_events = []
                     for event in device.event_list[platform]:
                         if event.need_filter or (miot_client.hide_non_standard_entities and event.proprietary):
-                            _remove_from_registry([
-                                device.gen_event_entity_id(ha_domain=platform, spec_name=event.name, siid=event.service.iid, eiid=event.iid)
+                            _remove_from_registry_by_uid([
+                                device.gen_event_unique_id(spec_name=event.name, siid=event.service.iid, eiid=event.iid)
                             ])
                         else:
                             kept_events.append(event)
@@ -154,12 +174,12 @@ async def async_setup_entry(
                     kept_actions = []
                     for action in device.action_list[platform]:
                         if action.need_filter or (miot_client.hide_non_standard_entities and action.proprietary):
-                            _remove_from_registry([
-                                device.gen_action_entity_id(ha_domain=platform, spec_name=action.name, siid=action.service.iid, aiid=action.iid)
+                            _remove_from_registry_by_uid([
+                                device.gen_action_unique_id(spec_name=action.name, siid=action.service.iid, aiid=action.iid)
                             ])
                             if platform == 'notify':
-                                _remove_from_registry([
-                                    device.gen_action_entity_id(ha_domain='text', spec_name=action.name, siid=action.service.iid, aiid=action.iid)
+                                _remove_from_registry_by_uid([
+                                    device.gen_action_unique_id(spec_name=action.name, siid=action.service.iid, aiid=action.iid)
                                 ])
                         else:
                             kept_actions.append(action)
@@ -168,20 +188,20 @@ async def async_setup_entry(
             # Action debug
             if not miot_client.action_debug:
                 for action in device.action_list.get('notify', []):
-                    _remove_from_registry([
-                        device.gen_action_entity_id(ha_domain='text', spec_name=action.name, siid=action.service.iid, aiid=action.iid)
+                    _remove_from_registry_by_uid([
+                        device.gen_action_unique_id(spec_name=action.name, siid=action.service.iid, aiid=action.iid)
                     ])
                     
             # Binary sensor display
             if not miot_client.display_binary_bool:
                 for prop in device.prop_list.get('binary_sensor', []):
-                    _remove_from_registry([
-                        device.gen_prop_entity_id(ha_domain='binary_sensor', spec_name=prop.name, siid=prop.service.iid, piid=prop.iid)
+                    _remove_from_registry_by_uid([
+                        device.gen_prop_unique_id(spec_name=prop.name, siid=prop.service.iid, piid=prop.iid)
                     ])
             if not miot_client.display_binary_text:
                 for prop in device.prop_list.get('binary_sensor', []):
-                    _remove_from_registry([
-                        device.gen_prop_entity_id(ha_domain='sensor', spec_name=prop.name, siid=prop.service.iid, piid=prop.iid)
+                    _remove_from_registry_by_uid([
+                        device.gen_prop_unique_id(spec_name=prop.name, siid=prop.service.iid, piid=prop.iid)
                     ])
 
         hass.data[DOMAIN]['devices'][entry_id] = miot_devices

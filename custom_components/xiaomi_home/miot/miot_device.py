@@ -416,14 +416,13 @@ class MIoTDevice:
         return slugify_did(
             cloud_server=self.miot_client.cloud_server, did=self._did)
 
-    def gen_device_entity_id(self, ha_domain: str) -> str:
+    def gen_device_unique_id(self) -> str:
         return (
-            f'{ha_domain}.{self._model_strs[0][:9]}_{self.did_tag}_'
+            f'{self._model_strs[0][:9]}_{self.did_tag}_'
             f'{self._model_strs[-1][:20]}')
 
-    def gen_service_entity_id(
+    def gen_service_unique_id(
         self,
-        ha_domain: str,
         siid: int,
         description: str,
         slugify_description: bool = True,
@@ -434,30 +433,30 @@ class MIoTDevice:
             if not description_slug:
                 description_slug = f'service_{siid}'
         return (
-            f'{ha_domain}.{self._model_strs[0][:9]}_{self.did_tag}_'
+            f'{self._model_strs[0][:9]}_{self.did_tag}_'
             f'{self._model_strs[-1][:20]}_s_{siid}_{description_slug}')
 
-    def gen_prop_entity_id(
-        self, ha_domain: str, spec_name: str, siid: int, piid: int
+    def gen_prop_unique_id(
+        self, spec_name: str, siid: int, piid: int
     ) -> str:
         return (
-            f'{ha_domain}.{self._model_strs[0][:9]}_{self.did_tag}_'
+            f'{self._model_strs[0][:9]}_{self.did_tag}_'
             f'{self._model_strs[-1][:20]}_{slugify_name(spec_name)}'
             f'_p_{siid}_{piid}')
 
-    def gen_event_entity_id(
-        self, ha_domain: str, spec_name: str, siid: int, eiid: int
+    def gen_event_unique_id(
+        self, spec_name: str, siid: int, eiid: int
     ) -> str:
         return (
-            f'{ha_domain}.{self._model_strs[0][:9]}_{self.did_tag}_'
+            f'{self._model_strs[0][:9]}_{self.did_tag}_'
             f'{self._model_strs[-1][:20]}_{slugify_name(spec_name)}'
             f'_e_{siid}_{eiid}')
 
-    def gen_action_entity_id(
-        self, ha_domain: str, spec_name: str, siid: int, aiid: int
+    def gen_action_unique_id(
+        self, spec_name: str, siid: int, aiid: int
     ) -> str:
         return (
-            f'{ha_domain}.{self._model_strs[0][:9]}_{self.did_tag}_'
+            f'{self._model_strs[0][:9]}_{self.did_tag}_'
             f'{self._model_strs[-1][:20]}_{slugify_name(spec_name)}'
             f'_a_{siid}_{aiid}')
 
@@ -807,11 +806,11 @@ class MIoTServiceEntity(Entity):
         
         # Keep unique_id consistent but DO NOT overwrite HA's entity_id logic
         if isinstance(self.entity_data.spec, MIoTSpecInstance):
-            self._attr_unique_id = miot_device.gen_device_entity_id(DOMAIN)
+            self._attr_unique_id = miot_device.gen_device_unique_id()
             self._attr_name = f' {self.entity_data.spec.description_trans}'
         elif isinstance(self.entity_data.spec, MIoTSpecService):
-            self._attr_unique_id = miot_device.gen_service_entity_id(
-                DOMAIN, siid=self.entity_data.spec.iid,
+            self._attr_unique_id = miot_device.gen_service_unique_id(
+                siid=self.entity_data.spec.iid,
                 description=self.entity_data.spec.description)
             self._attr_name = (
                 f'{"* "if self.entity_data.spec.proprietary else " "}'
@@ -1132,8 +1131,8 @@ class MIoTPropertyEntity(Entity):
         self._pending_write_ha_state_timer = None
         
         # Keep unique_id consistent but DO NOT overwrite HA's entity_id logic
-        self._attr_unique_id = self.miot_device.gen_prop_entity_id(
-            ha_domain=DOMAIN, spec_name=spec.name,
+        self._attr_unique_id = self.miot_device.gen_prop_unique_id(
+            spec_name=spec.name,
             siid=spec.service.iid, piid=spec.iid)
             
         # Set entity attr
@@ -1282,8 +1281,8 @@ class MIoTEventEntity(Entity):
         self._main_loop = miot_device.miot_client.main_loop
         
         # Keep unique_id consistent but DO NOT overwrite HA's entity_id logic
-        self._attr_unique_id = self.miot_device.gen_event_entity_id(
-            ha_domain=DOMAIN, spec_name=spec.name,
+        self._attr_unique_id = self.miot_device.gen_event_unique_id(
+            spec_name=spec.name,
             siid=spec.service.iid,  eiid=spec.iid)
             
         # Set entity attr
@@ -1394,8 +1393,8 @@ class MIoTActionEntity(Entity):
         self._state_sub_id = 0
         
         # Keep unique_id consistent but DO NOT overwrite HA's entity_id logic
-        self._attr_unique_id = self.miot_device.gen_action_entity_id(
-            ha_domain=DOMAIN, spec_name=spec.name,
+        self._attr_unique_id = self.miot_device.gen_action_unique_id(
+            spec_name=spec.name,
             siid=spec.service.iid, aiid=spec.iid)
             
         # Set entity attr
