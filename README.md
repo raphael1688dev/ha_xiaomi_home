@@ -110,6 +110,12 @@ Xiaomi Home Integration and the affiliated cloud interface is provided by Xiaomi
 
   Yes, it supports multiple Xiaomi accounts. Furthermore, Xiaomi Home Integration allows that devices belonging to different accounts can be added to a same area.
 
+- Why do some older devices (e.g., Yeelight Bedside Lamp 2, old smart plugs) always use Cloud control instead of LAN control?
+
+  The LAN control engine (`miot_lan`) of this integration is built exclusively for the modern **MIoT Spec (OT Protocol)**. Older devices use the legacy **miio Profile** protocol, which uses custom string-based commands (e.g., `set_power`) instead of standardized Service/Property IDs (`siid`/`piid`). 
+  Because this integration does not contain the massive translation dictionaries required to convert MIoT Spec payloads into legacy `miio` payloads locally, it explicitly blacklists these old models (defined in `profile_models.yaml`). For these legacy devices, the integration seamlessly falls back to **Cloud Control**, letting the Xiaomi Cloud servers handle the protocol translation.
+  If you require 100% local control for these legacy devices, we recommend using Home Assistant's native **Yeelight** or **Xiaomi Miio** integrations alongside this one.
+
 - Does Xiaomi Home Integration support local mode?
 
   Local mode is implemented by [Xiaomi Central Hub Gateway](https://www.mi.com/shop/buy/detail?product_id=15755&cfrom=search) (firmware version 3.3.0_0023 and above) or Xiaomi smart devices with [built-in central hub gateway](https://github.com/XiaoMi/ha_xiaomi_home/wiki/Central-hub-gateway-device-models) (software version 0.8.9 and above) inside. If you do not have a Xiaomi central hub gateway or other devices having central hub gateway function, all control commands are sent through Xiaomi Cloud. The firmware for Xiaomi central hub gateway including the built-in central hub gateway supporting Home Assistant local mode feature has been released.
