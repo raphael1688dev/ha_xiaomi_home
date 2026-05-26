@@ -6,15 +6,22 @@ Xiaomi Home Integration is an integrated component of Home Assistant supported b
 
 ## 🚀 Mod Features (raphael1688dev fork)
 
-This custom fork includes several enhancements over the official version:
+This custom fork includes several massive enhancements and compliance upgrades over the official version:
+
+- **Home Assistant 2026.5.0 Full Compliance**: 
+  - Eradicated legacy Entity Naming violations (removed leading spaces and redundant name properties) to strictly comply with `has_entity_name = True`.
+  - Audited and guaranteed 100% compliance with non-blocking I/O, `async_forward_entry_setups`, standard Enums (`SensorDeviceClass`, `EntityCategory`), and deprecated constants cleanup.
+- **Entity Registry Seamless Migration**:
+  - Cleansed the technical debt of the official Xiaomi integration which forced the `xiaomi_home.` domain into the `unique_id` of all entities.
+  - Built-in **Auto-Migration Script**: Seamlessly converts all legacy `xiaomi_home.` unique IDs in the Home Assistant registry on startup. It strictly preserves the original case-sensitivity to guarantee **zero broken automations, Node-RED flows, or dashboards**.
 - **Local Control for Non-CN Servers**: Enables local LAN control for Wi-Fi devices even when registered to overseas servers (e.g., Singapore), bypassing the official "Gateway Suicide" restriction.
-- **Unicast LAN Probing**: Uses direct Unicast UDP probes for Wi-Fi devices based on their Cloud IP, resolving broadcast limitations caused by VLANs or complex subnets.
 - **Enhanced Configuration Flow**: Adds an integration option to explicitly set the `CtrlMode` (Auto / Cloud / Local) and poll priorities.
 - **New Diagnostic Sensors**:
   - **Control Path Sensor**: Real-time display of the current device control path (Cloud / LAN / Gateway).
   - **IP Address Sensor**: Exposes the local IP address of the device natively in the Device Info diagnostics section.
-- **Active State Polling for Wi-Fi Devices**: Implements proactive state polling for Wi-Fi devices every 30 seconds, bypassing the official integration's reliance on UDP LAN broadcasts which are often blocked by VLANs. Ensures physical control states sync immediately to Home Assistant.
-  - **Cloud-Ban Prevention**: The native polling handler has been entirely refactored to respect `CtrlMode` and `Poll Priority` locally, routing polling traffic to the LAN instead of flooding the Xiaomi Cloud API. This prevents account rate-limiting while providing lightning-fast state synchronization.
+- **Active State Polling for Wi-Fi Devices (Unicast UDP)**: 
+  - Implements proactive state polling for Wi-Fi devices every 30 seconds, bypassing the official integration's reliance on UDP LAN broadcasts which are often blocked by VLANs. Ensures physical control states sync immediately to Home Assistant.
+  - **Cloud-Ban Prevention**: The native polling handler has been entirely refactored to respect `CtrlMode` and `Poll Priority` locally, routing polling traffic to the LAN (Unicast) instead of flooding the Xiaomi Cloud API. This prevents account rate-limiting while providing lightning-fast state synchronization.
 
 ## Installation
 
