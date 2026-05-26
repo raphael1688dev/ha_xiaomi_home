@@ -425,7 +425,7 @@ class MIoTDevice:
         self,
         siid: int,
         description: str,
-        slugify_description: bool = True,
+        slugify_description: bool = False,
     ) -> str:
         description_slug = description
         if slugify_description:
