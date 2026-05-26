@@ -15,7 +15,6 @@ This custom fork includes several enhancements over the official version:
   - **IP Address Sensor**: Exposes the local IP address of the device natively in the Device Info diagnostics section.
 - **Active State Polling for Wi-Fi Devices**: Implements proactive state polling for Wi-Fi devices every 30 seconds, bypassing the official integration's reliance on UDP LAN broadcasts which are often blocked by VLANs. Ensures physical control states sync immediately to Home Assistant.
   - **Cloud-Ban Prevention**: The native polling handler has been entirely refactored to respect `CtrlMode` and `Poll Priority` locally, routing polling traffic to the LAN instead of flooding the Xiaomi Cloud API. This prevents account rate-limiting while providing lightning-fast state synchronization.
-- **Legacy Naming Restoration (HA 2026.5.0 Migration Safe)**: Intentionally bypasses HA 2026.5.0's strict naming enforcement to restore the legacy `entity_id` format (e.g., `yeelink_cn_270157396_lamp10...`). This ensures 100% backward compatibility with your existing Node-RED flows, Lovelace dashboards, and YAML automations when migrating from the official integration.
 
 ## Installation
 
