@@ -120,10 +120,17 @@ class MIoTOauthClient:
         except json.JSONDecodeError:
             raise MIoTOauthError(f'invalid http response (not JSON), {res_str}')
             
+        if not res_obj:
+            raise MIoTOauthError(f'empty http response, {res_str}')
+            
+        if res_obj.get('code', None) != 0:
+            err_desc = res_str
+            if 'result' in res_obj and isinstance(res_obj['result'], dict):
+                err_desc = res_obj['result'].get('error_description', res_str)
+            raise MIoTOauthError(f'oauth API error: {err_desc}')
+            
         if (
-            not res_obj
-            or res_obj.get('code', None) != 0
-            or 'result' not in res_obj
+            'result' not in res_obj
             or not all(
                 key in res_obj['result']
                 for key in ['access_token', 'refresh_token', 'expires_in'])

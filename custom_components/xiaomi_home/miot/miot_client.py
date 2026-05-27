@@ -563,6 +563,15 @@ class MIoTClient:
                 'refresh oauth info (%s, %s) after %ds',
                 self._uid, self._cloud_server, refresh_time)
             return True
+        except MIoTOauthError as err:
+            self.__show_client_error_notify(
+                message=self._i18n.translate(
+                    'miot.client.invalid_oauth_info'),  # type: ignore
+                notify_key='oauth_info')
+            _LOGGER.warning(
+                'refresh oauth info failed (%s, %s): %s (user needs to re-auth)',
+                self._uid, self._cloud_server, err)
+            return False
         except Exception as err:
             self.__show_client_error_notify(
                 message=self._i18n.translate(
@@ -571,7 +580,7 @@ class MIoTClient:
             _LOGGER.error(
                 'refresh oauth info error (%s, %s), %s, %s',
                 self._uid, self._cloud_server, err, traceback.format_exc())
-        return False
+            return False
 
     async def refresh_user_cert_async(self) -> bool:
         try:
