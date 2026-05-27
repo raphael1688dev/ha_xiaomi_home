@@ -47,13 +47,13 @@ async def async_setup_entry(
 
     # Add Control Path diagnostic sensor
     new_entities.extend([
-        MIoTControlPathSensor(miot_device=miot_device)
+        MIoTControlPathSensor(miot_device=miot_device, entry_id=config_entry.entry_id)
         for miot_device in device_list
     ])
 
     # Add IP Address diagnostic sensor
     new_entities.extend([
-        MIoTIPAddressSensor(miot_device=miot_device)
+        MIoTIPAddressSensor(miot_device=miot_device, entry_id=config_entry.entry_id)
         for miot_device in device_list
         if miot_device.connect_type in [0, 8, 12, 23]
     ])
@@ -121,6 +121,7 @@ class Sensor(MIoTPropertyEntity, SensorEntity):
                 _LOGGER.debug(
                     '%s, data exception, out of range, %s, %s',
                     self.entity_id, self._value, self._value_range)
+                return None
                     
         if self._value_list:
             str_val = str(self._value)
@@ -148,11 +149,12 @@ class Sensor(MIoTPropertyEntity, SensorEntity):
 class MIoTControlPathSensor(SensorEntity):
     """Diagnostic sensor to display the current control path of the device."""
 
-    def __init__(self, miot_device: MIoTDevice) -> None:
+    def __init__(self, miot_device: MIoTDevice, entry_id: str) -> None:
         self.miot_device = miot_device
-        self._attr_unique_id = f"{miot_device.did}_control_path"
+        self._attr_unique_id = f"{entry_id}_{miot_device.did}_control_path"
         self._attr_name = "Control Path"
         self._attr_entity_category = EntityCategory.DIAGNOSTIC
+        self._attr_entity_registry_enabled_default = False
         self._attr_icon = "mdi:transit-connection-variant"
         self._attr_has_entity_name = True
         self._attr_should_poll = True
@@ -174,11 +176,12 @@ class MIoTControlPathSensor(SensorEntity):
 class MIoTIPAddressSensor(SensorEntity):
     """Diagnostic sensor to display the local IP address of the device."""
 
-    def __init__(self, miot_device: MIoTDevice) -> None:
+    def __init__(self, miot_device: MIoTDevice, entry_id: str) -> None:
         self.miot_device = miot_device
-        self._attr_unique_id = f"{miot_device.did}_ip_address"
+        self._attr_unique_id = f"{entry_id}_{miot_device.did}_ip_address"
         self._attr_name = "IP Address"
         self._attr_entity_category = EntityCategory.DIAGNOSTIC
+        self._attr_entity_registry_enabled_default = False
         self._attr_icon = "mdi:ip-network"
         self._attr_has_entity_name = True
         self._attr_should_poll = True

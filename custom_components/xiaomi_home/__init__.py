@@ -95,6 +95,12 @@ async def async_setup_entry(
                 if new_unique_id.startswith(f"{entry.domain}."):
                     new_unique_id = new_unique_id.replace(f"{entry.domain}.", "", 1)
                     
+                # Migrate diagnostic sensors to include entry_id
+                if new_unique_id.endswith("_control_path") and not new_unique_id.startswith(entry_id):
+                    new_unique_id = f"{entry_id}_{new_unique_id}"
+                elif new_unique_id.endswith("_ip_address") and not new_unique_id.startswith(entry_id):
+                    new_unique_id = f"{entry_id}_{new_unique_id}"
+                    
                 if new_unique_id != old_unique_id:
                     try:
                         er.async_update_entity(entry.entity_id, new_unique_id=new_unique_id)
@@ -193,10 +199,6 @@ async def async_setup_entry(
                             _remove_from_registry_by_uid([
                                 device.gen_action_unique_id(spec_name=action.name, siid=action.service.iid, aiid=action.iid)
                             ])
-                            if platform == 'notify':
-                                _remove_from_registry_by_uid([
-                                    device.gen_action_unique_id(spec_name=action.name, siid=action.service.iid, aiid=action.iid)
-                                ])
                         else:
                             kept_actions.append(action)
                     device.action_list[platform] = kept_actions

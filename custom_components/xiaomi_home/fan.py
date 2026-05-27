@@ -79,6 +79,7 @@ class Fan(MIoTServiceEntity, FanEntity):
         self._attr_preset_modes = []
         self._attr_current_direction = None
         self._attr_supported_features = FanEntityFeature(0)
+        self._is_turning_on = False
 
         # _prop_on is required
         self._prop_fan_level = None
@@ -166,8 +167,12 @@ class Fan(MIoTServiceEntity, FanEntity):
     ) -> None:
         """Turn the fan on."""
         # 先確認啟動，避免關機狀態下被設備拒絕其它指令
-        if not self.is_on:
-            await self.set_property_async(prop=self._prop_on, value=True)
+        if not self.is_on and not self._is_turning_on:
+            self._is_turning_on = True
+            try:
+                await self.set_property_async(prop=self._prop_on, value=True)
+            finally:
+                self._is_turning_on = False
 
         # 優化: 使用 asyncio.gather 並發執行後續指令，改善卡頓感
         tasks = []
@@ -190,8 +195,12 @@ class Fan(MIoTServiceEntity, FanEntity):
     async def async_set_percentage(self, percentage: int) -> None:
         """Set the percentage of the fan speed."""
         if percentage > 0:
-            if not self.is_on:
-                await self.set_property_async(prop=self._prop_on, value=True)
+            if not self.is_on and not self._is_turning_on:
+                self._is_turning_on = True
+                try:
+                    await self.set_property_async(prop=self._prop_on, value=True)
+                finally:
+                    self._is_turning_on = False
                 
             if self._speed_names:
                 # 優化: 使用 O(1) 字典反查，取代原本低效的 O(N) get_map_key 掃描

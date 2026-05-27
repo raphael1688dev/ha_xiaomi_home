@@ -62,8 +62,8 @@ class Light(MIoTServiceEntity, LightEntity):
     _prop_mode: Optional[MIoTSpecProperty]
 
     _brightness_scale: Optional[tuple[int, int]]
-    _mode_map: Optional[dict[Any, Any]]
-    _mode_reverse_map: dict[Any, Any]
+    _effect_map: dict[str, tuple[MIoTSpecProperty, Any]]
+    _effect_reverse_map: dict[tuple[MIoTSpecProperty, Any], str]
 
     def __init__(
         self, miot_device: MIoTDevice,  entity_data: MIoTEntityData
@@ -82,8 +82,8 @@ class Light(MIoTServiceEntity, LightEntity):
         self._prop_color = None
         self._prop_mode = None
         self._brightness_scale = None
-        self._mode_map = None
-        self._mode_reverse_map = {}
+        self._effect_map = {}
+        self._effect_reverse_map = {}
 
         # properties
         for prop in entity_data.props:
@@ -96,16 +96,15 @@ class Light(MIoTServiceEntity, LightEntity):
                     self._brightness_scale = (
                         prop.value_range.min_, prop.value_range.max_)
                     self._prop_brightness = prop
-                elif (
-                    self._mode_map is None
-                    and prop.value_list
-                ):
+                elif prop.value_list:
                     # For value-list brightness
-                    self._mode_map = prop.value_list.to_map()
-                    self._mode_reverse_map = {v: k for k, v in self._mode_map.items()}
-                    self._attr_effect_list = list(self._mode_map.values())
+                    for val, desc in prop.value_list.to_map().items():
+                        effect_name = f"Brightness: {desc}"
+                        self._effect_map[effect_name] = (prop, val)
+                        self._effect_reverse_map[(prop, val)] = effect_name
+                    self._attr_effect_list = list(self._effect_map.keys())
                     self._attr_supported_features |= LightEntityFeature.EFFECT
-                    self._prop_mode = prop
+                    self._prop_brightness = prop
                 else:
                     _LOGGER.info(
                         'invalid brightness format, %s', self.entity_id)
@@ -147,14 +146,15 @@ class Light(MIoTServiceEntity, LightEntity):
                     else:
                         for value in range(
                                 prop.value_range.min_,
-                                prop.value_range.max_,
+                                prop.value_range.max_ + prop.value_range.step,
                                 prop.value_range.step):
                             mode_list[value] = f'mode {value}'
                 if mode_list:
-                    self._mode_map = mode_list
-                    # 優化: 預先建立 O(1) 的模式反向查找字典
-                    self._mode_reverse_map = {v: k for k, v in self._mode_map.items()}
-                    self._attr_effect_list = list(self._mode_map.values())
+                    for val, desc in mode_list.items():
+                        effect_name = f"Mode: {desc}" if desc in self._effect_map else desc
+                        self._effect_map[effect_name] = (prop, val)
+                        self._effect_reverse_map[(prop, val)] = effect_name
+                    self._attr_effect_list = list(self._effect_map.keys())
                     self._attr_supported_features |= LightEntityFeature.EFFECT
                     self._prop_mode = prop
                 else:
@@ -205,10 +205,19 @@ class Light(MIoTServiceEntity, LightEntity):
     @property
     def effect(self) -> Optional[str]:
         """Return the current mode."""
-        if not self._mode_map or not self._prop_mode:
+        if not self._effect_map:
             return None
-        val = self.get_prop_value(prop=self._prop_mode)
-        return self._mode_map.get(val) if val is not None else None
+        # Check mode property first (since it's typically the "main" effect)
+        if self._prop_mode:
+            val = self.get_prop_value(prop=self._prop_mode)
+            if val is not None and (self._prop_mode, val) in self._effect_reverse_map:
+                return self._effect_reverse_map[(self._prop_mode, val)]
+        # Then check brightness property
+        if self._prop_brightness and not self._brightness_scale:
+            val = self.get_prop_value(prop=self._prop_brightness)
+            if val is not None and (self._prop_brightness, val) in self._effect_reverse_map:
+                return self._effect_reverse_map[(self._prop_brightness, val)]
+        return None
 
     async def async_turn_on(self, **kwargs) -> None:
         """Turn the light on.
@@ -249,13 +258,13 @@ class Light(MIoTServiceEntity, LightEntity):
                 write_ha_state=False))
             self._attr_color_mode = ColorMode.RGB
             
-        # mode
-        if ATTR_EFFECT in kwargs and self._prop_mode:
-            # 優化: 使用 O(1) 字典查找取代 O(N) 遍歷
-            mode_val = self._mode_reverse_map.get(kwargs[ATTR_EFFECT])
-            if mode_val is not None:
+        # effect
+        if ATTR_EFFECT in kwargs and self._effect_map:
+            effect_val = self._effect_map.get(kwargs[ATTR_EFFECT])
+            if effect_val is not None:
+                prop, val = effect_val
                 tasks.append(self.set_property_async(
-                    prop=self._prop_mode, value=mode_val,
+                    prop=prop, value=val,
                     write_ha_state=False))
 
         # 併發執行所有屬性調整
