@@ -86,6 +86,12 @@ class Light(MIoTServiceEntity, LightEntity):
         self._mode_reverse_map = {}
 
         # properties
+        try:
+            from .miot.miio_specs import MIIO_SPECS
+            if miot_device.model in MIIO_SPECS:
+                self.entity_id = f"light.{self._attr_unique_id.lower()}"
+        except ImportError:
+            pass
         for prop in entity_data.props:
             # on
             if prop.name == 'on':
