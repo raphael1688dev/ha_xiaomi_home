@@ -55,7 +55,7 @@ async def async_setup_entry(
     device_list: list[MIoTDevice] = hass.data[DOMAIN]['devices'][
         config_entry.entry_id]
         
-    # 優化: 扁平化巢狀迴圈改用 List Comprehension，提升初始化載入效能
+    # Optimization: flatten nested loop with list comprehension for initialization performance
     new_entities = [
         Vacuum(miot_device=miot_device, entity_data=data)
         for miot_device in device_list
@@ -72,7 +72,7 @@ class Vacuum(MIoTServiceEntity, StateVacuumEntity):
     _prop_status: Optional[MIoTSpecProperty]
     _prop_fan_level: Optional[MIoTSpecProperty]
     
-    # 優化: 將 list 改為 set，提升頻繁狀態輪詢時的 in 操作效能 (O(N) -> O(1))
+    # Optimization: change list to set for faster 'in' operation during state polling (O(N) -> O(1))
     _prop_status_cleaning: set[int]
     _prop_status_docked: set[int]
     _prop_status_paused: set[int]
@@ -187,7 +187,7 @@ class Vacuum(MIoTServiceEntity, StateVacuumEntity):
         """Start or resume the cleaning task."""
         if self._prop_status is not None:
             status = self.get_prop_value(prop=self._prop_status)
-            # 優化: 防護 status 為 None，避免潛在例外
+            # Optimization: protect against None status to avoid potential exception
             if (status is not None and status in self._prop_status_paused
                ) and self._action_continue_sweep:
                 await self.action_async(action=self._action_continue_sweep)

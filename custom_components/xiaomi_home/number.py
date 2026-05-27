@@ -24,7 +24,7 @@ async def async_setup_entry(
     device_list: list[MIoTDevice] = hass.data[DOMAIN]['devices'][
         config_entry.entry_id]
 
-    # 優化: 扁平化巢狀迴圈改用 List Comprehension，提升初始化載入效能
+    # Optimization: flatten nested loop with list comprehension for initialization performance
     new_entities = [
         Number(miot_device=miot_device, spec=prop)
         for miot_device in device_list
@@ -51,7 +51,7 @@ class Number(MIoTPropertyEntity, NumberEntity):
             self._attr_icon = self.spec.icon
         # Set value range
         if self._value_range:
-            # 優化: 嚴格轉換為 float 型別，符合 HA 核心對 NumberEntity 的規範
+            # Optimization: strictly convert to float to meet HA core NumberEntity specification
             self._attr_native_min_value = float(self._value_range.min_)
             self._attr_native_max_value = float(self._value_range.max_)
             self._attr_native_step = float(self._value_range.step)
@@ -59,7 +59,7 @@ class Number(MIoTPropertyEntity, NumberEntity):
     @property
     def native_value(self) -> Optional[float]:
         """Return the current value of the number."""
-        # 優化: 防止啟動時 value 為 None 造成的異常，並嚴格轉換為 float
+        # Optimization: prevent None value exception during startup and strictly convert to float
         if self._value is None:
             return None
         try:

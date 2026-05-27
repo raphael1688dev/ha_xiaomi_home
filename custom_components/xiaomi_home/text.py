@@ -29,14 +29,14 @@ async def async_setup_entry(
     device_list: list[MIoTDevice] = hass.data[DOMAIN]['devices'][
         config_entry.entry_id]
 
-    # 優化: 扁平化巢狀迴圈改用 List Comprehension，提升初始化載入效能
+    # Optimization: flatten nested loop with list comprehension for initialization performance
     new_entities = [
         Text(miot_device=miot_device, spec=prop)
         for miot_device in device_list
         for prop in miot_device.prop_list.get('text', [])
     ]
 
-    # 附加 Debug 模式下的 ActionText 實體
+    # Attach ActionText entity for debug mode
     new_entities.extend([
         ActionText(miot_device=miot_device, spec=action)
         for miot_device in device_list
@@ -58,7 +58,7 @@ class Text(MIoTPropertyEntity, TextEntity):
     @property
     def native_value(self) -> Optional[str]:
         """Return the current text value."""
-        # 優化: 確保啟動時若尚未取得資料回傳 None，且將其他型別強制轉為字串並截斷
+        # Optimization: ensure None is returned if no data at startup, force other types to string and truncate
         if self._value is None:
             return None
         return str(self._value)[:255]
@@ -111,7 +111,7 @@ class ActionText(MIoTActionEntity, TextEntity):
             parsed_val = None
             is_valid = False
 
-            # 優化: 簡化型別判斷邏輯，去除冗餘的 append 與 continue，提升可讀性與執行效率
+            # Optimization: simplify type checking logic to improve readability and performance
             if prop.format_ is str and isinstance(raw_val, (bool, int, float, str)):
                 parsed_val = str(raw_val)
                 is_valid = True

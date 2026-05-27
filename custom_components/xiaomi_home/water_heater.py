@@ -30,7 +30,7 @@ async def async_setup_entry(
     device_list: list[MIoTDevice] = hass.data[DOMAIN]['devices'][
         config_entry.entry_id]
 
-    # 優化: 扁平化巢狀迴圈改用 List Comprehension，提升初始化載入效能
+    # Optimization: flatten nested loop with list comprehension for initialization performance
     new_entities = [
         WaterHeater(miot_device=miot_device, entity_data=data)
         for miot_device in device_list
@@ -149,7 +149,7 @@ class WaterHeater(MIoTServiceEntity, WaterHeaterEntity):
         if not self._prop_temp:
             return None
         val = self.get_prop_value(prop=self._prop_temp)
-        # 優化: 嚴格轉換為 float 型別
+        # Optimization: strictly convert to float
         return float(val) if val is not None else None
 
     @property
@@ -158,7 +158,7 @@ class WaterHeater(MIoTServiceEntity, WaterHeaterEntity):
         if not self._prop_target_temp:
             return None
         val = self.get_prop_value(prop=self._prop_target_temp)
-        # 優化: 嚴格轉換為 float 型別
+        # Optimization: strictly convert to float
         return float(val) if val is not None else None
 
     @property
@@ -171,7 +171,7 @@ class WaterHeater(MIoTServiceEntity, WaterHeaterEntity):
         if val_on is None:
             return None
             
-        # 優化: 安全地使用 bool 判斷是否為關機狀態，避免 is False 的型別陷阱
+        # Optimization: safely use bool to check power status to avoid 'is False' type trap
         if not bool(val_on):
             return STATE_OFF
             

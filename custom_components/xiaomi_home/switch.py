@@ -24,7 +24,7 @@ async def async_setup_entry(
     device_list: list[MIoTDevice] = hass.data[DOMAIN]['devices'][
         config_entry.entry_id]
 
-    # 優化: 扁平化巢狀迴圈改用 List Comprehension，提升初始化載入效能
+    # Optimization: flatten nested loop with list comprehension for initialization performance
     new_entities = [
         Switch(miot_device=miot_device, spec=prop)
         for miot_device in device_list
@@ -48,7 +48,7 @@ class Switch(MIoTPropertyEntity, SwitchEntity):
     @property
     def is_on(self) -> Optional[bool]:
         """On/Off state."""
-        # 優化: 防護啟動初期 value 為 None 的狀況，並使用 bool() 避免 is True 帶來的型別誤判
+        # Optimization: protect against None value during startup, and use bool() to avoid type mismatch from 'is True'
         if self._value is None:
             return None
         return bool(self._value)

@@ -36,7 +36,7 @@ async def async_setup_entry(
         for prop in miot_device.prop_list.get('sensor', [])
     ]
 
-    # 處理將 Binary Sensor 作為一般文本 Sensor 顯示的邏輯
+    # Handle logic to display Binary Sensor as generic text Sensor
     new_entities.extend([
         Sensor(miot_device=miot_device, spec=prop)
         for miot_device in device_list
@@ -70,7 +70,7 @@ class Sensor(MIoTPropertyEntity, SensorEntity):
         super().__init__(miot_device=miot_device, spec=spec)
         self._attr_device_class = spec.device_class
         
-        # 預先建立 O(1) 反查字典，並強制轉為 str 防止 int/str 匹配失誤
+        # Pre-build O(1) reverse lookup dict, and force str conversion to prevent int/str mismatch
         self._val_desc_map = {}
         if spec.value_list:
             self._val_desc_map = {
@@ -129,8 +129,8 @@ class Sensor(MIoTPropertyEntity, SensorEntity):
             if str_val in self._val_desc_map:
                 return self._val_desc_map[str_val]
                 
-            # 修復未定義選項導致的 Enum 報錯：
-            # 若設備回報了 spec 定義以外的數值（例如 0），將其動態加入 _attr_options 放行
+            # Fix Enum error caused by undefined options:
+            # If device reports an undocumented value (e.g. 0), dynamically add it to _attr_options
             _opts = self._attr_options or []
             if str_val not in _opts:
                 if len(_opts) > 64:

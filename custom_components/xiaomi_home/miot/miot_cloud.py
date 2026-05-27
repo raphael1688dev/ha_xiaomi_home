@@ -461,7 +461,7 @@ class MIoTHttpClient:
             res_obj['result'].get('has_more', False)
             and isinstance(res_obj['result'].get('max_id', None), str)
         ):
-            # 這裡呼叫已經優化為迴圈的 __get_dev_room_page_async
+            # Call loop-optimized __get_dev_room_page_async here
             more_list = await self.__get_dev_room_page_async()
             for device_source in ['homelist', 'share_home_list']:
                 for home_id, info in more_list.items():

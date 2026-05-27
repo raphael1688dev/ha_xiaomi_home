@@ -540,7 +540,7 @@ class MIoTCert:
                 raise MIoTStorageError('ca cert load failed')
             _LOGGER.debug('ca cert save success')
             
-        # 優化：使用內建 C 方法的 .hex()，移除多餘的 binascii 模組依賴
+        # Optimization: use built-in .hex() to remove binascii dependency
         hash_str = hashlib.sha256(ca_data).digest().hex()
         if hash_str != MIHOME_CA_CERT_SHA256:
             return False
@@ -678,7 +678,7 @@ class DeviceManufacturer:
         self, storage: MIoTStorage,
         loop: Optional[asyncio.AbstractEventLoop] = None
     ) -> None:
-        # 優化：修正棄用的 get_event_loop()
+        # Optimization: fix deprecated get_event_loop()
         self._main_loop = loop or asyncio.get_running_loop()
         self._storage = storage
         self._data = {}

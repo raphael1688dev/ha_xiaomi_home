@@ -61,7 +61,7 @@ _RW = frozenset({'read', 'write'})
 }
 """
 
-# 優化：使用 MappingProxyType 與 frozenset 保護常數不被意外竄改
+# Optimization: use MappingProxyType and frozenset to protect constants
 SPEC_DEVICE_TRANS_MAP = MappingProxyType({
     'humidifier': {
         'required': {

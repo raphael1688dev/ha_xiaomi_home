@@ -24,7 +24,7 @@ async def async_setup_entry(
     device_list: list[MIoTDevice] = hass.data[DOMAIN]['devices'][
         config_entry.entry_id]
 
-    # 優化: 扁平化巢狀迴圈改用 List Comprehension，提升初始化載入效能
+    # Optimization: flatten nested loop with list comprehension for initialization performance
     new_entities = [
         Select(miot_device=miot_device, spec=prop)
         for miot_device in device_list
@@ -62,7 +62,7 @@ class Select(MIoTPropertyEntity, SelectEntity):
     @property
     def current_option(self) -> Optional[str]:
         """Return the current selected option."""
-        # 優化: 防護啟動初期 value 為 None 的狀況
+        # Optimization: protect against None value during startup
         if self._value is None:
             return None
             
