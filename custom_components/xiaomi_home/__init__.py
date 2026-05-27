@@ -88,14 +88,28 @@ async def async_setup_entry(
         def async_migrate_unique_ids() -> None:
             for entry in entity_registry.async_entries_for_config_entry(er, entry_id):
                 old_unique_id = entry.unique_id
-                if old_unique_id.startswith(f"{DOMAIN}."):
-                    new_unique_id = old_unique_id.replace(f"{DOMAIN}.", "", 1)
+                new_unique_id = old_unique_id
+                if new_unique_id.startswith(f"{DOMAIN}."):
+                    new_unique_id = new_unique_id.replace(f"{DOMAIN}.", "", 1)
+                # Old unique_ids were exactly the entity_ids, so they started with the platform domain
+                if new_unique_id.startswith(f"{entry.domain}."):
+                    new_unique_id = new_unique_id.replace(f"{entry.domain}.", "", 1)
+                    
+                if new_unique_id != old_unique_id:
                     try:
                         er.async_update_entity(entry.entity_id, new_unique_id=new_unique_id)
                         _LOGGER.info("Successfully migrated unique_id from %s to %s", old_unique_id, new_unique_id)
                     except ValueError:
-                        # New unique ID already exists, ignore
-                        pass
+                        # Recovery: New unique ID already exists because a previous boot failed to migrate properly.
+                        # We must delete the erroneously created new entity to restore the legacy entity_id.
+                        existing_entity_id = er.async_get_entity_id(entry.domain, DOMAIN, new_unique_id)
+                        if existing_entity_id and existing_entity_id != entry.entity_id:
+                            er.async_remove(existing_entity_id)
+                            try:
+                                er.async_update_entity(entry.entity_id, new_unique_id=new_unique_id)
+                                _LOGGER.info("Recovered legacy entity %s by deleting duplicate %s", entry.entity_id, existing_entity_id)
+                            except ValueError as err:
+                                _LOGGER.warning("Failed to recover entity %s: %s", entry.entity_id, err)
         
         async_migrate_unique_ids()
 
