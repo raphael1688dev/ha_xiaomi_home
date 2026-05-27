@@ -124,10 +124,12 @@ async def async_setup_entry(
                 
         # Helper function for DRY registry cleanup using unique_id
         config_entries_entities = entity_registry.async_entries_for_config_entry(er, entry_id)
-        def _remove_from_registry_by_uid(unique_ids: list[str]):
+        def _remove_from_registry_by_uid(unique_ids: list[str], platform: str = None):
             uids_to_check = set(unique_ids)
             for entry in config_entries_entities:
                 if entry.unique_id in uids_to_check:
+                    if platform and entry.domain != platform:
+                        continue
                     # check if still exists before remove
                     if er.async_get(entry.entity_id):
                         er.async_remove(entity_id=entry.entity_id)
@@ -211,12 +213,12 @@ async def async_setup_entry(
                 for prop in device.prop_list.get('binary_sensor', []):
                     _remove_from_registry_by_uid([
                         device.gen_prop_unique_id(spec_name=prop.name, siid=prop.service.iid, piid=prop.iid)
-                    ])
+                    ], platform='binary_sensor')
             if not miot_client.display_binary_text:
                 for prop in device.prop_list.get('binary_sensor', []):
                     _remove_from_registry_by_uid([
                         device.gen_prop_unique_id(spec_name=prop.name, siid=prop.service.iid, piid=prop.iid)
-                    ])
+                    ], platform='sensor')
 
         hass.data[DOMAIN]['devices'][entry_id] = miot_devices
         await hass.config_entries.async_forward_entry_setups(
