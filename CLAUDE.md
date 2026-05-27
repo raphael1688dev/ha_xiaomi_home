@@ -200,6 +200,7 @@ Implemented a pure Python native transpilation layer that bypasses legacy Node.j
 - **Yeelight**: `yeelink.light.lamp*` (Desk/Floor lamps), `yeelink.light.bslamp*` (Bedside lamps)
 - **Smartmi / Dmaker**: All `zhimi.fan.*` and `dmaker.fan.*` series
 These devices now enjoy instant, local execution without cloud polling lag.
+- **Dynamic Context Injection**: The MIIO lambda execution engine (`miot_lan.py`) now receives full state context (`props` dict and `max_val`), enabling complex, dynamic property translations (e.g. `["auto_delay_off", int(props.get("bright", 100)), value]`) instead of hardcoded fallbacks.
 
 ### 2. Entity ID Migration & Auto-Recovery
 Fixed severe upstream logic bugs in HA registry unique_id migration:
@@ -215,8 +216,9 @@ Conducted a massive cleanup of logical errors inherited from upstream:
   - Replaced blind value clamping with graceful `None` (Unavailable) returns when sensors report out-of-bounds metrics, preserving historical chart integrity and exposing true hardware faults.
   - Isolated Diagnostic sensor `unique_id`s with `entry_id` to prevent multi-gateway IP clashes, and configured them to be disabled by default for HA UI cleanliness.
 
-### 4. Codebase Performance Optimizations
-Across all major entity platforms (`climate.py`, `vacuum.py`, `cover.py`, `water_heater.py`, `select.py`, `humidifier.py`), we overhauled the data structures:
-- Flattened deeply nested component loops using Python List Comprehensions during entity initialization.
-- Replaced $O(N)$ linear array scans with pre-computed $O(1)$ dictionary lookups for state mapping and reverse-mapping.
+### 4. Codebase Performance Optimizations & "Code Diet"
+Across all major entity platforms (`climate.py`, `vacuum.py`, `cover.py`, `water_heater.py`, `select.py`, `humidifier.py`, `fan.py`, `light.py`), we overhauled the data structures:
+- **O(N) Zombie Eradication**: Removed all hidden $O(N)$ `for prop in entity_data.props:` loops during HA entity initialization.
+- **O(1) Lazy Cache Architecture**: Re-architected `MIoTEntityData` with an intelligent, lazy-loading dictionary cache (`props_map`, `events_map`, `actions_map` via `get_prop()`). This transforms all property lookups into instantaneous $O(1)$ operations, drastically shrinking boilerplate code and improving readability.
+- Replaced $O(N)$ linear array scans (`get_map_key`) with pre-computed $O(1)$ dictionary lookups (`_val_to_desc` and `_desc_to_val`) for `MIoTSpecValueList` mapping.
 - Enforced strict Type Safety (`float`, `bool`) and robust `None` guards before returning states to HA Core.
