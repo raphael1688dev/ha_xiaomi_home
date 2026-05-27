@@ -435,3 +435,13 @@ Example:
   - **Yeelight (易來)**: Only `yeelink.light.lamp*` (檯燈/落地燈) and `yeelink.light.bslamp*` (床頭燈) series.
   - **Smartmi & Dmaker (智米/造夢者)**: All `zhimi.fan` and `dmaker.fan` series.
   - *(All other appliances, sensors, and brands are explicitly excluded from this local translation layer)*
+
+## New Features & Enhancements (Version 20260527r7)
+- **Elimination of 8 Critical Logic Bugs**: Deeply audited and fixed legacy logic errors inherited from the official upstream integration.
+- **Light Entity Revival**: Re-architected the effect list by combining `mode` and `brightness` properties into a unified `_effect_map`. This restores full control to lights that support both operating modes and brightness levels simultaneously, and corrects a boundary bug (`range` max exclusion) that hid the highest mode from the UI.
+- **Fan Concurrency Safety (Race Condition Fix)**: Implemented strict Mutex flags (`_is_turning_on`) during fan startup sequences. This prevents duplicate `on=True` commands from spamming the device, drastically improving response times and eliminating command drops caused by network congestion.
+- **Diagnostic Entity Migration & Clutter Reduction**: 
+  - Restructured `unique_id`s for Diagnostic sensors (`Control Path` and `IP Address`) to include `entry_id`, fully resolving clashes in multi-account/multi-gateway setups.
+  - Implemented a **seamless zero-downtime migration script** in `__init__.py` that updates the HA registry dynamically during boot, strictly preventing the creation of `_2` duplicate entities and keeping legacy IDs intact.
+  - Set diagnostic sensors to be disabled by default to comply with HA UI cleanliness standards.
+- **Sensor Data Purity**: Upgraded `sensor.py`'s out-of-bounds checking. Instead of blindly clamping erroneous values (which skews charts and masks hardware failures), sensors now gracefully return `None` (Unavailable) when values violate their `value_range`.
