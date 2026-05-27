@@ -425,3 +425,7 @@ Example:
 - miot/miot_storage: File storage for the integration.
 - miot/test: Test scripts.
 - config_flow: Config flow.
+
+## Future Roadmap / Experimental Features
+
+- **Legacy miio Protocol Local Translation**: Investigating the feasibility of porting the `miio2miot_specs.py` dictionary and Jinja parser from `hass-xiaomi-miot` into `miot_lan.py`. This would enable local LAN control for legacy devices (like `yeelink.light.bslamp2`) that are currently forced to use Cloud control due to MIoT Spec incompatibilities. This is currently on hold due to the massive technical debt and maintenance burden it would introduce.
