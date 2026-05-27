@@ -452,3 +452,11 @@ Example:
   - **O(1) Lazy Cache Architecture**: Re-architected `MIoTEntityData` with an intelligent, lazy-loading dictionary cache (`props_map`). This transforms all property lookups into instantaneous $O(1)$ operations, shrinking thousands of lines of boilerplate code and eliminating all loop overhead during HA entity initialization.
 - **Native MIIO Enhancements**:
   - Successfully injected execution context (`props`, `max_val`) into the native Python `miot_lan` MIIO transpilation layer, allowing complex lambda-based local control structures to receive real-time device states rather than hardcoded fallbacks.
+
+## New Features & Enhancements (Version 20260527r9)
+- **Deep Logic Flaw Sweep (9 Critical Fixes)**: Resolved all latent bugs identified in the rigorous `logic_flaws_audit.md` pass, severely bolstering integration robustness:
+  - **Crash Prevention**: Fixed critical `TypeError`s caused by `create_task(await ...)` and faulty `None` checks during API disconnects.
+  - **Local Control Priority**: Corrected a long-standing routing bug where Local-mode properties were incorrectly polling the `LAN` instead of the `Gateway` first, eliminating state de-syncs.
+  - **Ghost Device Eradication**: Fixed `remove_device_async` to actively pop devices from the memory cache so deleted entities no longer resurrect on the next Home Assistant restart.
+  - **Spec Safety**: Hardened device parsing (`miot_device.py`) to properly reject malformed optional services that declare features they don't have access to.
+  - **Enum Memory Leak Protection**: Capped the unbounded dynamic growth of `Sensor._attr_options` at 64 items, protecting Home Assistant from OOM leaks if a buggy device spams undocumented enum values.
