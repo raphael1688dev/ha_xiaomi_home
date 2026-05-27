@@ -108,6 +108,8 @@ class MIoTSpecValueList:
         if not isinstance(value_list, list):
             raise MIoTSpecError('invalid value list format')
         self.items = []
+        self._val_to_desc = {}
+        self._desc_to_val = {}
         self.load(value_list)
 
     @property
@@ -142,22 +144,19 @@ class MIoTSpecValueList:
 
     def load(self, value_list: list[dict]) -> None:
         for item in value_list:
-            self.items.append(MIoTSpecValueListItem(item))
+            v_item = MIoTSpecValueListItem(item)
+            self.items.append(v_item)
+            self._val_to_desc[v_item.value] = v_item.description
+            self._desc_to_val[v_item.description] = v_item.value
 
     def to_map(self) -> dict:
         return {item.value: item.description for item in self.items}
 
     def get_value_by_description(self, description: str) -> Any:
-        for item in self.items:
-            if item.description == description:
-                return item.value
-        return None
+        return self._desc_to_val.get(description)
 
     def get_description_by_value(self, value: Any) -> Optional[str]:
-        for item in self.items:
-            if item.value == value:
-                return item.description
-        return None
+        return self._val_to_desc.get(value)
 
     def dump(self) -> list:
         return [item.dump() for item in self.items]

@@ -812,13 +812,13 @@ class MIoTLan:
     @final
     async def set_prop_async(
         self, did: str, siid: int, piid: int, value: Any,
-        timeout_ms: int = 10000
+        timeout_ms: int = 10000, props: dict = None, max_val: int = 100
     ) -> dict:
         self.__assert_service_ready()
         
         device = self._lan_devices.get(did)
         if device and device.model and device.model in MIIO_SPECS:
-            return await self.__set_prop_miio_async(device, siid, piid, value, timeout_ms)
+            return await self.__set_prop_miio_async(device, siid, piid, value, timeout_ms, props, max_val)
             
         result_obj = await self.__call_api_async(
             did=did, msg={
@@ -881,7 +881,10 @@ class MIoTLan:
             
         return None
         
-    async def __set_prop_miio_async(self, device: _MIoTLanDevice, siid: int, piid: int, value: Any, timeout_ms: int) -> dict:
+    async def __set_prop_miio_async(
+        self, device: _MIoTLanDevice, siid: int, piid: int, value: Any,
+        timeout_ms: int, props: dict = None, max_val: int = 100
+    ) -> dict:
         spec = MIIO_SPECS[device.model]
         prop_key = f"prop.{siid}.{piid}"
         if "miio_specs" not in spec or prop_key not in spec["miio_specs"]:
@@ -903,7 +906,7 @@ class MIoTLan:
             try:
                 # set_template is our Python lambda!
                 # Signature: lambda value, props, max_val
-                new_params = prop_cfg['set_template'](value, {}, 100) # passing empty props and default max 100 for now
+                new_params = prop_cfg['set_template'](value, props or {}, max_val)
                 if isinstance(new_params, dict) and 'method' in new_params:
                     method = new_params.get('method', method)
                     params = new_params.get('params', params)

@@ -447,7 +447,7 @@ class _MipsClient(ABC):
     @abstractmethod
     async def set_prop_async(
         self, did: str, siid: int, piid: int, value: Any,
-        timeout_ms: int = 10000
+        timeout_ms: int = 10000, props: dict = None, max_val: int = 100
     ) -> dict: ...
 
     @abstractmethod
@@ -1000,7 +1000,7 @@ class MipsCloudClient(_MipsClient):
 
     async def set_prop_async(
         self, did: str, siid: int, piid: int, value: Any,
-        timeout_ms: int = 10000
+        timeout_ms: int = 10000, props: dict = None, max_val: int = 100
     ) -> dict:
         raise NotImplementedError('please call in http client')
 
@@ -1276,7 +1276,7 @@ class MipsLocalClient(_MipsClient):
     @final
     async def set_prop_async(
         self, did: str, siid: int, piid: int, value: Any,
-        timeout_ms: int = 10000
+        timeout_ms: int = 10000, props: dict = None, max_val: int = 100
     ) -> dict:
         payload_obj: dict = {
             'did': did,

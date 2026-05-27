@@ -618,7 +618,8 @@ class MIoTClient:
         return False
 
     async def set_prop_async(
-        self, did: str, siid: int, piid: int, value: Any
+        self, did: str, siid: int, piid: int, value: Any,
+        props: dict = None, max_val: int = 100
     ) -> bool:
         if did not in self._device_list_cache:
             raise MIoTClientError(f'did not exist, {did}')
@@ -638,7 +639,7 @@ class MIoTClient:
                         device_gw)
                 else:
                     result = await mips.set_prop_async(
-                        did=did, siid=siid, piid=piid, value=value)
+                        did=did, siid=siid, piid=piid, value=value, props=props, max_val=max_val)
                     _LOGGER.debug(
                         'gateway set prop, %s.%d.%d, %s -> %s',
                         did, siid, piid, value, result)
@@ -652,7 +653,7 @@ class MIoTClient:
             device_lan = self._device_list_lan.get(did, None)
             if device_lan and device_lan.get('online', False):
                 result = await self._miot_lan.set_prop_async(
-                    did=did, siid=siid, piid=piid, value=value)
+                    did=did, siid=siid, piid=piid, value=value, props=props, max_val=max_val)
                 _LOGGER.debug(
                     'lan set prop, %s.%d.%d, %s -> %s',
                     did, siid, piid, value, result)

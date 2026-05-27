@@ -100,64 +100,67 @@ class Fan(MIoTServiceEntity, FanEntity):
         self._mode_reverse_map = {}
 
         # properties
-        for prop in entity_data.props:
-            if prop.name == 'on':
-                self._attr_supported_features |= FanEntityFeature.TURN_ON
-                self._attr_supported_features |= FanEntityFeature.TURN_OFF
-                self._prop_on = prop
-            elif prop.name == 'fan-level':
-                if prop.value_range:
-                    # Fan level with value-range
-                    self._speed_min = prop.value_range.min_
-                    self._speed_max = prop.value_range.max_
-                    self._speed_step = prop.value_range.step
-                    self._attr_speed_count = int((
-                        self._speed_max - self._speed_min)/self._speed_step)+1
-                    self._attr_supported_features |= FanEntityFeature.SET_SPEED
-                    self._prop_fan_level = prop
-                elif (
-                    self._prop_fan_level is None
-                    and prop.value_list
-                ):
-                    # Fan level with value-list
-                    self._speed_name_map = prop.value_list.to_map()
-                    # 優化: 預先建立 O(1) 速度反查字典
-                    self._speed_name_reverse_map = {v: k for k, v in self._speed_name_map.items()}
-                    self._speed_names = list(self._speed_name_map.values())
-                    self._attr_speed_count = len(self._speed_names)
-                    self._attr_supported_features |= FanEntityFeature.SET_SPEED
-                    self._prop_fan_level = prop
-            elif prop.name == 'mode':
-                if not prop.value_list:
-                    _LOGGER.error(
-                        'mode value_list is None, %s', self.entity_id)
-                    continue
+        if prop := entity_data.get_prop('on'):
+            self._attr_supported_features |= FanEntityFeature.TURN_ON
+            self._attr_supported_features |= FanEntityFeature.TURN_OFF
+            self._prop_on = prop
+            
+        if prop := entity_data.get_prop('fan-level'):
+            if prop.value_range:
+                # Fan level with value-range
+                self._speed_min = prop.value_range.min_
+                self._speed_max = prop.value_range.max_
+                self._speed_step = prop.value_range.step
+                self._attr_speed_count = int((
+                    self._speed_max - self._speed_min)/self._speed_step)+1
+                self._attr_supported_features |= FanEntityFeature.SET_SPEED
+                self._prop_fan_level = prop
+            elif (
+                self._prop_fan_level is None
+                and prop.value_list
+            ):
+                # Fan level with value-list
+                self._speed_name_map = prop.value_list.to_map()
+                # 優化: 預先建立 O(1) 速度反查字典
+                self._speed_name_reverse_map = {v: k for k, v in self._speed_name_map.items()}
+                self._speed_names = list(self._speed_name_map.values())
+                self._attr_speed_count = len(self._speed_names)
+                self._attr_supported_features |= FanEntityFeature.SET_SPEED
+                self._prop_fan_level = prop
+                
+        if prop := entity_data.get_prop('mode'):
+            if not prop.value_list:
+                _LOGGER.error(
+                    'mode value_list is None, %s', self.entity_id)
+            else:
                 self._mode_map = prop.value_list.to_map()
                 # 優化: 預先建立 O(1) 模式反查字典
                 self._mode_reverse_map = {v: k for k, v in self._mode_map.items()}
                 self._attr_preset_modes = list(self._mode_map.values())
                 self._attr_supported_features |= FanEntityFeature.PRESET_MODE
                 self._prop_mode = prop
-            elif prop.name == 'horizontal-swing':
-                self._attr_supported_features |= FanEntityFeature.OSCILLATE
-                self._prop_horizontal_swing = prop
-            elif prop.name == 'wind-reverse':
-                if prop.format_ == bool:
-                    self._prop_wind_reverse_forward = False
-                    self._prop_wind_reverse_reverse = True
-                elif prop.value_list:
-                    for item in prop.value_list.items:
-                        if item.name in {'foreward', 'forward'}:
-                            self._prop_wind_reverse_forward = item.value
-                        elif item.name in {'reversal', 'reverse'}:
-                            self._prop_wind_reverse_reverse = item.value
-                if (
-                    self._prop_wind_reverse_forward is None
-                    or self._prop_wind_reverse_reverse is None
-                ):
-                    _LOGGER.error(
-                        'invalid wind-reverse, %s', self.entity_id)
-                    continue
+                
+        if prop := entity_data.get_prop('horizontal-swing'):
+            self._attr_supported_features |= FanEntityFeature.OSCILLATE
+            self._prop_horizontal_swing = prop
+            
+        if prop := entity_data.get_prop('wind-reverse'):
+            if prop.format_ == bool:
+                self._prop_wind_reverse_forward = False
+                self._prop_wind_reverse_reverse = True
+            elif prop.value_list:
+                for item in prop.value_list.items:
+                    if item.name in {'foreward', 'forward'}:
+                        self._prop_wind_reverse_forward = item.value
+                    elif item.name in {'reversal', 'reverse'}:
+                        self._prop_wind_reverse_reverse = item.value
+            if (
+                self._prop_wind_reverse_forward is None
+                or self._prop_wind_reverse_reverse is None
+            ):
+                _LOGGER.error(
+                    'invalid wind-reverse, %s', self.entity_id)
+            else:
                 self._attr_supported_features |= FanEntityFeature.DIRECTION
                 self._prop_wind_reverse = prop
 

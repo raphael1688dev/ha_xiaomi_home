@@ -86,80 +86,76 @@ class Light(MIoTServiceEntity, LightEntity):
         self._effect_reverse_map = {}
 
         # properties
-        for prop in entity_data.props:
-            # on
-            if prop.name == 'on':
-                self._prop_on = prop
-            # brightness
-            if prop.name == 'brightness':
-                if prop.value_range:
-                    self._brightness_scale = (
-                        prop.value_range.min_, prop.value_range.max_)
-                    self._prop_brightness = prop
-                elif prop.value_list:
-                    # For value-list brightness
-                    for val, desc in prop.value_list.to_map().items():
-                        effect_name = f"Brightness: {desc}"
-                        self._effect_map[effect_name] = (prop, val)
-                        self._effect_reverse_map[(prop, val)] = effect_name
-                    self._attr_effect_list = list(self._effect_map.keys())
-                    self._attr_supported_features |= LightEntityFeature.EFFECT
-                    self._prop_brightness = prop
-                else:
-                    _LOGGER.info(
-                        'invalid brightness format, %s', self.entity_id)
-                    continue
-            # color-temperature
-            if prop.name == 'color-temperature':
-                if not prop.value_range:
-                    _LOGGER.info(
-                        'invalid color-temperature value_range format, %s',
-                        self.entity_id)
-                    continue
+        if prop := entity_data.get_prop('on'):
+            self._prop_on = prop
+            
+        if prop := entity_data.get_prop('brightness'):
+            if prop.value_range:
+                self._brightness_scale = (
+                    prop.value_range.min_, prop.value_range.max_)
+                self._prop_brightness = prop
+            elif prop.value_list:
+                # For value-list brightness
+                for val, desc in prop.value_list.to_map().items():
+                    effect_name = f"Brightness: {desc}"
+                    self._effect_map[effect_name] = (prop, val)
+                    self._effect_reverse_map[(prop, val)] = effect_name
+                self._attr_effect_list = list(self._effect_map.keys())
+                self._attr_supported_features |= LightEntityFeature.EFFECT
+                self._prop_brightness = prop
+            else:
+                _LOGGER.info(
+                    'invalid brightness format, %s', self.entity_id)
+                    
+        if prop := entity_data.get_prop('color-temperature'):
+            if not prop.value_range:
+                _LOGGER.info(
+                    'invalid color-temperature value_range format, %s',
+                    self.entity_id)
+            else:
                 self._attr_min_color_temp_kelvin = prop.value_range.min_
                 self._attr_max_color_temp_kelvin = prop.value_range.max_
                 self._attr_supported_color_modes.add(ColorMode.COLOR_TEMP)
                 self._attr_color_mode = ColorMode.COLOR_TEMP
                 self._prop_color_temp = prop
-            # color
-            if prop.name == 'color':
-                self._attr_supported_color_modes.add(ColorMode.RGB)
-                self._attr_color_mode = ColorMode.RGB
-                self._prop_color = prop
-            # mode
-            if prop.name == 'mode':
-                mode_list = None
-                if prop.value_list:
-                    mode_list = prop.value_list.to_map()
-                elif prop.value_range:
-                    mode_list = {}
-                    if (
-                        int((
-                            prop.value_range.max_
-                            - prop.value_range.min_
-                        ) / prop.value_range.step)
-                        > self._VALUE_RANGE_MODE_COUNT_MAX
-                    ):
-                        _LOGGER.error(
-                            'too many mode values, %s, %s, %s',
-                            self.entity_id, prop.name, prop.value_range)
-                    else:
-                        for value in range(
-                                prop.value_range.min_,
-                                prop.value_range.max_ + prop.value_range.step,
-                                prop.value_range.step):
-                            mode_list[value] = f'mode {value}'
-                if mode_list:
-                    for val, desc in mode_list.items():
-                        effect_name = f"Mode: {desc}" if desc in self._effect_map else desc
-                        self._effect_map[effect_name] = (prop, val)
-                        self._effect_reverse_map[(prop, val)] = effect_name
-                    self._attr_effect_list = list(self._effect_map.keys())
-                    self._attr_supported_features |= LightEntityFeature.EFFECT
-                    self._prop_mode = prop
+                
+        if prop := entity_data.get_prop('color'):
+            self._attr_supported_color_modes.add(ColorMode.RGB)
+            self._attr_color_mode = ColorMode.RGB
+            self._prop_color = prop
+            
+        if prop := entity_data.get_prop('mode'):
+            mode_list = None
+            if prop.value_list:
+                mode_list = prop.value_list.to_map()
+            elif prop.value_range:
+                mode_list = {}
+                if (
+                    int((
+                        prop.value_range.max_
+                        - prop.value_range.min_
+                    ) / prop.value_range.step)
+                    > self._VALUE_RANGE_MODE_COUNT_MAX
+                ):
+                    _LOGGER.error(
+                        'too many mode values, %s, %s, %s',
+                        self.entity_id, prop.name, prop.value_range)
                 else:
-                    _LOGGER.info('invalid mode format, %s', self.entity_id)
-                    continue
+                    for value in range(
+                            prop.value_range.min_,
+                            prop.value_range.max_ + prop.value_range.step,
+                            prop.value_range.step):
+                        mode_list[value] = f'mode {value}'
+            if mode_list:
+                for val, desc in mode_list.items():
+                    effect_name = f"Mode: {desc}" if desc in self._effect_map else desc
+                    self._effect_map[effect_name] = (prop, val)
+                    self._effect_reverse_map[(prop, val)] = effect_name
+                self._attr_effect_list = list(self._effect_map.keys())
+                self._attr_supported_features |= LightEntityFeature.EFFECT
+                self._prop_mode = prop
+            else:
+                _LOGGER.info('invalid mode format, %s', self.entity_id)
 
         if not self._attr_supported_color_modes:
             if self._prop_brightness:

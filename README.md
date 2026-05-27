@@ -445,3 +445,10 @@ Example:
   - Implemented a **seamless zero-downtime migration script** in `__init__.py` that updates the HA registry dynamically during boot, strictly preventing the creation of `_2` duplicate entities and keeping legacy IDs intact.
   - Set diagnostic sensors to be disabled by default to comply with HA UI cleanliness standards.
 - **Sensor Data Purity**: Upgraded `sensor.py`'s out-of-bounds checking. Instead of blindly clamping erroneous values (which skews charts and masks hardware failures), sensors now gracefully return `None` (Unavailable) when values violate their `value_range`.
+
+## New Features & Enhancements (Version 20260527r8)
+- **Extreme Performance Optimization & Code Diet**:
+  - **O(N) Zombie Eradication**: Conducted a deep technical debt sweep and eliminated all hidden $O(N)$ list traversals (`for prop in properties: ...`) across all major Home Assistant entity initializations (`climate`, `fan`, `light`).
+  - **O(1) Lazy Cache Architecture**: Re-architected `MIoTEntityData` with an intelligent, lazy-loading dictionary cache (`props_map`). This transforms all property lookups into instantaneous $O(1)$ operations, shrinking thousands of lines of boilerplate code and eliminating all loop overhead during HA entity initialization.
+- **Native MIIO Enhancements**:
+  - Successfully injected execution context (`props`, `max_val`) into the native Python `miot_lan` MIIO transpilation layer, allowing complex lambda-based local control structures to receive real-time device states rather than hardcoded fallbacks.

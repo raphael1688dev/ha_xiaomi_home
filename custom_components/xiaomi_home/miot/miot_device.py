@@ -191,6 +191,39 @@ class MIoTEntityData:
         self.events = set()
         self.actions = set()
 
+    def get_prop(self, prop_name: str, service_name: str | None = None) -> MIoTSpecProperty | None:
+        if not hasattr(self, '_props_map'):
+            self._props_map = {}
+            for prop in self.props:
+                self._props_map[f"{prop.service.name}:{prop.name}"] = prop
+                if prop.name not in self._props_map:
+                    self._props_map[prop.name] = prop
+        if service_name:
+            return self._props_map.get(f"{service_name}:{prop_name}")
+        return self._props_map.get(prop_name)
+
+    def get_event(self, event_name: str, service_name: str | None = None) -> MIoTSpecEvent | None:
+        if not hasattr(self, '_events_map'):
+            self._events_map = {}
+            for event in self.events:
+                self._events_map[f"{event.service.name}:{event.name}"] = event
+                if event.name not in self._events_map:
+                    self._events_map[event.name] = event
+        if service_name:
+            return self._events_map.get(f"{service_name}:{event_name}")
+        return self._events_map.get(event_name)
+
+    def get_action(self, action_name: str, service_name: str | None = None) -> MIoTSpecAction | None:
+        if not hasattr(self, '_actions_map'):
+            self._actions_map = {}
+            for action in self.actions:
+                self._actions_map[f"{action.service.name}:{action.name}"] = action
+                if action.name not in self._actions_map:
+                    self._actions_map[action.name] = action
+        if service_name:
+            return self._actions_map.get(f"{service_name}:{action_name}")
+        return self._actions_map.get(action_name)
+
 
 class MIoTDevice:
     """MIoT Device Instance."""
@@ -930,16 +963,6 @@ class MIoTServiceEntity(Entity):
             return None
         return map_.get(key, None)
 
-    def get_map_key(
-        self, map_: Optional[dict[int, Any]], value: Any
-    ) -> Optional[int]:
-        if map_ is None:
-            return None
-        for key, value_ in map_.items():
-            if value_ == value:
-                return key
-        return None
-
     def get_prop_value(self, prop: Optional[MIoTSpecProperty]) -> Any:
         if not prop:
             _LOGGER.error(
@@ -977,9 +1000,21 @@ class MIoTServiceEntity(Entity):
                 f'set property failed, not writable, '
                 f'{self.name}, {prop.name}')
         try:
+            # Build props dictionary for native python MIIO execution
+            props_dict = {}
+            for e_list in self.miot_device.entity_list.values():
+                for e in e_list:
+                    if isinstance(e, MIoTServiceEntity):
+                        for p in e.entity_data.props:
+                            props_dict[p.name] = e.get_prop_value(p)
+            
+            max_val = 100
+            if prop.value_range:
+                max_val = prop.value_range.max_
+                
             await self.miot_device.miot_client.set_prop_async(
                 did=self.miot_device.did, siid=prop.service.iid,
-                piid=prop.iid, value=value)
+                piid=prop.iid, value=value, props=props_dict, max_val=max_val)
         except MIoTClientError as e:
             raise RuntimeError(
                 f'{e}, {self.name}, {prop.name}') from e
@@ -1198,9 +1233,21 @@ class MIoTPropertyEntity(Entity):
         value = self.spec.value_format(value)
         value = self.spec.value_precision(value)
         try:
+            # Build props dictionary for native python MIIO execution
+            props_dict = {}
+            for e_list in self.miot_device.entity_list.values():
+                for e in e_list:
+                    if isinstance(e, MIoTServiceEntity):
+                        for p in e.entity_data.props:
+                            props_dict[p.name] = e.get_prop_value(p)
+                            
+            max_val = 100
+            if self.spec.value_range:
+                max_val = self.spec.value_range.max_
+                
             await self.miot_device.miot_client.set_prop_async(
                 did=self.miot_device.did, siid=self.spec.service.iid,
-                piid=self.spec.iid, value=value)
+                piid=self.spec.iid, value=value, props=props_dict, max_val=max_val)
         except MIoTClientError as e:
             raise RuntimeError(
                 f'{e}, {self.name}') from e
