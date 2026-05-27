@@ -811,7 +811,8 @@ class MIoTServiceEntity(Entity):
         elif isinstance(self.entity_data.spec, MIoTSpecService):
             self._attr_unique_id = miot_device.gen_service_unique_id(
                 siid=self.entity_data.spec.iid,
-                description=self.entity_data.spec.description)
+                description=self.entity_data.spec.description,
+                slugify_description=True)
             self._attr_name = (
                 f'{"* "if self.entity_data.spec.proprietary else " "}'
                 f'{self.entity_data.spec.description_trans}')

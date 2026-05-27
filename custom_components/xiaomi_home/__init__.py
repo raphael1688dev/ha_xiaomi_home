@@ -156,7 +156,7 @@ async def async_setup_entry(
                         ):
                             _remove_from_registry_by_uid([
                                 device.gen_service_unique_id(siid=entity.spec.iid, description=entity.spec.description, slugify_description=False),
-                                device.gen_service_unique_id(siid=entity.spec.iid, description=entity.spec.description)
+                                device.gen_service_unique_id(siid=entity.spec.iid, description=entity.spec.description, slugify_description=True)
                             ])
                         else:
                             kept_entities.append(entity)
