@@ -426,10 +426,12 @@ Example:
 - miot/test: Test scripts.
 - config_flow: Config flow.
 
-## New Features
-
-- **Legacy miio Protocol Local Translation (Native Python Transpilation)**: Implemented native local LAN control for legacy miio devices that are normally forced to use Cloud control (e.g. `yeelink.light.bslamp2`). This was achieved by porting the legacy Jinja dictionaries into pre-compiled Python Lambda functions, ensuring zero-delay execution.
-  - **Included Models (Strict Whitelist)**: To guarantee the highest performance and zero technical debt, this native transpilation layer is strictly limited to 19 core smart home components from specific reliable brands:
-    - **Yeelight (易來)**: Only `yeelink.light.lamp*` (檯燈/落地燈) and `yeelink.light.bslamp*` (床頭燈) series.
-    - **Smartmi & Dmaker (智米/造夢者)**: All `zhimi.fan` and `dmaker.fan` series.
-    - *(All other appliances, sensors, and brands are explicitly excluded from this local translation layer)*
+## New Features & Enhancements (Version 20260527r1)
+- **Local Control via MIIO Protocol (Zero-Delay, Zero-Technical-Debt)**: Implemented native Python transpilation for 19 whitelisted MIIO legacy devices (including `yeelink.light.lamp*`, `yeelink.light.bslamp*`, `zhimi.fan.*`, and `dmaker.fan.*`). These devices now enjoy instant, local execution without relying on cloud polling, bypassing the heavy Node.js translation layer.
+- **Robust Entity ID Migration Recovery**: Fixed a critical upstream bug in the Home Assistant unique_id migration script that caused legacy entity IDs (e.g., `sensor.*`, `light.*`) to be improperly renamed. 
+  - **Case Sensitivity Fix**: Enforced strict lowercase mapping for all newly generated `unique_id`s in `miot_device.py` to perfectly match historical HA registry entries.
+  - **Auto-Recovery**: Enhanced `__init__.py` to automatically detect and delete erroneously created duplicate entities (like `_2`), seamlessly restoring legacy entity IDs and preserving all user automations.
+- **Included Models (Strict Whitelist)**: To guarantee the highest performance and zero technical debt, this native transpilation layer is strictly limited to 19 core smart home components from specific reliable brands:
+  - **Yeelight (易來)**: Only `yeelink.light.lamp*` (檯燈/落地燈) and `yeelink.light.bslamp*` (床頭燈) series.
+  - **Smartmi & Dmaker (智米/造夢者)**: All `zhimi.fan` and `dmaker.fan` series.
+  - *(All other appliances, sensors, and brands are explicitly excluded from this local translation layer)*
