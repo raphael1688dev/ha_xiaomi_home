@@ -208,11 +208,15 @@ Fixed severe upstream logic bugs in HA registry unique_id migration:
 - **Auto-Recovery**: If a duplicate `_2` entity was erroneously created during a beta boot, the script actively detects the collision, deletes the duplicate, and re-binds the legacy entity ID to preserve user automations.
 - **Case Sensitivity & Slugify**: Enforced strict lowercase mapping and `slugify_description=True` to perfectly match legacy HA registry entries, notably for Service entities like `indicator_light`.
 
-### 3. Core Logic Bug Sweeps (8 Critical Fixes)
+### 3. Core Logic Bug Sweeps (17 Critical Fixes Total)
 Conducted a massive cleanup of logical errors inherited from upstream:
+- **Crash Prevention**: Fixed critical `TypeError`s (`create_task(await ...)` and `not result`) during API disconnects.
+- **Local Control & Caching**: Corrected Local-mode properties routing to poll `Gateway` before `LAN`, and fixed `remove_device_async` to actively pop devices from memory to prevent deleted entity resurrection.
+- **Spec & Auth Safety**: Hardened device parsing (`miot_device.py`) to reject malformed optional services. Overhauled OAuth token refresh to gracefully handle expired tokens (`error 96009`) instead of crashing the Options Flow with massive stack traces.
 - **Light (`light.py`)**: Unified colliding `mode` and `brightness` states into a single `_effect_map`, restoring access to maximum modes and preventing state overwrites.
 - **Fan (`fan.py`)**: Implemented strict Mutex flags (`_is_turning_on`) to prevent race conditions and duplicate `on=True` spamming, resolving device lag and crashes under network congestion.
 - **Sensor (`sensor.py`)**:
+  - Capped unbounded dynamic enum growth (`_attr_options`) at 64 items to protect Home Assistant from OOM memory leaks.
   - Replaced blind value clamping with graceful `None` (Unavailable) returns when sensors report out-of-bounds metrics, preserving historical chart integrity and exposing true hardware faults.
   - Isolated Diagnostic sensor `unique_id`s with `entry_id` to prevent multi-gateway IP clashes, and configured them to be disabled by default for HA UI cleanliness.
 

@@ -460,3 +460,8 @@ Example:
   - **Ghost Device Eradication**: Fixed `remove_device_async` to actively pop devices from the memory cache so deleted entities no longer resurrect on the next Home Assistant restart.
   - **Spec Safety**: Hardened device parsing (`miot_device.py`) to properly reject malformed optional services that declare features they don't have access to.
   - **Enum Memory Leak Protection**: Capped the unbounded dynamic growth of `Sensor._attr_options` at 64 items, protecting Home Assistant from OOM leaks if a buggy device spams undocumented enum values.
+
+## New Features & Enhancements (Version 20260527r10)
+- **OAuth Error Handling Optimization**: 
+  - Overhauled the Xiaomi Cloud API error handling logic inside `miot_cloud.py`.
+  - When the user's refresh token expires (Error 96009), the system now correctly intercepts the error and elegantly logs a `WARNING` message instead of crashing the Options Flow and spamming the Home Assistant log with a massive stack trace (`invalid http response format`). Users can now cleanly re-authenticate via the integration settings.
