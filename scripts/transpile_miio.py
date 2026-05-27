@@ -5,7 +5,7 @@ from copy import deepcopy
 import pprint
 
 # Define the absolute path to the hass-xiaomi-miot core models
-HASS_XIAOMI_MIOT_DIR = "/Users/raphael/Desktop/hass-xiaomi-miot-master"
+HASS_XIAOMI_MIOT_DIR = os.environ.get("HASS_XIAOMI_MIOT_DIR", os.path.abspath(os.path.join(os.path.dirname(__file__), "../../hass-xiaomi-miot-master")))
 sys.path.append(os.path.join(HASS_XIAOMI_MIOT_DIR, "custom_components/xiaomi_miot/core"))
 
 try:
