@@ -709,8 +709,7 @@ class MIoTSpecInstance:
                 
             for action in service['actions']:
                 spec_action = MIoTSpecAction(spec=action,
-                                             service=spec_service,
-                                             in_=action['in'])
+                                             service=spec_service)
                 spec_action.in_ = [prop_map[piid] for piid in action['in'] if piid in prop_map]
                 spec_action.out = [prop_map[piid] for piid in action['out'] if piid in prop_map]
                 spec_service.actions.append(spec_action)

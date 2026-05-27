@@ -133,11 +133,17 @@ class Sensor(MIoTPropertyEntity, SensorEntity):
             # 若設備回報了 spec 定義以外的數值（例如 0），將其動態加入 _attr_options 放行
             _opts = self._attr_options or []
             if str_val not in _opts:
-                self._attr_options = list(_opts) + [str_val]
-                _LOGGER.debug(
-                    "Device returned undocumented value '%s' for %s. Dynamically added to Enum options.", 
-                    str_val, self.entity_id
-                )
+                if len(_opts) > 64:
+                    _LOGGER.warning(
+                        "Device returned too many undocumented values for %s. Ignoring '%s'.",
+                        self.entity_id, str_val
+                    )
+                else:
+                    self._attr_options = list(_opts) + [str_val]
+                    _LOGGER.debug(
+                        "Device returned undocumented value '%s' for %s. Dynamically added to Enum options.", 
+                        str_val, self.entity_id
+                    )
                 
             return str_val
             

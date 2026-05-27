@@ -684,7 +684,7 @@ class MIoTClient:
                         # Device remove or offline
                         _LOGGER.error('device may be removed or offline, %s', did)
                         self._main_loop.create_task(
-                            await self.__refresh_cloud_device_with_dids_async(
+                            self.__refresh_cloud_device_with_dids_async(
                                 dids=[did]))
                     raise MIoTClientError(
                         self.__get_exec_error_with_rc(rc=rc))
@@ -829,7 +829,7 @@ class MIoTClient:
                         # Device remove or offline
                         _LOGGER.error('device removed or offline, %s', did)
                         self._main_loop.create_task(
-                            await self.__refresh_cloud_device_with_dids_async(
+                            self.__refresh_cloud_device_with_dids_async(
                                 dids=[did]))
                     raise MIoTClientError(
                         self.__get_exec_error_with_rc(rc=rc))
@@ -910,6 +910,10 @@ class MIoTClient:
     async def remove_device_async(self, did: str) -> None:
         if did not in self._device_list_cache:
             return
+        self._device_list_cache.pop(did, None)
+        self._device_list_cloud.pop(did, None)
+        self._device_list_gateway.pop(did, None)
+        self._device_list_lan.pop(did, None)
         sub_from = self._sub_source_list.pop(did, None)
         # Unsub
         if sub_from:
@@ -1019,7 +1023,7 @@ class MIoTClient:
             and self._device_list_cloud[did].get('online', False)
         ):
             from_new = 'cloud'
-        if (from_new == from_old) and (from_new=='cloud' or from_new=='lan'):
+        if from_new == from_old:
             # No need to update
             return
         # Unsub old
@@ -1463,7 +1467,7 @@ class MIoTClient:
                 lambda: self._main_loop.create_task(
                     self.__refresh_cloud_devices_async()))
             return
-        if not result and 'devices' not in result:
+        if not result or 'devices' not in result:
             self.__show_client_error_notify(
                 message=self._i18n.translate(
                     'miot.client.device_cloud_error'),  # type: ignore
@@ -1787,12 +1791,12 @@ class MIoTClient:
         
         # Determine execution order based on ctrl_mode and poll_priority
         if self._ctrl_mode == CtrlMode.LOCAL:
-            handlers = [self.__refresh_props_from_lan, self.__refresh_props_from_gw]
+            handlers = [self.__refresh_props_from_gw, self.__refresh_props_from_lan]
         elif self._ctrl_mode == CtrlMode.CLOUD:
             handlers = [self.__refresh_props_from_cloud]
         else: # AUTO
             if self._entry_data.get('poll_priority', 'cloud_first') == 'local_first':
-                handlers = [self.__refresh_props_from_lan, self.__refresh_props_from_gw, self.__refresh_props_from_cloud]
+                handlers = [self.__refresh_props_from_gw, self.__refresh_props_from_lan, self.__refresh_props_from_cloud]
             else: # cloud_first
                 handlers = [self.__refresh_props_from_cloud, self.__refresh_props_from_gw, self.__refresh_props_from_lan]
                 

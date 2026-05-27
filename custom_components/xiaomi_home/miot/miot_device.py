@@ -609,11 +609,15 @@ class MIoTDevice:
                     action.name for action in service.actions
                 }.issuperset(required_actions):
                     continue
+                skip_service = False
                 for prop in service.properties:
                     if prop.name in required_properties:
                         if not set(prop.access).issuperset(
                                 required_properties[prop.name]):
-                            continue
+                            skip_service = True
+                            break
+                if skip_service:
+                    continue
             else:
                 continue
             # property
@@ -1045,7 +1049,7 @@ class MIoTServiceEntity(Entity):
                 did=self.miot_device.did, siid=prop.service.iid, piid=prop.iid))
         value = prop.eval_expr(value)
         result = prop.value_precision(value)
-        if result != self._prop_value_map[prop]:
+        if result != self._prop_value_map.get(prop):
             self._prop_value_map[prop] = result
             self.async_write_ha_state()
         return result
