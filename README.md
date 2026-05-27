@@ -426,11 +426,10 @@ Example:
 - miot/test: Test scripts.
 - config_flow: Config flow.
 
-## Future Roadmap / Experimental Features
+## New Features
 
-- **Legacy miio Protocol Local Translation**: Investigating the feasibility of porting the `miio2miot_specs.py` dictionary from `hass-xiaomi-miot` into native Python transpilation (`miot_lan.py`). This would enable local LAN control for legacy devices (like `yeelink.light.bslamp2`) that are currently forced to use Cloud control. 
-  - **Inclusion Rules (Strict Whitelist)**: To guarantee the highest performance and zero technical debt, the transpilation dictionary is strictly limited to core smart home components from specific reliable brands. Only the following combinations are whitelisted for local translation:
+- **Legacy miio Protocol Local Translation (Native Python Transpilation)**: Implemented native local LAN control for legacy miio devices that are normally forced to use Cloud control (e.g. `yeelink.light.bslamp2`). This was achieved by porting the legacy Jinja dictionaries into pre-compiled Python Lambda functions, ensuring zero-delay execution.
+  - **Included Models (Strict Whitelist)**: To guarantee the highest performance and zero technical debt, this native transpilation layer is strictly limited to 19 core smart home components from specific reliable brands:
     - **Yeelight (易來)**: Only `yeelink.light.lamp*` (檯燈/落地燈) and `yeelink.light.bslamp*` (床頭燈) series.
     - **Smartmi & Dmaker (智米/造夢者)**: All `zhimi.fan` and `dmaker.fan` series.
     - *(All other appliances, sensors, and brands are explicitly excluded from this local translation layer)*
-  - *This feature is currently under architectural evaluation and planned for a future release.*
