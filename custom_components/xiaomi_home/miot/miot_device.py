@@ -807,14 +807,14 @@ class MIoTServiceEntity(Entity):
         # Keep unique_id consistent but DO NOT overwrite HA's entity_id logic
         if isinstance(self.entity_data.spec, MIoTSpecInstance):
             self._attr_unique_id = miot_device.gen_device_unique_id()
-            self._attr_name = f' {self.entity_data.spec.description_trans}'
+            self._attr_name = f'{self.entity_data.spec.description_trans}'
         elif isinstance(self.entity_data.spec, MIoTSpecService):
             self._attr_unique_id = miot_device.gen_service_unique_id(
                 siid=self.entity_data.spec.iid,
                 description=self.entity_data.spec.description,
                 slugify_description=True)
             self._attr_name = (
-                f'{"* "if self.entity_data.spec.proprietary else " "}'
+                f'{"* "if self.entity_data.spec.proprietary else ""}'
                 f'{self.entity_data.spec.description_trans}')
             self._attr_entity_category = entity_data.spec.entity_category
             
@@ -1143,7 +1143,7 @@ class MIoTPropertyEntity(Entity):
             self._attr_should_poll = False
         self._attr_has_entity_name = True
         self._attr_name = (
-            f'{"* "if self.spec.proprietary else " "}'
+            f'{"* "if self.spec.proprietary else ""}'
             f'{self.service.description_trans} {spec.description_trans}')
         self._attr_available = miot_device.online
 
@@ -1290,7 +1290,7 @@ class MIoTEventEntity(Entity):
         self._attr_should_poll = False
         self._attr_has_entity_name = True
         self._attr_name = (
-            f'{"* "if self.spec.proprietary else " "}'
+            f'{"* "if self.spec.proprietary else ""}'
             f'{self.service.description_trans} {spec.description_trans}')
         self._attr_available = miot_device.online
         self._attr_event_types = [spec.description_trans]
@@ -1402,7 +1402,7 @@ class MIoTActionEntity(Entity):
         self._attr_should_poll = False
         self._attr_has_entity_name = True
         self._attr_name = (
-            f'{"* "if self.spec.proprietary else " "}'
+            f'{"* "if self.spec.proprietary else ""}'
             f'{self.service.description_trans} {spec.description_trans}')
         self._attr_available = miot_device.online
 
