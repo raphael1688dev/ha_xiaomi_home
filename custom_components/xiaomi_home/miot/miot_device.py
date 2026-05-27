@@ -419,7 +419,7 @@ class MIoTDevice:
     def gen_device_unique_id(self) -> str:
         return (
             f'{self._model_strs[0][:9]}_{self.did_tag}_'
-            f'{self._model_strs[-1][:20]}').lower()
+            f'{self._model_strs[-1][:20]}')
 
     def gen_service_unique_id(
         self,
@@ -434,7 +434,7 @@ class MIoTDevice:
                 description_slug = f'service_{siid}'
         return (
             f'{self._model_strs[0][:9]}_{self.did_tag}_'
-            f'{self._model_strs[-1][:20]}_s_{siid}_{description_slug}').lower()
+            f'{self._model_strs[-1][:20]}_s_{siid}_{description_slug}')
 
     def gen_prop_unique_id(
         self, spec_name: str, siid: int, piid: int
@@ -442,7 +442,7 @@ class MIoTDevice:
         return (
             f'{self._model_strs[0][:9]}_{self.did_tag}_'
             f'{self._model_strs[-1][:20]}_{slugify_name(spec_name)}'
-            f'_p_{siid}_{piid}').lower()
+            f'_p_{siid}_{piid}')
 
     def gen_event_unique_id(
         self, spec_name: str, siid: int, eiid: int
@@ -450,7 +450,7 @@ class MIoTDevice:
         return (
             f'{self._model_strs[0][:9]}_{self.did_tag}_'
             f'{self._model_strs[-1][:20]}_{slugify_name(spec_name)}'
-            f'_e_{siid}_{eiid}').lower()
+            f'_e_{siid}_{eiid}')
 
     def gen_action_unique_id(
         self, spec_name: str, siid: int, aiid: int
@@ -458,7 +458,7 @@ class MIoTDevice:
         return (
             f'{self._model_strs[0][:9]}_{self.did_tag}_'
             f'{self._model_strs[-1][:20]}_{slugify_name(spec_name)}'
-            f'_a_{siid}_{aiid}').lower()
+            f'_a_{siid}_{aiid}')
 
     @property
     def name(self) -> str:
