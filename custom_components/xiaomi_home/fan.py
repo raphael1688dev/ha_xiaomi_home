@@ -76,12 +76,6 @@ class Fan(MIoTServiceEntity, FanEntity):
     ) -> None:
         """Initialize the Fan."""
         super().__init__(miot_device=miot_device,  entity_data=entity_data)
-        try:
-            from .miot.miio_specs import MIIO_SPECS
-            if miot_device.model in MIIO_SPECS:
-                self.entity_id = f"fan.{self._attr_unique_id.lower()}"
-        except ImportError:
-            pass
         self._attr_preset_modes = []
         self._attr_current_direction = None
         self._attr_supported_features = FanEntityFeature(0)
