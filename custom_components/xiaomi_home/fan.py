@@ -2,7 +2,6 @@
 """
 Fan entities for Xiaomi Home.
 """
-from __future__ import annotations
 from typing import Any, Optional
 import logging
 import asyncio

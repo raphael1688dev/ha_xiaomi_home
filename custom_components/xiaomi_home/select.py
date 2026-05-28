@@ -2,7 +2,6 @@
 """
 Select entities for Xiaomi Home.
 """
-from __future__ import annotations
 from typing import Optional
 
 from homeassistant.config_entries import ConfigEntry
