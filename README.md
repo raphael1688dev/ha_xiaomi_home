@@ -465,3 +465,8 @@ Example:
 - **OAuth Error Handling Optimization**: 
   - Overhauled the Xiaomi Cloud API error handling logic inside `miot_cloud.py`.
   - When the user's refresh token expires (Error 96009), the system now correctly intercepts the error and elegantly logs a `WARNING` message instead of crashing the Options Flow and spamming the Home Assistant log with a massive stack trace (`invalid http response format`). Users can now cleanly re-authenticate via the integration settings.
+
+## New Features & Enhancements (Version 20260528r1)
+- **Home Assistant 2026.6 Compatibility (Python 3.14)**:
+  - Removed `from __future__ import annotations` across all 19 component files to comply with Home Assistant Core 2026.6's strict Ruff linting rules for Python 3.14.4 compatibility.
+  - Ensured maximum safety for entity generation logic (`unique_id`) and platform initialization.

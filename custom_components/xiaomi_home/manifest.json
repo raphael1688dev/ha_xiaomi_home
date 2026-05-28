@@ -25,7 +25,7 @@
         "cryptography",
         "psutil"
     ],
-    "version": "20260527r10",
+    "version": "20260528r1",
     "zeroconf": [
         "_miot-central._tcp.local."
     ]
