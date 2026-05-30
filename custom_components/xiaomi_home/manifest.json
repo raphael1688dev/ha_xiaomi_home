@@ -11,7 +11,7 @@
         "ffmpeg",
         "zeroconf"
     ],
-    "documentation": "https://github.com/raphael1688dev/ha_xiaomi_home/blob/main/README.md",
+    "documentation": "https://github.com/xiaomi/ha-xiaomi-home/blob/main/README.md",
     "integration_type": "hub",
     "iot_class": "cloud_polling",
     "issue_tracker": "https://github.com/raphael1688dev/ha_xiaomi_home/issues",

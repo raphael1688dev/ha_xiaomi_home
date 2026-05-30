@@ -128,10 +128,7 @@ async def async_setup_entry(
         miot_devices: list[MIoTDevice] = []
         er = entity_registry.async_get(hass=hass)
         er_entries = list(entity_registry.async_entries_for_config_entry(er, entry_id))
-        
-        # Register a migration script
-        await _async_migrate_legacy_entity_ids(hass, entry_id)
-
+        # Remove entities from HA entity registry
         entries_to_remove = entity_registry.async_entries_for_config_entry(er, entry_id)
         if not isinstance(entries_to_remove, list):
             entries_to_remove = list(entries_to_remove)
