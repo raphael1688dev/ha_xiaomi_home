@@ -481,3 +481,9 @@ Example:
   - Fixed a critical bug in `miot_lan.py` where a missing network interface (`if_name`) during early UDP packet reception caused the `send2device` ACK to crash.
   - Corrected a misleading `try/except` scope that caused this LAN handling crash to be wrongly logged as a `decrypt packet error`.
   - The system now securely authenticates the device's IP and interface immediately upon successful packet decryption, ensuring rock-solid local network stability.
+
+## New Features & Enhancements (Version 20260530r3)
+- **Legacy Entity ID Backward Compatibility Restore**:
+  - Reverted a recent refactor that stopped hardcoding `self.entity_id`, which had inadvertently allowed Home Assistant to auto-generate completely new, localized Pinyin entity IDs (e.g., `fan.feng_shan_chen_bo_rui_...`).
+  - By restoring the hardcoded generation of `self.entity_id` and reverting the `unique_id` suffixes, all original device IDs (e.g., `fan.zhimi_sg_406233287_za5_s_2_fan`) are now guaranteed to be perfectly maintained.
+  - This absolutely ensures zero disruptions to existing user automations and prevents "unavailable" ghost entities from spawning during updates.
