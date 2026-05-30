@@ -42,54 +42,46 @@ async def async_setup(hass: HomeAssistant, hass_config: dict) -> bool:
     return True
 
 
-async def _async_migrate_legacy_entity_ids(hass: HomeAssistant, entry_id: str) -> None:
-    """Migrate legacy entity IDs that fell back to unique_id format back to standard naming."""
+async def _async_migrate_legacy_entity_ids(hass: HomeAssistant, entry_id: str, miot_devices: list[MIoTDevice]) -> None:
+    """Migrate entity IDs to the stable {did}_{model}_{feature} format."""
     er = entity_registry.async_get(hass)
-    dr = device_registry.async_get(hass)
     
-    from homeassistant.util import slugify
-    
-    for entry in entity_registry.async_entries_for_config_entry(er, entry_id):
-        # The fallback entity ID looks exactly like `domain.unique_id`
-        expected_fallback_id = f"{entry.domain}.{entry.unique_id}"
+    # Build a map of unique_id -> target entity_id
+    expected_ids_map = {}
+    main_entity_uids = {}
+    for device in miot_devices:
+        expected_ids_map.update(device.get_expected_entity_ids())
+        main_entity_uids[device.gen_device_unique_id()] = device.entity_id_prefix
         
-        # We only force rename if the entity ID exactly matches the legacy fallback
-        # This protects users who have manually renamed their entity IDs in the UI!
-        if entry.entity_id == expected_fallback_id:
-            # We need the device name to generate the new entity ID
-            if entry.device_id:
-                device = dr.async_get(entry.device_id)
-                if device:
-                    device_name = device.name_by_user or device.name
-                    # original_name contains the string from `_attr_name` (e.g. "Environment Relative Humidity")
-                    entity_name = entry.original_name
+    for entry in entity_registry.async_entries_for_config_entry(er, entry_id):
+        new_entity_id = None
+        
+        if entry.unique_id in expected_ids_map:
+            target_id = expected_ids_map[entry.unique_id]
+            if target_id == "unknown":
+                # Main entity
+                prefix = main_entity_uids.get(entry.unique_id)
+                if prefix:
+                    new_entity_id = f"{entry.domain}.{prefix}"
+            else:
+                # Sub entity
+                new_entity_id = target_id
+                # Fix domain if necessary (e.g. sometimes it gets overridden)
+                if new_entity_id and new_entity_id.split('.')[0] != entry.domain:
+                    new_entity_id = f"{entry.domain}.{new_entity_id.split('.', 1)[1]}"
                     
-                    # If original_name is None, extract from unique_id
-                    if not entity_name:
-                        import re
-                        match = re.search(r'_([pae])_\d+_\d+$', entry.unique_id)
-                        if match:
-                            prefix = entry.unique_id[:match.start()]
-                            # Extract the part after the did_tag and model suffix
-                            parts = prefix.split('_')
-                            if len(parts) > 3:
-                                # The last part is usually the slugified entity name
-                                entity_name = parts[-1]
-                    
-                    if device_name and entity_name:
-                        new_entity_id = f"{entry.domain}.{slugify(device_name)}_{slugify(entity_name)}"
-                        if new_entity_id != entry.entity_id:
-                            try:
-                                er.async_update_entity(entry.entity_id, new_entity_id=new_entity_id)
-                                _LOGGER.info(
-                                    "Forcibly migrated fallback entity %s to modern HA format %s", 
-                                    entry.entity_id, new_entity_id
-                                )
-                            except ValueError as err:
-                                _LOGGER.warning(
-                                    "Failed to force migrate fallback entity %s to %s: %s", 
-                                    entry.entity_id, new_entity_id, err
-                                )
+        if new_entity_id and new_entity_id != entry.entity_id:
+            try:
+                er.async_update_entity(entry.entity_id, new_entity_id=new_entity_id)
+                _LOGGER.info(
+                    "Migrated entity %s to modern stable format %s", 
+                    entry.entity_id, new_entity_id
+                )
+            except ValueError as err:
+                _LOGGER.warning(
+                    "Failed to migrate entity %s to %s: %s", 
+                    entry.entity_id, new_entity_id, err
+                )
 
 
 async def async_setup_entry(
@@ -236,8 +228,8 @@ async def async_setup_entry(
                 )
                 
         # Register a migration script to fix any existing fallback entity_ids
-        # generated in previous sessions due to the race condition.
-        await _async_migrate_legacy_entity_ids(hass, entry_id)
+        # generated in previous sessions due to the race condition, and migrate to the new format.
+        await _async_migrate_legacy_entity_ids(hass, entry_id, miot_devices)
 
         await hass.config_entries.async_forward_entry_setups(
             config_entry, SUPPORTED_PLATFORMS)

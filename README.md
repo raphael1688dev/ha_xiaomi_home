@@ -482,6 +482,13 @@ Example:
   - Corrected a misleading `try/except` scope that caused this LAN handling crash to be wrongly logged as a `decrypt packet error`.
   - The system now securely authenticates the device's IP and interface immediately upon successful packet decryption, ensuring rock-solid local network stability.
 
+## New Features & Enhancements (Version 20260530r17)
+- **Ultimate Entity ID Decoupling & Stable Naming Architecture**:
+  - Overhauled the core entity ID generation pipeline to completely decouple backend `entity_id` stability from frontend HA Device Names (which are often slugified into unreadable Pinyin like `zhu_wo_da_lu_deng_1hao`).
+  - Entities are now explicitly instantiated with a programmatic, rock-solid ID prefix format (`{did_tag}_{model_tag}`), ensuring that a device's backend ID remains permanent regardless of how many times the user renames the device in the Mi Home App or HA UI.
+  - Sub-entity features are intelligently appended using their official MIoT Spec English descriptions (e.g., `switch.779521713_lamp30_focus_mode_switch_status`).
+  - Implemented an aggressive and precise migration script (`_async_migrate_legacy_entity_ids`) in the setup flow. The script scans the HA Entity Registry upon boot and forcibly upgrades all matching legacy IDs (and intermediate Pinyin IDs) to the final ultimate format, fully protecting existing user automations and node-RED flows from naming drifts.
+
 ## New Features & Enhancements (Version 20260530r6)
 - **HA 2026.5.0 Naming Modernization**:
   - Removed all `self.entity_id` hardcoding, returning full entity naming authority to Home Assistant core.

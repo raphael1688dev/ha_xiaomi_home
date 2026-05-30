@@ -455,6 +455,11 @@ class MIoTDevice:
     def _uid_prefix(self) -> str:
         return f'{self._model_strs[0][:9]}_{self.did_tag}_{self._model_strs[-1][:20]}'
 
+    @cached_property
+    def entity_id_prefix(self) -> str:
+        """Stable prefix for entity_id generation, e.g. 779521713_lamp30"""
+        return f'{self.did_tag}_{self._model_strs[-1][:20]}'
+
     def gen_device_unique_id(self) -> str:
         return self._uid_prefix
 
@@ -485,6 +490,56 @@ class MIoTDevice:
         self, spec_name: str, siid: int, aiid: int
     ) -> str:
         return f'{self._uid_prefix}_{slugify_name(spec_name)}_a_{siid}_{aiid}'
+
+    def get_expected_entity_ids(self) -> dict[str, str]:
+        """Generate a mapping of unique_id -> expected target entity_id for all entities of this device."""
+        mapping = {}
+        
+        # Helper to process entities
+        def _add_mapping(platform_dict: dict, item_type: str, uid_gen_func, has_description=False):
+            for platform, items in platform_dict.items():
+                for item in items:
+                    spec_item = item.spec if item_type == 'service' else item
+                    
+                    # Generate unique_id
+                    if has_description:
+                        uid = uid_gen_func(siid=spec_item.iid, description=spec_item.description)
+                    elif item_type == 'property':
+                        uid = uid_gen_func(spec_name=spec_item.name, siid=spec_item.service.iid, piid=spec_item.iid)
+                    elif item_type == 'event':
+                        uid = uid_gen_func(spec_name=spec_item.name, siid=spec_item.service.iid, eiid=spec_item.iid)
+                    elif item_type == 'action':
+                        uid = uid_gen_func(spec_name=spec_item.name, siid=spec_item.service.iid, aiid=spec_item.iid)
+                    else:
+                        continue
+                        
+                    # Generate expected entity_id
+                    if item_type == 'service':
+                        if spec_item.description.lower() == platform:
+                            attr_name = None
+                        else:
+                            attr_name = f'{"* "if spec_item.proprietary else ""}{spec_item.description_trans}'
+                    else:
+                        attr_name = f'{"* "if spec_item.proprietary else ""}{spec_item.service.description_trans} {spec_item.description_trans}'
+                    
+                    domain = platform
+                    if attr_name:
+                        clean_name = attr_name.replace("* ", "")
+                        target_eid = f"{domain}.{self.entity_id_prefix}_{slugify_name(clean_name)}"
+                    else:
+                        target_eid = f"{domain}.{self.entity_id_prefix}"
+                        
+                    mapping[uid] = target_eid
+                    
+        # Device main entity
+        mapping[self.gen_device_unique_id()] = "unknown" # Device main entity doesn't have a fixed domain here, handled specially if needed
+        
+        _add_mapping(self.entity_list, 'service', self.gen_service_unique_id, True)
+        _add_mapping(self.prop_list, 'property', self.gen_prop_unique_id, False)
+        _add_mapping(self.event_list, 'event', self.gen_event_unique_id, False)
+        _add_mapping(self.action_list, 'action', self.gen_action_unique_id, False)
+        
+        return mapping
 
     @property
     def name(self) -> str:
@@ -861,14 +916,23 @@ class MIoTServiceEntity(Entity):
             
         self._attr_has_entity_name = True
         self._attr_available = miot_device.online
+        
+        # Override entity_id explicitly to bypass HA's slugification of device name
+        from .common import slugify_name
+        domain = ha_domain or self.entity_data.platform
+        if self._attr_name:
+            clean_name = self._attr_name.replace("* ", "")
+            self.entity_id = f"{domain}.{miot_device.entity_id_prefix}_{slugify_name(clean_name)}"
+        else:
+            self.entity_id = f"{domain}.{miot_device.entity_id_prefix}"
 
         self._event_occurred_handler = None
         self._prop_changed_subs = {}
         self._pending_write_ha_state_timer = None
         _LOGGER.info(
-            'new miot service entity, %s, %s, %s, %s',
+            'new miot service entity, %s, %s, %s, %s, entity_id: %s',
             self.miot_device.name, self._attr_name, self.entity_data.spec.name,
-            self._attr_unique_id)
+            self._attr_unique_id, self.entity_id)
 
     @property
     def event_occurred_handler(
@@ -1181,11 +1245,16 @@ class MIoTPropertyEntity(Entity):
             f'{"* "if self.spec.proprietary else ""}'
             f'{self.service.description_trans} {spec.description_trans}')
         self._attr_available = miot_device.online
+        
+        # Override entity_id explicitly to bypass HA's slugification of device name
+        from .common import slugify_name
+        clean_name = self._attr_name.replace("* ", "")
+        self.entity_id = f"{spec.platform}.{miot_device.entity_id_prefix}_{slugify_name(clean_name)}"
 
         _LOGGER.info(
-            'new miot property entity, %s, %s, %s, %s, %s',
+            'new miot property entity, %s, %s, %s, %s, %s, entity_id: %s',
             self.miot_device.name, self._attr_name, spec.platform,
-            spec.device_class, self._attr_unique_id)
+            spec.device_class, self._attr_unique_id, self.entity_id)
 
     @property
     def has_entity_name(self) -> bool:
@@ -1347,6 +1416,11 @@ class MIoTEventEntity(Entity):
             f'{self.service.description_trans} {spec.description_trans}')
         self._attr_available = miot_device.online
         self._attr_event_types = [spec.description_trans]
+        
+        # Override entity_id explicitly to bypass HA's slugification of device name
+        from .common import slugify_name
+        clean_name = self._attr_name.replace("* ", "")
+        self.entity_id = f"{spec.platform}.{miot_device.entity_id_prefix}_{slugify_name(clean_name)}"
 
         self._arguments_map = {}
         for prop in spec.argument:
@@ -1355,9 +1429,9 @@ class MIoTEventEntity(Entity):
         self._value_sub_id = 0
 
         _LOGGER.info(
-            'new miot event entity, %s, %s, %s, %s, %s',
+            'new miot event entity, %s, %s, %s, %s, %s, entity_id: %s',
             self.miot_device.name, self._attr_name, spec.platform,
-            spec.device_class, self._attr_unique_id)
+            spec.device_class, self._attr_unique_id, self.entity_id)
 
     @property
     def has_entity_name(self) -> bool:
@@ -1465,11 +1539,23 @@ class MIoTActionEntity(Entity):
             f'{"* "if self.spec.proprietary else ""}'
             f'{self.service.description_trans} {spec.description_trans}')
         self._attr_available = miot_device.online
+        
+        # Override entity_id explicitly to bypass HA's slugification of device name
+        from .common import slugify_name
+        clean_name = self._attr_name.replace("* ", "")
+        self.entity_id = f"{spec.platform}.{miot_device.entity_id_prefix}_{slugify_name(clean_name)}"
 
-        _LOGGER.debug(
-            'new miot action entity, %s, %s, %s, %s, %s',
+        self._in_map = {}
+        for prop in spec.in_:
+            self._in_map[prop.iid] = prop
+        self._out_map = {}
+        for prop in spec.out:
+            self._out_map[prop.iid] = prop
+
+        _LOGGER.info(
+            'new miot action entity, %s, %s, %s, %s, %s, entity_id: %s',
             self.miot_device.name, self._attr_name, spec.platform,
-            spec.device_class, self._attr_unique_id)
+            spec.device_class, self._attr_unique_id, self.entity_id)
 
     @property
     def has_entity_name(self) -> bool:
