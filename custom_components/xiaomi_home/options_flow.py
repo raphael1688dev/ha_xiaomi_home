@@ -681,7 +681,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     include_items['did'] = device_list_in
                 else:
                     exclude_items['did'] = device_list_in
-            from . import _handle_devices_filter
+            from .config_flow import _handle_devices_filter
 
             statistics_logic: str = user_input.get('statistics_logic', 'or')
             device_filter_list = _handle_devices_filter(

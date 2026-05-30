@@ -510,3 +510,9 @@ Example:
   - **Strict Platform Compliance**: Removed all legacy heuristic code that blindly coerced properties into invalid HA platforms (e.g., forcing all booleans to `switch`). Platform generation now strictly adheres to the HA Device Class standards defined in `SPEC_PROP_TRANS_MAP`.
   - **Traceable Exception Handling**: Purged over 50 instances of the dangerous `# pylint: disable=broad-exception-caught` mask. All `Exception` catches now properly format and log stack traces (`traceback.format_exc()`), making silent failures a thing of the past.
   - **Translation Engine Extraction**: Extracted the `_MIoTSpecMultiLang` engine out of the heavy `miot_spec.py` into its own `miot_i18n.py` module, and reduced the integration footprint by deleting all unused translations (retaining only `en`, `zh-Hant`, `zh-Hans`).
+
+## New Features & Enhancements (Version 20260530r10)
+- **Hotfix: Config Flow Loader Crash (`Invalid handler specified`)**:
+  - Fixed an issue introduced in `20260530r9` where Home Assistant's Integration Loader failed to find the `ConfigFlow` handler because it was moved into a `config_flow/` subdirectory.
+  - Flattened the extracted flow modules (`options_flow.py`, `oauth.py`, `network.py`) to the root of the integration directory alongside `config_flow.py`.
+  - Corrected all relative imports to match the new flat module structure, restoring full access to the UI setup flow and integration options.
