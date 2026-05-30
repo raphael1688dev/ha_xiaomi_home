@@ -163,6 +163,7 @@ class MIoTControlPathSensor(SensorEntity):
         self._attr_icon = "mdi:transit-connection-variant"
         self._attr_has_entity_name = True
         self._attr_should_poll = True
+        self.entity_id = f"sensor.{miot_device.entity_id_prefix}_control_path"
 
     @property
     def device_info(self):
@@ -190,6 +191,7 @@ class MIoTIPAddressSensor(SensorEntity):
         self._attr_icon = "mdi:ip-network"
         self._attr_has_entity_name = True
         self._attr_should_poll = True
+        self.entity_id = f"sensor.{miot_device.entity_id_prefix}_ip_address"
 
     @property
     def device_info(self):

@@ -51,6 +51,12 @@ async def _async_migrate_legacy_entity_ids(hass: HomeAssistant, entry_id: str, m
     main_entity_uids = {}
     for device in miot_devices:
         expected_ids_map.update(device.get_expected_entity_ids())
+        # Add custom diagnostic sensors to migration map
+        uid_control = f"{entry_id}_{device.did}_control_path"
+        uid_ip = f"{entry_id}_{device.did}_ip_address"
+        expected_ids_map[uid_control] = f"sensor.{device.entity_id_prefix}_control_path"
+        expected_ids_map[uid_ip] = f"sensor.{device.entity_id_prefix}_ip_address"
+        
         main_entity_uids[device.gen_device_unique_id()] = device.entity_id_prefix
         
     for entry in entity_registry.async_entries_for_config_entry(er, entry_id):
