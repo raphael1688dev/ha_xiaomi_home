@@ -470,3 +470,8 @@ Example:
 - **Home Assistant 2026.6 Compatibility (Python 3.14)**:
   - Removed `from __future__ import annotations` across all 19 component files to comply with Home Assistant Core 2026.6's strict Ruff linting rules for Python 3.14.4 compatibility.
   - Ensured maximum safety for entity generation logic (`unique_id`) and platform initialization.
+
+## New Features & Enhancements (Version 20260530r1)
+- **Log Spam Eradication**:
+  - Implemented precise exception interception in the cloud polling module (`__refresh_props_from_cloud`).
+  - The system will no longer spam massive stack traces when the Xiaomi Cloud access token expires (HTTP 401) or when the server is temporarily down (HTTP 5xx). Instead, it gracefully outputs a single, clean `WARNING` message, saving massive amounts of log space and preventing I/O lag.

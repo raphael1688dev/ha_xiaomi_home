@@ -1703,9 +1703,19 @@ class MIoTClient:
                 request_list = None
             return True
         except Exception as err:  # pylint:disable=broad-exception-caught
-            _LOGGER.error(
-                'refresh props error, cloud, %s, %s',
-                err, traceback.format_exc())
+            err_str = str(err).lower()
+            if getattr(err, 'code', None) == MIoTErrorCode.CODE_HTTP_INVALID_ACCESS_TOKEN or 'unauthorized(401)' in err_str:
+                _LOGGER.warning(
+                    'refresh props failed, cloud: unauthorized(401). Access token is likely invalid or expired. Please re-authenticate.'
+                )
+            elif any(code in err_str for code in [', 500,', ', 502,', ', 503,', ', 504,']):
+                _LOGGER.warning(
+                    'refresh props failed, cloud: server error (5xx). Xiaomi cloud might be temporarily down or unstable. Details: %s', err
+                )
+            else:
+                _LOGGER.error(
+                    'refresh props error, cloud, %s, %s',
+                    err, traceback.format_exc())
             # Add failed request back to the list
             self._refresh_props_list.update(request_list)
             return False
