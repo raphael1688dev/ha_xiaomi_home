@@ -482,6 +482,11 @@ Example:
   - Corrected a misleading `try/except` scope that caused this LAN handling crash to be wrongly logged as a `decrypt packet error`.
   - The system now securely authenticates the device's IP and interface immediately upon successful packet decryption, ensuring rock-solid local network stability.
 
+## New Features & Enhancements (Version 20260530r18)
+- **Hotfix: Setup Error on Duplicate Migration Script Call**:
+  - Fixed a `TypeError` (`_async_migrate_legacy_entity_ids() missing 1 required positional argument: 'miot_devices'`) caused by a leftover duplicate function call from previous refactoring phases. 
+  - The integration now boots safely and performs the ultimate entity naming migration correctly.
+
 ## New Features & Enhancements (Version 20260530r17)
 - **Ultimate Entity ID Decoupling & Stable Naming Architecture**:
   - Overhauled the core entity ID generation pipeline to completely decouple backend `entity_id` stability from frontend HA Device Names (which are often slugified into unreadable Pinyin like `zhu_wo_da_lu_deng_1hao`).
