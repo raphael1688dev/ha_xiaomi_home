@@ -482,6 +482,11 @@ Example:
   - Corrected a misleading `try/except` scope that caused this LAN handling crash to be wrongly logged as a `decrypt packet error`.
   - The system now securely authenticates the device's IP and interface immediately upon successful packet decryption, ensuring rock-solid local network stability.
 
+## New Features & Enhancements (Version 20260530r5)
+- **Hotfix: Duplicate Entities (`_2`) Resolution**:
+  - Fixed an issue where the previous legacy ID restore generated IDs in the `xiaomi_home.` domain instead of the actual platform domain (e.g., `fan.`), and omitted the description slug. This mismatch caused HA to conflict with user-renamed entities, resulting in a wave of `_2` duplicate entities.
+  - The logic now EXACTLY mirrors the `98fc679` format (e.g., `fan.zhimi_sg_406233287_za5_s_2_fan`) that users' automations originally relied on, preventing any further entity ID duplication.
+
 ## New Features & Enhancements (Version 20260530r4)
 - **Hotfix: Setup Entry Crash**:
   - Fixed an issue where the integration would fail to start (`Error setting up entry`) due to missing methods in `__init__.py`. The cleanup routine was still calling the deleted `gen_*_unique_id` methods; it has now been correctly mapped back to `gen_*_entity_id`.
