@@ -60,6 +60,18 @@ async def _async_migrate_legacy_entity_ids(hass: HomeAssistant, entry_id: str) -
                     # original_name contains the string from `_attr_name` (e.g. "Environment Relative Humidity")
                     entity_name = entry.original_name
                     
+                    # If original_name is None, extract from unique_id
+                    if not entity_name:
+                        import re
+                        match = re.search(r'_([pae])_\d+_\d+$', entry.unique_id)
+                        if match:
+                            prefix = entry.unique_id[:match.start()]
+                            # Extract the part after the did_tag and model suffix
+                            parts = prefix.split('_')
+                            if len(parts) > 3:
+                                # The last part is usually the slugified entity name
+                                entity_name = parts[-1]
+                    
                     if device_name and entity_name:
                         new_entity_id = f"{entry.domain}.{slugify(device_name)}_{slugify(entity_name)}"
                         if new_entity_id != entry.entity_id:

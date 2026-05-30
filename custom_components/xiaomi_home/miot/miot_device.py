@@ -855,6 +855,15 @@ class MIoTServiceEntity(Entity):
                     f'{"* "if self.entity_data.spec.proprietary else ""}'
                     f'{self.entity_data.spec.description_trans}')
             self._attr_entity_category = entity_data.spec.entity_category
+
+    @property
+    def has_entity_name(self) -> bool:
+        return True
+
+    @property
+    def name(self) -> str | None:
+        return self._attr_name
+
             
         # Set entity attr
         if miot_device.connect_type in [0, 8, 12, 23]:
@@ -1192,6 +1201,14 @@ class MIoTPropertyEntity(Entity):
             spec.device_class, self._attr_unique_id)
 
     @property
+    def has_entity_name(self) -> bool:
+        return True
+
+    @property
+    def name(self) -> str | None:
+        return self._attr_name
+
+    @property
     def device_info(self) -> Optional[DeviceInfo]:
         return self.miot_device.device_info
 
@@ -1357,6 +1374,14 @@ class MIoTEventEntity(Entity):
             spec.device_class, self._attr_unique_id)
 
     @property
+    def has_entity_name(self) -> bool:
+        return True
+
+    @property
+    def name(self) -> str | None:
+        return self._attr_name
+
+    @property
     def device_info(self) -> Optional[DeviceInfo]:
         return self.miot_device.device_info
 
@@ -1459,6 +1484,14 @@ class MIoTActionEntity(Entity):
             'new miot action entity, %s, %s, %s, %s, %s',
             self.miot_device.name, self._attr_name, spec.platform,
             spec.device_class, self._attr_unique_id)
+
+    @property
+    def has_entity_name(self) -> bool:
+        return True
+
+    @property
+    def name(self) -> str | None:
+        return self._attr_name
 
     @property
     def device_info(self) -> Optional[DeviceInfo]:
