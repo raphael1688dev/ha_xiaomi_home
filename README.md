@@ -543,3 +543,9 @@ Example:
 - **Hotfix: Setup Crash & Orphaned Thread Cleanup**:
   - Fixed a `TypeError` thrown by `_async_migrate_legacy_entity_ids` during setup due to a redundant `er_entries` argument.
   - Implemented a robust global exception handler in `async_setup_entry`. If the integration fails to initialize (e.g. due to syntax or OAuth issues), the system now correctly catches the exception and actively fires `deinit_async()`, ensuring all `MipsCloudClient` background threads and active SSL connections are safely terminated instead of turning into zombie threads that spam connection errors.
+
+## New Features & Enhancements (Version 20260530r16)
+- **Hotfix: Setup Crash on Binary Sensor Filtration**:
+  - Fixed a residual `TypeError` thrown by `_remove_from_registry_by_uid` during the startup phase. 
+  - An outdated `platform='sensor'` keyword argument was erroneously passed into the helper method during the binary sensor filtration logic, causing config entry setups to abort. 
+  - (Note: Subsequent `MipsCloudClient` reconnect errors were verified as normal behavior of the integration gracefully recovering from overseas connection drops, confirming the `r15` zombie-thread cleanup is working as intended).
