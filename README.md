@@ -13,7 +13,7 @@ This custom fork includes several massive enhancements and compliance upgrades o
   - Audited and guaranteed 100% compliance with non-blocking I/O, `async_forward_entry_setups`, standard Enums (`SensorDeviceClass`, `EntityCategory`), and deprecated constants cleanup.
 - **Entity Registry Seamless Migration**:
   - Cleansed the technical debt of the official Xiaomi integration which forced the `xiaomi_home.` domain into the `unique_id` of all entities.
-  - Built-in **Auto-Migration Script (r20)**: Seamlessly converts all legacy unique IDs (including those with legacy platform prefixes) in the Home Assistant registry on startup. It guarantees **zero broken automations, Node-RED flows, or dashboards** by catching legacy orphaned entities and automatically migrating them.
+  - Built-in **Auto-Migration Script (r20/r21)**: Seamlessly converts all legacy unique IDs (including those with legacy platform prefixes and custom diagnostic sensors) in the Home Assistant registry on startup. It guarantees **zero broken automations, Node-RED flows, or dashboards** by catching legacy orphaned entities and automatically migrating them.
 - **Local Control for Non-CN Servers**: Enables local LAN control for Wi-Fi devices even when registered to overseas servers (e.g., Singapore), bypassing the official "Gateway Suicide" restriction.
 - **Enhanced Configuration Flow**: Adds an integration option to explicitly set the `CtrlMode` (Auto / Cloud / Local) and poll priorities.
 - **New Diagnostic Sensors**:
