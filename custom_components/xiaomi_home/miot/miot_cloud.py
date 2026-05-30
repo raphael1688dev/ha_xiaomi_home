@@ -6,6 +6,7 @@ import asyncio
 import base64
 import hashlib
 import json
+import traceback
 import logging
 import re
 import time

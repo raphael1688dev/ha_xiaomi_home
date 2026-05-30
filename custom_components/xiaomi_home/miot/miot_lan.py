@@ -5,6 +5,7 @@ import time
 import asyncio
 from dataclasses import dataclass
 from enum import Enum, auto
+import traceback
 import logging
 import random
 import secrets
@@ -240,8 +241,8 @@ class _MIoTLanDevice:
                 handler=self.__subscribe_handler,
                 handler_ctx=sub_ts,
                 timeout_ms=5000)
-        except Exception as err:  # pylint: disable=broad-exception-caught
-            _LOGGER.error('subscribe device error, %s', err)
+        except Exception as err:
+            _LOGGER.exception('subscribe device error, %s', err)
 
         self._sub_locked = False
 
@@ -566,8 +567,8 @@ class MIoTLan:
                 self._profile_models = await self._main_loop.run_in_executor(
                     None, load_yaml_file,
                     gen_absolute_path(self.PROFILE_MODELS_FILE))
-            except Exception as err:  # pylint: disable=broad-exception-caught
-                _LOGGER.error('load profile models error, %s', err)
+            except Exception as err:
+                _LOGGER.exception('load profile models error, %s', err)
                 self._profile_models = {}
             self._internal_loop = asyncio.new_event_loop()
             # All tasks meant for the internal loop should happen in this thread
@@ -915,7 +916,7 @@ class MIoTLan:
                 else:
                     params = [new_params]
             except Exception as err:
-                _LOGGER.error("Failed to execute set_template lambda for %s %s: %s", device.did, prop_key, err)
+                _LOGGER.exception("Failed to execute set_template lambda for %s %s: %s", device.did, prop_key, err)
         elif prop_cfg.get('format') == 'onoff':
             params = ["on" if value else "off"]
             
@@ -1135,8 +1136,8 @@ class MIoTLan:
                 handler=handler,
                 handler_ctx=handler_ctx,
                 timeout_ms=timeout_ms)
-        except Exception as err:  # pylint: disable=broad-exception-caught
-            _LOGGER.error('send2device error, %s', err)
+        except Exception as err:
+            _LOGGER.exception('send2device error, %s', err)
             handler({
                 'code': MIoTErrorCode.CODE_INTERNAL_ERROR.value,
                 'error': str(err)},
@@ -1286,8 +1287,8 @@ class MIoTLan:
             self._local_port = self._local_port or sock.getsockname()[1]
             _LOGGER.info(
                 'created socket, %s, %s', if_name, self._local_port)
-        except Exception as err:  # pylint: disable=broad-exception-caught
-            _LOGGER.error('create socket error, %s, %s', if_name, err)
+        except Exception as err:
+            _LOGGER.exception('create socket error, %s, %s', if_name, err)
 
     def __deinit_socket(self) -> None:
         for if_name in list(self._broadcast_socks.keys()):
@@ -1315,8 +1316,8 @@ class MIoTLan:
                 return
             self.__raw_message_handler(
                 self._read_buffer[:data_len], data_len, addr[0], ctx[0])
-        except Exception as err:  # pylint: disable=broad-exception-caught
-            _LOGGER.error('socket read handler error, %s', err)
+        except Exception as err:
+            _LOGGER.exception('socket read handler error, %s', err)
 
     def __raw_message_handler(
         self, data: bytearray, data_len: int, ip: str, if_name: str
@@ -1353,13 +1354,13 @@ class MIoTLan:
                 try:
                     device.subscribe()
                 except Exception as err:
-                    _LOGGER.error('subscribe device error, %s, %s', did, err)
+                    _LOGGER.exception('subscribe device error, %s, %s', did, err)
         if data_len > self.OT_PROBE_LEN:
             # handle device message
             try:
                 decrypted_data = device.decrypt_packet(data)
-            except Exception as err:   # pylint: disable=broad-exception-caught
-                _LOGGER.error('decrypt packet error, %s, %s', did, err)
+            except Exception as err:
+                _LOGGER.exception('decrypt packet error, %s, %s', did, err)
                 return
             
             # Since decryption succeeded, the packet is authentic. Update IP and if_name.
@@ -1368,7 +1369,7 @@ class MIoTLan:
             try:
                 self.__message_handler(did, decrypted_data)
             except Exception as err:
-                _LOGGER.error('handle lan message error, %s, %s', did, err)
+                _LOGGER.exception('handle lan message error, %s, %s', did, err)
                 return
 
     def __message_handler(self, did: str, msg: dict) -> None:
@@ -1467,7 +1468,7 @@ class MIoTLan:
                     # Send unicast probe out of all broadcast sockets to ensure routing handles it
                     for if_name in self._broadcast_socks:
                         self.ping(if_name=if_name, target_ip=device.ip)
-        except Exception as err:  # pylint: disable=broad-exception-caught
+        except Exception as err:
             # Optimized: 移除了多餘且無意義的 pass
             _LOGGER.error('ping device error, %s', err)
             

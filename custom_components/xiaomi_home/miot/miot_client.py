@@ -34,6 +34,8 @@ from .miot_network import MIoTNetwork
 from .miot_storage import MIoTCert, MIoTStorage
 from .miot_mdns import MipsService, MipsServiceState
 from .miot_i18n import MIoTI18n
+from .miot_cloud_manager import MIoTCloudManager
+from .miot_lan_manager import MIoTLanManager
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -139,6 +141,9 @@ class MIoTClient:
     # Display devices changed notify
     _display_devs_notify: list[str]
     _display_notify_content_hash: Optional[int]
+    
+    _cloud_manager: MIoTCloudManager
+    _lan_manager: MIoTLanManager
     # Display binary mode
     _display_binary_text: bool
     _display_binary_bool: bool
@@ -205,6 +210,9 @@ class MIoTClient:
 
         self._persistence_notify = None
         self._show_devices_changed_notify_timer = None
+
+        self._cloud_manager = MIoTCloudManager(self)
+        self._lan_manager = MIoTLanManager(self)
 
         self._display_devs_notify = entry_data.get(
             'display_devices_changed_notify', ['add', 'del', 'offline'])
@@ -734,7 +742,7 @@ class MIoTClient:
                         did=did, siid=siid, piid=piid)
                     if result:
                         return result
-            except Exception as err:  # pylint: disable=broad-exception-caught
+            except Exception as err:
                 _LOGGER.error(
                     'client get prop from cloud error, %s, %s',
                     err, traceback.format_exc())
@@ -759,7 +767,7 @@ class MIoTClient:
                         if res is not None:
                             return res
                     except Exception as err:
-                        _LOGGER.error('client get prop from gw error, %s', err)
+                        _LOGGER.error('client get prop from gw error, %s\n%s', err, traceback.format_exc())
             # Lan
             device_lan = self._device_list_lan.get(did, None)
             if device_lan and device_lan.get('online', False):
@@ -768,7 +776,7 @@ class MIoTClient:
                     if res is not None:
                         return res
                 except Exception as err:
-                    _LOGGER.error('client get prop from lan error, %s', err)
+                    _LOGGER.error('client get prop from lan error, %s\n%s', err, traceback.format_exc())
             return None
 
         if poll_priority == 'local_first':
@@ -1003,7 +1011,7 @@ class MIoTClient:
         elif sub_from in self._mips_local:
             mips = self._mips_local[sub_from]
         if mips is not None:
-            mips.sub_prop(did=did, handler=self.__on_prop_msg)
+            mips.sub_prop(did=did, handler=self.on_prop_msg)
             mips.sub_event(did=did, handler=self.__on_event_msg)
 
     @final
@@ -1337,15 +1345,15 @@ class MIoTClient:
         self.__request_show_devices_changed_notify()
 
     @final
-    def __on_prop_msg(self, params: dict, ctx: Any) -> None:
+    def on_prop_msg(self, params: dict, ctx: Any) -> None:
         """params MUST contain did, siid, piid, value"""
         try:
             subs: list[MIoTClientSub] = list(self._sub_tree.iter_match(
                 f'{params["did"]}/p/{params["siid"]}/{params["piid"]}'))
             for sub in subs:
                 sub.handler(params, sub.handler_ctx)
-        except Exception as err:  # pylint: disable=broad-exception-caught
-            _LOGGER.error('on prop msg error, %s, %s', params, err)
+        except Exception as err:
+            _LOGGER.error('on prop msg error, %s, %s\n%s', params, err, traceback.format_exc())
 
     @final
     def __on_event_msg(self, params: dict, ctx: Any) -> None:
@@ -1354,8 +1362,8 @@ class MIoTClient:
                 f'{params["did"]}/e/{params["siid"]}/{params["eiid"]}'))
             for sub in subs:
                 sub.handler(params, sub.handler_ctx)
-        except Exception as err:  # pylint: disable=broad-exception-caught
-            _LOGGER.error('on event msg error, %s, %s', params, err)
+        except Exception as err:
+            _LOGGER.error('on event msg error, %s, %s\n%s', params, err, traceback.format_exc())
 
     @final
     def __check_device_state(
@@ -1469,8 +1477,8 @@ class MIoTClient:
         try:
             result = await self._http.get_devices_async(
                 home_ids=list(self._entry_data.get('home_selected', {}).keys()))
-        except Exception as err:  # pylint: disable=broad-exception-caught
-            _LOGGER.error('refresh cloud devices failed, %s', err)
+        except Exception as err:
+            _LOGGER.error('refresh cloud devices failed, %s\n%s', err, traceback.format_exc())
             self._refresh_cloud_devices_timer = self._main_loop.call_later(
                 REFRESH_CLOUD_DEVICES_RETRY_DELAY,
                 lambda: self._main_loop.create_task(
@@ -1665,143 +1673,6 @@ class MIoTClient:
                         group_id=group_id))))
 
     @final
-    async def __refresh_props_from_cloud(self, patch_len: int = 150) -> bool:
-        if not self._network.network_status:
-            return False
-
-        request_list = None
-        if len(self._refresh_props_list) < patch_len:
-            request_list = self._refresh_props_list
-            self._refresh_props_list = {}
-        else:
-            # PERFORMANCE FIX: Efficient dictionary slicing using itertools
-            request_list = dict(islice(self._refresh_props_list.items(), patch_len))
-            for k in request_list:
-                del self._refresh_props_list[k]
-                
-        try:
-            results = await self._http.get_props_async(
-                params=list(request_list.values()))
-            if not results:
-                raise MIoTClientError('get_props_async failed')
-            for result in results:
-                if (
-                    'did' not in result
-                    or 'siid' not in result
-                    or 'piid' not in result
-                    or 'value' not in result
-                ):
-                    continue
-                request_list.pop(
-                    f'{result["did"]}|{result["siid"]}|{result["piid"]}',
-                    None)
-                self.__on_prop_msg(params=result, ctx=None)
-            if request_list:
-                _LOGGER.debug(
-                    'refresh props failed, cloud, %s',
-                    list(request_list.keys()))
-                request_list = None
-            return True
-        except Exception as err:  # pylint:disable=broad-exception-caught
-            err_str = str(err).lower()
-            if getattr(err, 'code', None) == MIoTErrorCode.CODE_HTTP_INVALID_ACCESS_TOKEN or 'unauthorized(401)' in err_str:
-                _LOGGER.warning(
-                    'refresh props failed, cloud: unauthorized(401). Access token is likely invalid or expired. Please re-authenticate.'
-                )
-            elif any(code in err_str for code in [', 500,', ', 502,', ', 503,', ', 504,']):
-                _LOGGER.warning(
-                    'refresh props failed, cloud: server error (5xx). Xiaomi cloud might be temporarily down or unstable. Details: %s', err
-                )
-            else:
-                _LOGGER.error(
-                    'refresh props error, cloud, %s, %s',
-                    err, traceback.format_exc())
-            # Add failed request back to the list
-            self._refresh_props_list.update(request_list)
-            return False
-
-    @final
-    async def __refresh_props_from_gw(self) -> bool:
-        if not self._mips_local or not self._device_list_gateway:
-            return False
-        request_list = {}
-        succeed_once = False
-        for key in list(self._refresh_props_list.keys()):
-            did = key.split('|')[0]
-            if did in request_list:
-                continue
-            device_gw = self._device_list_gateway.get(did, None)
-            if not device_gw:
-                continue
-            mips_gw = self._mips_local.get(device_gw['group_id'], None)
-            if not mips_gw:
-                _LOGGER.error('mips gateway not exist, %s', key)
-                continue
-            params = self._refresh_props_list.pop(key)
-            request_list[did] = {
-                **params,
-                'fut': mips_gw.get_prop_async(
-                    did=did, siid=params['siid'], piid=params['piid'],
-                    timeout_ms=6000)}
-        results = await asyncio.gather(
-            *[v['fut'] for v in request_list.values()])
-        for (did, param), result in zip(request_list.items(), results):
-            if result is None:
-                continue
-            self.__on_prop_msg(
-                params={
-                    'did': did,
-                    'siid': param['siid'],
-                    'piid': param['piid'],
-                    'value': result},
-                ctx=None)
-            succeed_once = True
-        if succeed_once:
-            return True
-        _LOGGER.debug(
-            'refresh props failed, gw, %s', list(request_list.keys()))
-        self._refresh_props_list.update(request_list)
-        return False
-
-    @final
-    async def __refresh_props_from_lan(self) -> bool:
-        if not self._miot_lan.init_done or len(self._mips_local) > 0:
-            return False
-        request_list = {}
-        succeed_once = False
-        for key in list(self._refresh_props_list.keys()):
-            did = key.split('|')[0]
-            if did in request_list:
-                continue
-            if did not in self._device_list_lan:
-                continue
-            params = self._refresh_props_list.pop(key)
-            request_list[did] = {
-                **params,
-                'fut': self._miot_lan.get_prop_async(
-                    did=did, siid=params['siid'], piid=params['piid'],
-                    timeout_ms=6000)}
-        results = await asyncio.gather(
-            *[v['fut'] for v in request_list.values()])
-        for (did, param), result in zip(request_list.items(), results):
-            if result is None:
-                continue
-            self.__on_prop_msg(
-                params={
-                    'did': did,
-                    'siid': param['siid'],
-                    'piid': param['piid'],
-                    'value': result},
-                ctx=None)
-            succeed_once = True
-        if succeed_once:
-            return True
-        _LOGGER.debug(
-            'refresh props failed, lan, %s', list(request_list.keys()))
-        self._refresh_props_list.update(request_list)
-        return False
-
-    @final
     async def __refresh_props_handler(self) -> None:
         if not self._refresh_props_list:
             return
@@ -1810,14 +1681,14 @@ class MIoTClient:
         
         # Determine execution order based on ctrl_mode and poll_priority
         if self._ctrl_mode == CtrlMode.LOCAL:
-            handlers = [self.__refresh_props_from_gw, self.__refresh_props_from_lan]
+            handlers = [self._lan_manager.refresh_props_from_gw, self._lan_manager.refresh_props_from_lan]
         elif self._ctrl_mode == CtrlMode.CLOUD:
-            handlers = [self.__refresh_props_from_cloud]
+            handlers = [self._cloud_manager.refresh_props]
         else: # AUTO
             if self._entry_data.get('poll_priority', 'cloud_first') == 'local_first':
-                handlers = [self.__refresh_props_from_gw, self.__refresh_props_from_lan, self.__refresh_props_from_cloud]
+                handlers = [self._lan_manager.refresh_props_from_gw, self._lan_manager.refresh_props_from_lan, self._cloud_manager.refresh_props]
             else: # cloud_first
-                handlers = [self.__refresh_props_from_cloud, self.__refresh_props_from_gw, self.__refresh_props_from_lan]
+                handlers = [self._cloud_manager.refresh_props, self._lan_manager.refresh_props_from_gw, self._lan_manager.refresh_props_from_lan]
                 
         for handler in handlers:
             handled = await handler()

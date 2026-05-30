@@ -502,3 +502,11 @@ Example:
   - Reverted a recent refactor that stopped hardcoding `self.entity_id`, which had inadvertently allowed Home Assistant to auto-generate completely new, localized Pinyin entity IDs (e.g., `fan.feng_shan_chen_bo_rui_...`).
   - By restoring the hardcoded generation of `self.entity_id` and reverting the `unique_id` suffixes, all original device IDs (e.g., `fan.zhimi_sg_406233287_za5_s_2_fan`) are now guaranteed to be perfectly maintained.
   - This absolutely ensures zero disruptions to existing user automations and prevents "unavailable" ghost entities from spawning during updates.
+
+## New Features & Enhancements (Version 20260530r9)
+- **Massive Technical Debt & Architecture Refactoring (A-D)**:
+  - **God Object Dismantling**: Completely shattered the massive `config_flow.py` (2,100+ lines) into a modular `config_flow/` directory (`options_flow.py`, `oauth.py`, `network.py`), vastly improving UI flow maintainability.
+  - **Client Isolation**: Broke down the monolithic `MIoTClient` (2,000+ lines) by extracting polling and communication routines into dedicated `miot_cloud_manager.py` and `miot_lan_manager.py` modules.
+  - **Strict Platform Compliance**: Removed all legacy heuristic code that blindly coerced properties into invalid HA platforms (e.g., forcing all booleans to `switch`). Platform generation now strictly adheres to the HA Device Class standards defined in `SPEC_PROP_TRANS_MAP`.
+  - **Traceable Exception Handling**: Purged over 50 instances of the dangerous `# pylint: disable=broad-exception-caught` mask. All `Exception` catches now properly format and log stack traces (`traceback.format_exc()`), making silent failures a thing of the past.
+  - **Translation Engine Extraction**: Extracted the `_MIoTSpecMultiLang` engine out of the heavy `miot_spec.py` into its own `miot_i18n.py` module, and reduced the integration footprint by deleting all unused translations (retaining only `en`, `zh-Hant`, `zh-Hans`).

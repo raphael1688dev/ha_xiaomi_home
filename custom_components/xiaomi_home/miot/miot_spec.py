@@ -10,11 +10,14 @@ from typing import Any, Optional, Type, Union
 import logging
 from slugify import slugify
 
+import traceback
+
 # pylint: disable=relative-beyond-top-level
 from .const import DEFAULT_INTEGRATION_LANGUAGE, SPEC_STD_LIB_EFFECTIVE_TIME
 from .common import MIoTHttp, load_yaml_file, load_json_file
 from .miot_error import MIoTSpecError
 from .miot_storage import MIoTStorage
+from .miot_i18n import _MIoTSpecMultiLang
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -313,9 +316,9 @@ class _SpecStdLib:
                 merge_results(5, 'values')
                 
                 return std_libs
-            except Exception as err:  # pylint: disable=broad-exception-caught
-                _LOGGER.error('update spec std lib error, retry, %d, %s', index,
-                              err)
+            except Exception as err:
+                _LOGGER.error('update spec std lib error, retry, %d, %s, %s', index,
+                              err, traceback.format_exc())
         return None
 
     async def __get_property_value(self) -> dict:
@@ -518,9 +521,9 @@ class MIoTSpecProperty(_MIoTSpecBase):
         try:
             # 優化：強制移除 __builtins__ 以阻絕 eval 可能造成的 RCE 系統漏洞
             return eval(self.expr, {"__builtins__": {}}, {'src_value': src_value})
-        except Exception as err:  # pylint: disable=broad-exception-caught
-            _LOGGER.error('eval expression error, %s, %s, %s, %s', self.iid,
-                          src_value, self.expr, err)
+        except Exception as err:
+            _LOGGER.error('eval expression error, %s, %s, %s, %s, %s', self.iid,
+                          src_value, self.expr, err, traceback.format_exc())
             return src_value
 
     def value_format(self, value: Any) -> Any:
@@ -727,122 +730,6 @@ class MIoTSpecInstance:
         }
 
 
-class _MIoTSpecMultiLang:
-    """MIoT SPEC multi lang class."""
-    # pylint: disable=broad-exception-caught
-    _DOMAIN: str = 'miot_specs_multi_lang'
-    _MULTI_LANG_FILE = 'specs/multi_lang.json'
-    _lang: str
-    _storage: MIoTStorage
-    _main_loop: asyncio.AbstractEventLoop
-
-    _custom_cache: dict[str, dict]
-    _current_data: Optional[dict[str, str]]
-
-    def __init__(self,
-                 lang: Optional[str],
-                 storage: MIoTStorage,
-                 loop: Optional[asyncio.AbstractEventLoop] = None) -> None:
-        self._lang = lang or DEFAULT_INTEGRATION_LANGUAGE
-        self._storage = storage
-        self._main_loop = loop or asyncio.get_running_loop()
-
-        self._custom_cache = {}
-        self._current_data = None
-
-    async def set_spec_async(self, urn: str) -> None:
-        if urn in self._custom_cache:
-            self._current_data = self._custom_cache[urn]
-            return
-
-        trans_cache: dict[str, str] = {}
-        trans_cloud: dict = {}
-        trans_local: dict = {}
-        # Get multi lang from cloud
-        try:
-            trans_cloud = await self.__get_multi_lang_async(urn)
-            if self._lang == 'zh-Hans':
-                # Simplified Chinese
-                trans_cache = trans_cloud.get('zh_cn', {})
-            elif self._lang == 'zh-Hant':
-                # Traditional Chinese, zh_hk or zh_tw
-                trans_cache = trans_cloud.get('zh_hk', {})
-                if not trans_cache:
-                    trans_cache = trans_cloud.get('zh_tw', {})
-            else:
-                trans_cache = trans_cloud.get(self._lang, {})
-        except Exception as err:
-            trans_cloud = {}
-            _LOGGER.info('get multi lang from cloud failed, %s, %s', urn, err)
-        # Get multi lang from local
-        try:
-            trans_local = await self._storage.load_async(domain=self._DOMAIN,
-                                                         name=urn,
-                                                         type_=dict
-                                                        )  # type: ignore
-            if (isinstance(trans_local, dict) and self._lang in trans_local):
-                trans_cache.update(trans_local[self._lang])
-        except Exception as err:
-            trans_local = {}
-            _LOGGER.info('get multi lang from local failed, %s, %s', urn, err)
-        # Revert: load multi_lang.json
-        try:
-            trans_local_json = await self._main_loop.run_in_executor(
-                None, load_json_file,
-                os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                             self._MULTI_LANG_FILE))
-            urn_strs: list[str] = urn.split(':')
-            urn_key: str = ':'.join(urn_strs[:6])
-            if (isinstance(trans_local_json, dict) and
-                    urn_key in trans_local_json and
-                    self._lang in trans_local_json[urn_key]):
-                trans_cache.update(trans_local_json[urn_key][self._lang])
-                trans_local = trans_local_json[urn_key]
-        except Exception as err:  # pylint: disable=broad-exception-caught
-            _LOGGER.error('multi lang, load json file error, %s', err)
-        # Revert end
-        # Default language
-        if not trans_cache:
-            if trans_cloud and DEFAULT_INTEGRATION_LANGUAGE in trans_cloud:
-                trans_cache = trans_cloud[DEFAULT_INTEGRATION_LANGUAGE]
-            if trans_local and DEFAULT_INTEGRATION_LANGUAGE in trans_local:
-                trans_cache.update(trans_local[DEFAULT_INTEGRATION_LANGUAGE])
-        trans_data: dict[str, str] = {}
-        for tag, value in trans_cache.items():
-            if value is None or value.strip() == '':
-                continue
-            # The dict key is like:
-            # 'service:002:property:001:valuelist:000' or
-            # 'service:002:property:001' or 'service:002'
-            strs: list = tag.split(':')
-            strs_len = len(strs)
-            if strs_len == 2:
-                trans_data[f's:{int(strs[1])}'] = value
-            elif strs_len == 4:
-                type_ = 'p' if strs[2] == 'property' else (
-                    'a' if strs[2] == 'action' else 'e')
-                trans_data[f'{type_}:{int(strs[1])}:{int(strs[3])}'] = value
-            elif strs_len == 6:
-                trans_data[
-                    f'v:{int(strs[1])}:{int(strs[3])}:{int(strs[5])}'] = value
-
-        self._custom_cache[urn] = trans_data
-        self._current_data = trans_data
-
-    def translate(self, key: str) -> Optional[str]:
-        if not self._current_data:
-            return None
-        return self._current_data.get(key, None)
-
-    async def __get_multi_lang_async(self, urn: str) -> dict:
-        res_trans = await MIoTHttp.get_json_async(
-            url='https://miot-spec.org/instance/v2/multiLanguage',
-            params={'urn': urn})
-        if (not isinstance(res_trans, dict) or 'data' not in res_trans or
-                not isinstance(res_trans['data'], dict)):
-            raise MIoTSpecError('invalid translation data')
-        return res_trans['data']
-
 
 class _SpecBoolTranslation:
     """
@@ -872,8 +759,8 @@ class _SpecBoolTranslation:
                 None, load_yaml_file,
                 os.path.join(os.path.dirname(os.path.abspath(__file__)),
                              self._BOOL_TRANS_FILE))
-        except Exception as err:  # pylint: disable=broad-exception-caught
-            _LOGGER.error('bool trans, load file error, %s', err)
+        except Exception as err:
+            _LOGGER.error('bool trans, load file error, %s, %s', err, traceback.format_exc())
             return
         # Check if the file is a valid file
         if (not isinstance(data, dict) or 'data' not in data or
@@ -952,8 +839,8 @@ class _SpecFilter:
                 None, load_yaml_file,
                 os.path.join(os.path.dirname(os.path.abspath(__file__)),
                              self._SPEC_FILTER_FILE))
-        except Exception as err:  # pylint: disable=broad-exception-caught
-            _LOGGER.error('spec filter, load file error, %s', err)
+        except Exception as err:
+            _LOGGER.error('spec filter, load file error, %s, %s', err, traceback.format_exc())
             return
         if not isinstance(filter_data, dict):
             _LOGGER.error('spec filter, invalid spec filter content')
@@ -1042,8 +929,8 @@ class _SpecAdd:
                 None, load_json_file,
                 os.path.join(os.path.dirname(os.path.abspath(__file__)),
                              self._SPEC_ADD_FILE))
-        except Exception as err:  # pylint: disable=broad-exception-caught
-            _LOGGER.error('spec add, load file error, %s', err)
+        except Exception as err:
+            _LOGGER.error('spec add, load file error, %s, %s', err, traceback.format_exc())
             return
         if not isinstance(add_data, dict):
             _LOGGER.error('spec add, invalid spec add content')
@@ -1093,8 +980,8 @@ class _SpecModify:
                 None, load_yaml_file,
                 os.path.join(os.path.dirname(os.path.abspath(__file__)),
                              self._SPEC_MODIFY_FILE))
-        except Exception as err:  # pylint: disable=broad-exception-caught
-            _LOGGER.error('spec modify, load file error, %s', err)
+        except Exception as err:
+            _LOGGER.error('spec modify, load file error, %s, %s', err, traceback.format_exc())
             return
         if not isinstance(modify_data, dict):
             _LOGGER.error('spec modify, invalid spec modify content')
@@ -1262,8 +1149,8 @@ class MIoTSpecParser:
         for index in range(3):
             try:
                 return await self.__parse(urn=urn)
-            except Exception as err:  # pylint: disable=broad-exception-caught
-                _LOGGER.error('parse error, retry, %d, %s, %s', index, urn, err)
+            except Exception as err:
+                _LOGGER.error('parse error, retry, %d, %s, %s, %s', index, urn, err, traceback.format_exc())
         return None
 
     async def refresh_async(self, urn_list: list[str]) -> int:

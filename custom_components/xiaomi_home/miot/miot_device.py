@@ -738,25 +738,10 @@ class MIoTDevice:
                         prop.icon = self.icon_convert(prop.unit)
                 # Special conversion
                 self.parse_miot_property_entity(miot_prop=prop)
-                # General conversion
+                # General conversion relies strictly on SPEC_PROP_TRANS_MAP
                 if not prop.platform:
-                    if prop.writable:
-                        if prop.format_ == str:
-                            prop.platform = 'text'
-                        elif prop.format_ == bool:
-                            prop.platform = 'switch'
-                            prop.device_class = SwitchDeviceClass.SWITCH
-                        elif prop.value_list:
-                            prop.platform = 'select'
-                        elif prop.value_range:
-                            prop.platform = 'number'
-                        else:
-                            continue
-                    elif prop.readable or prop.notifiable:
-                        if prop.format_ == bool:
-                            prop.platform = 'binary_sensor'
-                        else:
-                            prop.platform = 'sensor'
+                    _LOGGER.debug('Property %s has no mapped platform, skipping fallback generation', prop.name)
+                    continue
                 self.append_prop(prop=prop)
             # STEP 3.2: event conversion
             for event in service.events:
