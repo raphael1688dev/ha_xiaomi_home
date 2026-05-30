@@ -538,3 +538,8 @@ Example:
   - **Socket Exhaustion Fix**: Removed synchronous `aiohttp.ClientSession` instantiation spanning `miot_http` and `miot_oauth`, strictly injecting Home Assistant's core shared session to drastically lower connection overhead.
   - **Faster Boot & I/O**: Initialized heavy Spec parsers in `miot_spec.py` via parallel `asyncio.gather` and implemented an `lru_cache` for `load_yaml_file` to eliminate duplicate disk reads across integrations and regions.
   - **Code Deduplication & Public API Transition**: Consolidated overlapping code in `miot_mips.py` (`_get_topic`, `_parse_msg`) and enforced public getters across `MIoTClient`, formally severing the legacy practice of managers illegally accessing private state variables.
+
+## New Features & Enhancements (Version 20260530r15)
+- **Hotfix: Setup Crash & Orphaned Thread Cleanup**:
+  - Fixed a `TypeError` thrown by `_async_migrate_legacy_entity_ids` during setup due to a redundant `er_entries` argument.
+  - Implemented a robust global exception handler in `async_setup_entry`. If the integration fails to initialize (e.g. due to syntax or OAuth issues), the system now correctly catches the exception and actively fires `deinit_async()`, ensuring all `MipsCloudClient` background threads and active SSL connections are safely terminated instead of turning into zombie threads that spam connection errors.
