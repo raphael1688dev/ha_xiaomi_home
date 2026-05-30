@@ -308,8 +308,9 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     self._cc_fut_oauth_code = self._main_loop.create_future()
                     self.hass.data[DOMAIN][self._virtual_did][
                         'fut_oauth_code'] = self._cc_fut_oauth_code
-                self._cc_task_oauth = self.hass.async_create_task(
-                    self.__check_oauth_async())
+                self._cc_task_oauth = self._config_entry.async_create_background_task(
+                    self.hass, self.__check_oauth_async(), name="xiaomi_oauth"
+                )
                 _LOGGER.info(
                     'async_step_oauth, webhook.async_register: %s',
                     self._virtual_did)

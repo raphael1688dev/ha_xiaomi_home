@@ -439,8 +439,9 @@ class XiaomiMihomeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         # 2: show OAuth2 loading page
         if self._cc_task_oauth is None:
-            self._cc_task_oauth = self.hass.async_create_task(
-                self.__check_oauth_async())
+            self._cc_task_oauth = self.hass.async_create_background_task(
+                self.__check_oauth_async(), name="xiaomi_oauth"
+            )
         if self._cc_task_oauth.done():
             if (error := self._cc_task_oauth.exception()):
                 _LOGGER.error('task_oauth exception, %s', error)
