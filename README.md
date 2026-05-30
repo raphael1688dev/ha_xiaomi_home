@@ -516,3 +516,8 @@ Example:
   - Fixed an issue introduced in `20260530r9` where Home Assistant's Integration Loader failed to find the `ConfigFlow` handler because it was moved into a `config_flow/` subdirectory.
   - Flattened the extracted flow modules (`options_flow.py`, `oauth.py`, `network.py`) to the root of the integration directory alongside `config_flow.py`.
   - Corrected all relative imports to match the new flat module structure, restoring full access to the UI setup flow and integration options.
+
+## New Features & Enhancements (Version 20260530r11)
+- **Hotfix: Missing MIoTI18n Class Restore**:
+  - Fixed an issue introduced during the extraction of `_MIoTSpecMultiLang` where the original `MIoTI18n` (used for local frontend translations) was inadvertently overwritten in `miot_i18n.py`.
+  - Restored `MIoTI18n` alongside `_MIoTSpecMultiLang`, completely resolving the `cannot import name 'MIoTI18n'` fatal error during integration setup.
