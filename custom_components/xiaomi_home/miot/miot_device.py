@@ -494,6 +494,7 @@ class MIoTDevice:
     def get_expected_entity_ids(self) -> dict[str, str]:
         """Generate a mapping of unique_id -> expected target entity_id for all entities of this device."""
         mapping = {}
+        seen_target_ids = set()
         
         # Helper to process entities
         def _add_mapping(platform_dict: dict, item_type: str, uid_gen_func, has_description=False):
@@ -529,6 +530,16 @@ class MIoTDevice:
                     else:
                         target_eid = f"{domain}.{self.entity_id_prefix}"
                         
+                    # Handle collisions gracefully to maintain stability
+                    original_target_eid = target_eid
+                    counter = 2
+                    while target_eid in seen_target_ids:
+                        target_eid = f"{original_target_eid}_{spec_item.iid}"
+                        if target_eid in seen_target_ids:
+                            target_eid = f"{original_target_eid}_{spec_item.iid}_{counter}"
+                            counter += 1
+                    
+                    seen_target_ids.add(target_eid)
                     mapping[uid] = target_eid
                     
         # Device main entity
@@ -1261,10 +1272,6 @@ class MIoTPropertyEntity(Entity):
         return True
 
     @property
-    def name(self) -> str | None:
-        return self._attr_name
-
-    @property
     def device_info(self) -> Optional[DeviceInfo]:
         return self.miot_device.device_info
 
@@ -1438,10 +1445,6 @@ class MIoTEventEntity(Entity):
         return True
 
     @property
-    def name(self) -> str | None:
-        return self._attr_name
-
-    @property
     def device_info(self) -> Optional[DeviceInfo]:
         return self.miot_device.device_info
 
@@ -1560,10 +1563,6 @@ class MIoTActionEntity(Entity):
     @property
     def has_entity_name(self) -> bool:
         return True
-
-    @property
-    def name(self) -> str | None:
-        return self._attr_name
 
     @property
     def device_info(self) -> Optional[DeviceInfo]:
