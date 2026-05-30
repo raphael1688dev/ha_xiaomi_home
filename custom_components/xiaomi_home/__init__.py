@@ -58,7 +58,31 @@ async def _async_migrate_legacy_entity_ids(hass: HomeAssistant, entry_id: str, m
         expected_ids_map[uid_ip] = f"sensor.{device.entity_id_prefix}_ip_address"
         
         main_entity_uids[device.gen_device_unique_id()] = device.entity_id_prefix
-        
+
+    # --- Phase 1: Remove legacy action entity orphans ---
+    # In the original Xiaomi code, MIoTActionEntity used unique_id = entity_id (name-based).
+    # Since r17 we use gen_action_unique_id (DID-based). The old entries can't be matched by
+    # the new unique_id, so they become orphans while new correctly-named entities are created
+    # alongside them. Clean up those orphans first so there's no conflict.
+    ACTION_DOMAINS = {'notify', 'button'}
+    entries_snapshot = list(entity_registry.async_entries_for_config_entry(er, entry_id))
+    for entry in entries_snapshot:
+        if entry.domain in ACTION_DOMAINS and entry.unique_id == entry.entity_id:
+            # Old format: unique_id == entity_id (name-based). Remove so platform can
+            # freshly register with stable DID-based entity_id + new unique_id.
+            try:
+                er.async_remove(entry.entity_id)
+                _LOGGER.info(
+                    "Removed legacy action entity orphan %s (old unique_id==entity_id format)",
+                    entry.entity_id,
+                )
+            except Exception as err:  # pylint: disable=broad-exception-caught
+                _LOGGER.warning(
+                    "Failed to remove legacy action entity %s: %s",
+                    entry.entity_id, err,
+                )
+
+    # --- Phase 2: Migrate remaining entities to stable entity_id format ---
     for entry in entity_registry.async_entries_for_config_entry(er, entry_id):
         new_entity_id = None
         
@@ -94,6 +118,7 @@ async def _async_migrate_legacy_entity_ids(hass: HomeAssistant, entry_id: str, m
                     "Failed to migrate entity %s to %s: %s", 
                     entry.entity_id, new_entity_id, err
                 )
+
 
 
 async def async_setup_entry(
@@ -210,10 +235,11 @@ async def async_setup_entry(
 
             # Action debug
             if not miot_client.action_debug:
+                uids_to_remove = []
                 for action in device.action_list.get('notify', []):
-                    _remove_from_registry_by_uid([
-                        device.gen_action_unique_id(spec_name=action.name, siid=action.service.iid, aiid=action.iid)
-                    ])
+                    uids_to_remove.append(device.gen_action_unique_id(spec_name=action.name, siid=action.service.iid, aiid=action.iid))
+                _remove_from_registry_by_uid(uids_to_remove)
+                device.action_list['notify'] = []
                     
             # Binary sensor display
             if not miot_client.display_binary_bool:
