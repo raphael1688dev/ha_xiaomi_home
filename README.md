@@ -521,3 +521,8 @@ Example:
 - **Hotfix: Missing MIoTI18n Class Restore**:
   - Fixed an issue introduced during the extraction of `_MIoTSpecMultiLang` where the original `MIoTI18n` (used for local frontend translations) was inadvertently overwritten in `miot_i18n.py`.
   - Restored `MIoTI18n` alongside `_MIoTSpecMultiLang`, completely resolving the `cannot import name 'MIoTI18n'` fatal error during integration setup.
+
+## New Features & Enhancements (Version 20260530r12)
+- **Hotfix: Entity Initialization Crash**:
+  - Fixed a critical Python scoping syntax bug in `miot_device.py` where variables required by subclasses (`_pending_write_ha_state_timer`, `_prop_changed_subs`) were mistakenly initialized inside a dangling `@property` getter rather than the actual `__init__` constructor.
+  - Entities like `Fan` and `Light` will now initialize safely without throwing `AttributeError`.

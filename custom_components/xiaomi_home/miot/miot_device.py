@@ -841,14 +841,6 @@ class MIoTServiceEntity(Entity):
                     f'{self.entity_data.spec.description_trans}')
             self._attr_entity_category = entity_data.spec.entity_category
 
-    @property
-    def has_entity_name(self) -> bool:
-        return True
-
-    @property
-    def name(self) -> str | None:
-        return self._attr_name
-
             
         # Set entity attr
         if miot_device.connect_type in [0, 8, 12, 23]:
