@@ -60,6 +60,8 @@ from .miot.miot_network import MIoTNetwork
 from .miot.miot_client import MIoTClient, get_miot_instance_async
 from .miot.miot_spec import MIoTSpecParser
 from .miot.miot_lan import MIoTLan
+from .network import _handle_network_detect_addr
+from .oauth import _handle_oauth_webhook
 
 _LOGGER = logging.getLogger(__name__)
 
