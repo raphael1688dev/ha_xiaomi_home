@@ -7,6 +7,7 @@ import os
 import platform
 import time
 from typing import Any, Optional, Type, Union
+from functools import cached_property
 import logging
 from slugify import slugify
 
@@ -115,15 +116,15 @@ class MIoTSpecValueList:
         self._desc_to_val = {}
         self.load(value_list)
 
-    @property
+    @cached_property
     def names(self) -> list[str]:
         return [item.name for item in self.items]
 
-    @property
+    @cached_property
     def values(self) -> list[Any]:
         return [item.value for item in self.items]
 
-    @property
+    @cached_property
     def descriptions(self) -> list[str]:
         return [item.description for item in self.items]
 
@@ -200,47 +201,28 @@ class _SpecStdLib:
         self._actions = std_lib['actions']
         self._values = std_lib['values']
 
-    def device_translate(self, key: str) -> Optional[str]:
-        if not self._devices or key not in self._devices:
+    def _translate(self, category: dict, key: str) -> Optional[str]:
+        if not category or key not in category:
             return None
-        if self._lang not in self._devices[key]:
-            return self._devices[key].get(DEFAULT_INTEGRATION_LANGUAGE, None)
-        return self._devices[key][self._lang]
+        return category[key].get(self._lang) or category[key].get(DEFAULT_INTEGRATION_LANGUAGE)
+
+    def device_translate(self, key: str) -> Optional[str]:
+        return self._translate(self._devices, key)
 
     def service_translate(self, key: str) -> Optional[str]:
-        if not self._services or key not in self._services:
-            return None
-        if self._lang not in self._services[key]:
-            return self._services[key].get(DEFAULT_INTEGRATION_LANGUAGE, None)
-        return self._services[key][self._lang]
+        return self._translate(self._services, key)
 
     def property_translate(self, key: str) -> Optional[str]:
-        if not self._properties or key not in self._properties:
-            return None
-        if self._lang not in self._properties[key]:
-            return self._properties[key].get(DEFAULT_INTEGRATION_LANGUAGE, None)
-        return self._properties[key][self._lang]
+        return self._translate(self._properties, key)
 
     def event_translate(self, key: str) -> Optional[str]:
-        if not self._events or key not in self._events:
-            return None
-        if self._lang not in self._events[key]:
-            return self._events[key].get(DEFAULT_INTEGRATION_LANGUAGE, None)
-        return self._events[key][self._lang]
+        return self._translate(self._events, key)
 
     def action_translate(self, key: str) -> Optional[str]:
-        if not self._actions or key not in self._actions:
-            return None
-        if self._lang not in self._actions[key]:
-            return self._actions[key].get(DEFAULT_INTEGRATION_LANGUAGE, None)
-        return self._actions[key][self._lang]
+        return self._translate(self._actions, key)
 
     def value_translate(self, key: str) -> Optional[str]:
-        if not self._values or key not in self._values:
-            return None
-        if self._lang not in self._values[key]:
-            return self._values[key].get(DEFAULT_INTEGRATION_LANGUAGE, None)
-        return self._values[key][self._lang]
+        return self._translate(self._values, key)
 
     def dump(self) -> dict[str, dict[str, dict[str, str]]]:
         return {
@@ -868,42 +850,32 @@ class _SpecFilter:
             return
         self._cache = self._data.get(urn_key, None)
 
+    def _filter(self, category: str, siid: int, iid: Optional[int] = None) -> bool:
+        if not self._cache or category not in self._cache:
+            return False
+        if iid is None:
+            return str(siid) in self._cache[category] or '*' in self._cache[category]
+        return f'{siid}.{iid}' in self._cache[category] or f'{siid}.*' in self._cache[category]
+
     def filter_service(self, siid: int) -> bool:
         """Filter service by siid.
         MUST call init_async() and set_spec_spec() first."""
-        if (self._cache and 'services' in self._cache and
-            (str(siid) in self._cache['services'] or
-             '*' in self._cache['services'])):
-            return True
-
-        return False
+        return self._filter('services', siid)
 
     def filter_property(self, siid: int, piid: int) -> bool:
         """Filter property by piid.
         MUST call init_async() and set_spec_spec() first."""
-        if (self._cache and 'properties' in self._cache and
-            (f'{siid}.{piid}' in self._cache['properties'] or
-             f'{siid}.*' in self._cache['properties'])):
-            return True
-        return False
+        return self._filter('properties', siid, piid)
 
     def filter_event(self, siid: int, eiid: int) -> bool:
         """Filter event by eiid.
         MUST call init_async() and set_spec_spec() first."""
-        if (self._cache and 'events' in self._cache and
-            (f'{siid}.{eiid}' in self._cache['events'] or
-             f'{siid}.*' in self._cache['events'])):
-            return True
-        return False
+        return self._filter('events', siid, eiid)
 
     def filter_action(self, siid: int, aiid: int) -> bool:
         """"Filter action by aiid.
         MUST call init_async() and set_spec_spec() first."""
-        if (self._cache and 'actions' in self._cache and
-            (f'{siid}.{aiid}' in self._cache['actions'] or
-             f'{siid}.*' in self._cache['actions'])):
-            return True
-        return False
+        return self._filter('actions', siid, aiid)
 
 
 class _SpecAdd:
@@ -1090,13 +1062,14 @@ class MIoTSpecParser:
     async def init_async(self) -> None:
         if self._init_done is True:
             return
-        await self._bool_trans.init_async()
-        await self._spec_filter.init_async()
-        await self._spec_add.init_async()
-        await self._spec_modify.init_async()
-        std_lib_cache = await self._storage.load_async(domain=self._DOMAIN,
-                                                       name='spec_std_lib',
-                                                       type_=dict)
+            
+        _, _, _, _, std_lib_cache = await asyncio.gather(
+            self._bool_trans.init_async(),
+            self._spec_filter.init_async(),
+            self._spec_add.init_async(),
+            self._spec_modify.init_async(),
+            self._storage.load_async(domain=self._DOMAIN, name='spec_std_lib', type_=dict)
+        )
         if (isinstance(std_lib_cache, dict) and 'data' in std_lib_cache and
                 'ts' in std_lib_cache and
                 isinstance(std_lib_cache['ts'], int) and

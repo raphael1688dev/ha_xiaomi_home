@@ -170,7 +170,7 @@ class MIoTControlPathSensor(SensorEntity):
 
     @property
     def available(self) -> bool:
-        return self.miot_device.online
+        return True
 
     @property
     def native_value(self) -> str:

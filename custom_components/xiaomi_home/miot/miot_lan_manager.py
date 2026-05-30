@@ -14,20 +14,20 @@ class MIoTLanManager:
         self.client = client
 
     async def refresh_props_from_lan(self) -> bool:
-        if not self.client._miot_lan.init_done or len(self.client._mips_local) > 0:
+        if not self.client.miot_lan.init_done:
             return False
         request_list = {}
         succeed_once = False
-        for key in list(self.client._refresh_props_list.keys()):
+        for key in list(self.client.refresh_props_list.keys()):
             did = key.split('|')[0]
             if did in request_list:
                 continue
-            if did not in self.client._device_list_lan:
+            if did not in self.client.device_list_lan:
                 continue
-            params = self.client._refresh_props_list.pop(key)
+            params = self.client.refresh_props_list.pop(key)
             request_list[did] = {
                 **params,
-                'fut': self.client._miot_lan.get_prop_async(
+                'fut': self.client.miot_lan.get_prop_async(
                     did=did, siid=params['siid'], piid=params['piid'],
                     timeout_ms=6000)}
         results = await asyncio.gather(
@@ -47,26 +47,26 @@ class MIoTLanManager:
             return True
         _LOGGER.debug(
             'refresh props failed, lan, %s', list(request_list.keys()))
-        self.client._refresh_props_list.update(request_list)
+        self.client.refresh_props_list.update(request_list)
         return False
 
     async def refresh_props_from_gw(self) -> bool:
-        if not self.client._mips_local or not self.client._device_list_gateway:
+        if not self.client.mips_local or not self.client.device_list_gateway:
             return False
         request_list = {}
         succeed_once = False
-        for key in list(self.client._refresh_props_list.keys()):
+        for key in list(self.client.refresh_props_list.keys()):
             did = key.split('|')[0]
             if did in request_list:
                 continue
-            device_gw = self.client._device_list_gateway.get(did, None)
+            device_gw = self.client.device_list_gateway.get(did, None)
             if not device_gw:
                 continue
-            mips_gw = self.client._mips_local.get(device_gw['group_id'], None)
+            mips_gw = self.client.mips_local.get(device_gw['group_id'], None)
             if not mips_gw:
                 _LOGGER.error('mips gateway not exist, %s', key)
                 continue
-            params = self.client._refresh_props_list.pop(key)
+            params = self.client.refresh_props_list.pop(key)
             request_list[did] = {
                 **params,
                 'fut': mips_gw.get_prop_async(
@@ -89,5 +89,5 @@ class MIoTLanManager:
             return True
         _LOGGER.debug(
             'refresh props failed, gw, %s', list(request_list.keys()))
-        self.client._refresh_props_list.update(request_list)
+        self.client.refresh_props_list.update(request_list)
         return False

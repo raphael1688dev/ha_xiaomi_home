@@ -2,7 +2,8 @@
 
 import asyncio
 from abc import abstractmethod
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, cast
+from functools import cached_property
 import logging
 
 from homeassistant.helpers.entity import Entity
@@ -265,6 +266,7 @@ class MIoTDevice:
     ) -> None:
         self.miot_client = miot_client
         self.spec_instance = spec_instance
+        self.props_cache: dict[str, Any] = {}
 
         self._online = device_info.get('online', False)
         self._did = device_info['did']
@@ -414,7 +416,7 @@ class MIoTDevice:
             self.miot_client.unsub_event(did=self._did, siid=siid, eiid=eiid)
             self._value_sub_list.pop(key, None)
 
-    @property
+    @cached_property
     def device_info(self) -> DeviceInfo:
         """information about this entity/device."""
         return DeviceInfo(
@@ -437,22 +439,24 @@ class MIoTDevice:
     @property
     def local_ip(self) -> Optional[str]:
         """Local IP Address."""
-        return self.miot_client.device_list.get(self.did, {}).get('local_ip')
+        return (self.miot_client.device_list.get(self.did) or {}).get('local_ip')
 
     @property
     def connect_type(self) -> int:
         """Connection Type."""
-        return self.miot_client.device_list.get(self.did, {}).get('connect_type', -1)
+        return (self.miot_client.device_list.get(self.did) or {}).get('connect_type', -1)
 
-    @property
+    @cached_property
     def did_tag(self) -> str:
         return slugify_did(
             cloud_server=self.miot_client.cloud_server, did=self._did)
 
+    @cached_property
+    def _uid_prefix(self) -> str:
+        return f'{self._model_strs[0][:9]}_{self.did_tag}_{self._model_strs[-1][:20]}'
+
     def gen_device_unique_id(self) -> str:
-        return (
-            f'{self._model_strs[0][:9]}_{self.did_tag}_'
-            f'{self._model_strs[-1][:20]}')
+        return self._uid_prefix
 
     def gen_service_unique_id(
         self,
@@ -465,30 +469,22 @@ class MIoTDevice:
             description_slug = slugify_name(description)
             if not description_slug:
                 description_slug = f'service_{siid}'
-        return (
-            f'{self._model_strs[0][:9]}_{self.did_tag}_'
-            f'{self._model_strs[-1][:20]}_s_{siid}_{description_slug}')
+        return f'{self._uid_prefix}_s_{siid}_{description_slug}'
 
     def gen_prop_unique_id(
         self, spec_name: str, siid: int, piid: int
     ) -> str:
-        return (
-            f'{self._model_strs[0][:9]}_{self.did_tag}_'
-            f'{self._model_strs[-1][:20]}_{slugify_name(spec_name)}_p_{siid}_{piid}')
+        return f'{self._uid_prefix}_{slugify_name(spec_name)}_p_{siid}_{piid}'
 
     def gen_event_unique_id(
         self, spec_name: str, siid: int, eiid: int
     ) -> str:
-        return (
-            f'{self._model_strs[0][:9]}_{self.did_tag}_'
-            f'{self._model_strs[-1][:20]}_{slugify_name(spec_name)}_e_{siid}_{eiid}')
+        return f'{self._uid_prefix}_{slugify_name(spec_name)}_e_{siid}_{eiid}'
 
     def gen_action_unique_id(
         self, spec_name: str, siid: int, aiid: int
     ) -> str:
-        return (
-            f'{self._model_strs[0][:9]}_{self.did_tag}_'
-            f'{self._model_strs[-1][:20]}_{slugify_name(spec_name)}_a_{siid}_{aiid}')
+        return f'{self._uid_prefix}_{slugify_name(spec_name)}_a_{siid}_{aiid}'
 
     @property
     def name(self) -> str:
@@ -1007,12 +1003,10 @@ class MIoTServiceEntity(Entity):
                 f'{self.name}, {prop.name}')
         try:
             # Build props dictionary for native python MIIO execution
-            props_dict = {}
-            for e_list in self.miot_device.entity_list.values():
-                for e in e_list:
-                    if isinstance(e, MIoTServiceEntity):
-                        for p in e.entity_data.props:
-                            props_dict[p.name] = e.get_prop_value(p)
+            props_dict = {
+                k: v for k, v in self.miot_device.props_cache.items()
+                if v is not None
+            }
             
             max_val = 100
             if prop.value_range:
@@ -1083,6 +1077,7 @@ class MIoTServiceEntity(Entity):
             value = prop.eval_expr(value)
             value = prop.value_precision(value)
             self._prop_value_map[prop] = value
+            self.miot_device.props_cache[prop.name] = value
             if prop in self._prop_changed_subs:
                 self._prop_changed_subs[prop](prop, value)
             break
@@ -1247,12 +1242,10 @@ class MIoTPropertyEntity(Entity):
         value = self.spec.value_precision(value)
         try:
             # Build props dictionary for native python MIIO execution
-            props_dict = {}
-            for e_list in self.miot_device.entity_list.values():
-                for e in e_list:
-                    if isinstance(e, MIoTServiceEntity):
-                        for p in e.entity_data.props:
-                            props_dict[p.name] = e.get_prop_value(p)
+            props_dict = {
+                k: v for k, v in self.miot_device.props_cache.items()
+                if v is not None
+            }
                             
             max_val = 100
             if self.spec.value_range:
@@ -1287,6 +1280,7 @@ class MIoTPropertyEntity(Entity):
         value: Any = self.spec.value_format(params['value'])
         value = self.spec.eval_expr(value)
         self._value = self.spec.value_precision(value)
+        self.miot_device.props_cache[self.spec.name] = self._value
         if not self._pending_write_ha_state_timer:
             self.async_write_ha_state()
 

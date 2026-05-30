@@ -499,6 +499,7 @@ class MIoTClient:
                 device_gw and device_gw.get('online', False)
                 and device_gw.get('specv2_access', False)
                 and 'group_id' in device_gw
+                and self._mips_local.get(device_gw['group_id']) is not None
             ):
                 return 'Gateway'
             device_lan = self._device_list_lan.get(did, None)
@@ -513,6 +514,22 @@ class MIoTClient:
     @property
     def device_list(self) -> dict:
         return self._device_list_cache
+
+    @property
+    def device_list_lan(self) -> dict:
+        return self._device_list_lan
+
+    @property
+    def device_list_gateway(self) -> dict:
+        return self._device_list_gateway
+
+    @property
+    def mips_local(self) -> dict:
+        return self._mips_local
+
+    @property
+    def refresh_props_list(self) -> dict:
+        return self._refresh_props_list
 
     @property
     def persistent_notify(self) -> Callable:
@@ -740,7 +757,7 @@ class MIoTClient:
                 if self._network.network_status:
                     result = await self._http.get_prop_async(
                         did=did, siid=siid, piid=piid)
-                    if result:
+                    if result is not None:
                         return result
             except Exception as err:
                 _LOGGER.error(
@@ -852,7 +869,9 @@ class MIoTClient:
                         self.__get_exec_error_with_rc(rc=rc))
         _LOGGER.error(
             'client action failed, %s.%d.%d', did, siid, aiid)
-        return []
+        raise MIoTClientError(
+            f'{self._i18n.translate("miot.client.device_exec_error")}, '
+            f'{self._i18n.translate("error.common.-10007")}')
 
     def sub_prop(
         self, did: str, handler: Callable[[dict, Any], None],

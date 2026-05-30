@@ -17,21 +17,21 @@ class MIoTCloudManager:
         self.client = client
 
     async def refresh_props(self, patch_len: int = 150) -> bool:
-        if not self.client._network.network_status:
+        if not self.client.miot_network.network_status:
             return False
 
         request_list = None
-        if len(self.client._refresh_props_list) < patch_len:
-            request_list = self.client._refresh_props_list
-            self.client._refresh_props_list = {}
+        if len(self.client.refresh_props_list) < patch_len:
+            request_list = self.client.refresh_props_list.copy()
+            self.client.refresh_props_list.clear()
         else:
             # PERFORMANCE FIX: Efficient dictionary slicing using itertools
-            request_list = dict(islice(self.client._refresh_props_list.items(), patch_len))
+            request_list = dict(islice(self.client.refresh_props_list.items(), patch_len))
             for k in request_list:
-                del self.client._refresh_props_list[k]
+                del self.client.refresh_props_list[k]
                 
         try:
-            results = await self.client._http.get_props_async(
+            results = await self.client.miot_http.get_props_async(
                 params=list(request_list.values()))
             if not results:
                 raise MIoTClientError('get_props_async failed')
@@ -59,7 +59,7 @@ class MIoTCloudManager:
                 _LOGGER.warning(
                     'refresh props failed, cloud: unauthorized(401). Access token is likely invalid or expired. Please re-authenticate.'
                 )
-            elif any(code in err_str for code in [', 500,', ', 502,', ', 503,', ', 504,']):
+            elif getattr(err, 'code', None) in [500, 502, 503, 504] or getattr(err, 'status_code', None) in [500, 502, 503, 504] or any(code in err_str for code in ['500', '502', '503', '504']):
                 _LOGGER.warning(
                     'refresh props failed, cloud: server error (5xx). Xiaomi cloud might be temporarily down or unstable. Details: %s', err
                 )
@@ -68,11 +68,11 @@ class MIoTCloudManager:
                     'refresh props error, cloud, %s, %s',
                     err, traceback.format_exc())
             # Add failed request back to the list
-            self.client._refresh_props_list.update(request_list)
+            self.client.refresh_props_list.update(request_list)
             return False
         except Exception as err:
             _LOGGER.error(
                 'refresh props error, cloud, %s, %s',
                 err, traceback.format_exc())
-            self.client._refresh_props_list.update(request_list)
+            self.client.refresh_props_list.update(request_list)
             return False

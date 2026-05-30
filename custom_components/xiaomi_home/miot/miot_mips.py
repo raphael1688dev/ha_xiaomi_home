@@ -834,6 +834,25 @@ class MipsCloudClient(_MipsClient):
         self.update_mqtt_password(password=access_token)
         return True
 
+    @staticmethod
+    def _get_topic(action: str, did: str, siid: Optional[int], iid: Optional[int]) -> str:
+        return f'device/{did}/up/{action}/{"#" if siid is None or iid is None else f"{siid}/{iid}"}'
+
+    def _parse_msg(self, topic: str, payload: str, required_keys: list[str]) -> Optional[dict]:
+        try:
+            msg: dict = json.loads(payload)
+        except json.JSONDecodeError:
+            self.log_error(f'_parse_msg, invalid msg, {topic}, {payload}')
+            return None
+        if not isinstance(msg.get('params', None), dict):
+            self.log_error(f'_parse_msg, invalid params, {topic}, {payload}')
+            return None
+        for key in required_keys:
+            if key not in msg['params']:
+                self.log_error(f'_parse_msg, missing {key}, {topic}, {payload}')
+                return None
+        return msg['params']
+
     @final
     def sub_prop(
         self,
@@ -846,29 +865,15 @@ class MipsCloudClient(_MipsClient):
         if not isinstance(did, str) or handler is None:
             raise MIoTMipsError('invalid params')
 
-        topic: str = (
-            f'device/{did}/up/properties_changed/'
-            f'{"#" if siid is None or piid is None else f"{siid}/{piid}"}')
+        topic = self._get_topic('properties_changed', did, siid, piid)
 
         def on_prop_msg(topic: str, payload: str, ctx: Any) -> None:
-            try:
-                msg: dict = json.loads(payload)
-            except json.JSONDecodeError:
-                self.log_error(
-                    f'on_prop_msg, invalid msg, {topic}, {payload}')
-                return
-            if (
-                not isinstance(msg.get('params', None), dict)
-                or 'siid' not in msg['params']
-                or 'piid' not in msg['params']
-                or 'value' not in msg['params']
-            ):
-                self.log_error(
-                    f'on_prop_msg, invalid msg, {topic}, {payload}')
+            params = self._parse_msg(topic, payload, ['siid', 'piid', 'value'])
+            if params is None:
                 return
             if handler:
                 self.log_debug('on properties_changed, %s', payload)
-                handler(msg['params'], ctx)
+                handler(params, ctx)
         return self.__reg_broadcast_external(
             topic=topic, handler=on_prop_msg, handler_ctx=handler_ctx)
 
@@ -881,9 +886,7 @@ class MipsCloudClient(_MipsClient):
     ) -> bool:
         if not isinstance(did, str):
             raise MIoTMipsError('invalid params')
-        topic: str = (
-            f'device/{did}/up/properties_changed/'
-            f'{"#" if siid is None or piid is None else f"{siid}/{piid}"}')
+        topic = self._get_topic('properties_changed', did, siid, piid)
         return self.__unreg_broadcast_external(topic=topic)
 
     @final
@@ -897,31 +900,16 @@ class MipsCloudClient(_MipsClient):
     ) -> bool:
         if not isinstance(did, str) or handler is None:
             raise MIoTMipsError('invalid params')
-        # Spelling error: event_occured
-        topic: str = (
-            f'device/{did}/up/event_occured/'
-            f'{"#" if siid is None or eiid is None else f"{siid}/{eiid}"}')
+        topic = self._get_topic('event_occured', did, siid, eiid)
 
         def on_event_msg(topic: str, payload: str, ctx: Any) -> None:
-            try:
-                msg: dict = json.loads(payload)
-            except json.JSONDecodeError:
-                self.log_error(
-                    f'on_event_msg, invalid msg, {topic}, {payload}')
-                return
-            if (
-                not isinstance(msg.get('params', None), dict)
-                or 'siid' not in msg['params']
-                or 'eiid' not in msg['params']
-                or 'arguments' not in msg['params']
-            ):
-                self.log_error(
-                    f'on_event_msg, invalid msg, {topic}, {payload}')
+            params = self._parse_msg(topic, payload, ['siid', 'eiid', 'arguments'])
+            if params is None:
                 return
             if handler:
                 self.log_debug('on on_event_msg, %s', payload)
-                msg['params']['from'] = 'cloud'
-                handler(msg['params'], ctx)
+                params['from'] = 'cloud'
+                handler(params, ctx)
         return self.__reg_broadcast_external(
             topic=topic, handler=on_event_msg, handler_ctx=handler_ctx)
 
@@ -934,10 +922,7 @@ class MipsCloudClient(_MipsClient):
     ) -> bool:
         if not isinstance(did, str):
             raise MIoTMipsError('invalid params')
-        # Spelling error: event_occured
-        topic: str = (
-            f'device/{did}/up/event_occured/'
-            f'{"#" if siid is None or eiid is None else f"{siid}/{eiid}"}')
+        topic = self._get_topic('event_occured', did, siid, eiid)
         return self.__unreg_broadcast_external(topic=topic)
 
     @final
@@ -1140,6 +1125,25 @@ class MipsLocalClient(_MipsClient):
         self._request_map = {}
         self._msg_matcher = MIoTMatcher()
 
+    @staticmethod
+    def _get_topic(action: str, did: str, siid: Optional[int], iid: Optional[int]) -> str:
+        return f'appMsg/notify/iot/{did}/{action}/{"#" if siid is None or iid is None else f"{siid}.{iid}"}'
+
+    def _parse_msg(self, topic: str, payload: str, required_keys: list[str]) -> Optional[dict]:
+        try:
+            msg: dict = json.loads(payload)
+        except json.JSONDecodeError:
+            self.log_error(f'_parse_msg invalid json, {payload}')
+            return None
+        if msg is None:
+            self.log_info('unknown msg, %s', payload)
+            return None
+        for key in required_keys:
+            if key not in msg:
+                self.log_info('unknown msg missing %s, %s', key, payload)
+                return None
+        return msg
+
     @final
     def sub_prop(
         self,
@@ -1149,24 +1153,11 @@ class MipsLocalClient(_MipsClient):
         piid: Optional[int] = None,
         handler_ctx: Any = None
     ) -> bool:
-        topic: str = (
-            f'appMsg/notify/iot/{did}/property/'
-            f'{"#" if siid is None or piid is None else f"{siid}.{piid}"}')
+        topic = self._get_topic('property', did, siid, piid)
 
         def on_prop_msg(topic: str, payload: str, ctx: Any):
-            try:
-                msg: dict = json.loads(payload)
-            except json.JSONDecodeError:
-                self.log_error('on_prop_msg invalid json, %s', payload)
-                return
-            if (
-                msg is None
-                or 'did' not in msg
-                or 'siid' not in msg
-                or 'piid' not in msg
-                or 'value' not in msg
-            ):
-                self.log_info('unknown prop msg, %s', payload)
+            msg = self._parse_msg(topic, payload, ['did', 'siid', 'piid', 'value'])
+            if msg is None:
                 return
             if handler:
                 self.log_debug('local, on properties_changed, %s', payload)
@@ -1181,9 +1172,7 @@ class MipsLocalClient(_MipsClient):
         siid: Optional[int] = None,
         piid: Optional[int] = None
     ) -> bool:
-        topic: str = (
-            f'appMsg/notify/iot/{did}/property/'
-            f'{"#" if siid is None or piid is None else f"{siid}.{piid}"}')
+        topic = self._get_topic('property', did, siid, piid)
         return self.__unreg_broadcast_external(topic=topic)
 
     @final
@@ -1195,24 +1184,11 @@ class MipsLocalClient(_MipsClient):
         eiid: Optional[int] = None,
         handler_ctx: Any = None
     ) -> bool:
-        topic: str = (
-            f'appMsg/notify/iot/{did}/event/'
-            f'{"#" if siid is None or eiid is None else f"{siid}.{eiid}"}')
+        topic = self._get_topic('event', did, siid, eiid)
 
         def on_event_msg(topic: str, payload: str, ctx: Any):
-            try:
-                msg: dict = json.loads(payload)
-            except json.JSONDecodeError:
-                self.log_error('on_event_msg invalid json, %s', payload)
-                return
-            if (
-                msg is None
-                or 'did' not in msg
-                or 'siid' not in msg
-                or 'eiid' not in msg
-                # or 'arguments' not in msg
-            ):
-                self.log_info('unknown event msg, %s', payload)
+            msg = self._parse_msg(topic, payload, ['did', 'siid', 'eiid'])
+            if msg is None:
                 return
             if 'arguments' not in msg:
                 self.log_info('wrong event msg, %s', payload)
@@ -1230,9 +1206,7 @@ class MipsLocalClient(_MipsClient):
         siid: Optional[int] = None,
         eiid: Optional[int] = None
     ) -> bool:
-        topic: str = (
-            f'appMsg/notify/iot/{did}/event/'
-            f'{"#" if siid is None or eiid is None else f"{siid}.{eiid}"}')
+        topic = self._get_topic('event', did, siid, eiid)
         return self.__unreg_broadcast_external(topic=topic)
 
     @final

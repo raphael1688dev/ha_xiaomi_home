@@ -168,23 +168,33 @@ class Fan(MIoTServiceEntity, FanEntity):
         preset_mode: Optional[str] = None, **kwargs: Any
     ) -> None:
         """Turn the fan on."""
+        turned_on_by_us = False
         # 先確認啟動，避免關機狀態下被設備拒絕其它指令
         if not self.is_on and not self._is_turning_on:
             self._is_turning_on = True
+            turned_on_by_us = True
             try:
                 await self.set_property_async(prop=self._prop_on, value=True)
-            finally:
+                self._prop_value_map[self._prop_on] = True
+                if hasattr(self.miot_device, 'props_cache'):
+                    self.miot_device.props_cache[self._prop_on.name] = True
+            except Exception:
                 self._is_turning_on = False
+                raise
 
-        # 優化: 使用 asyncio.gather 並發執行後續指令，改善卡頓感
-        tasks = []
-        if percentage is not None:
-            tasks.append(self.async_set_percentage(percentage))
-        if preset_mode is not None:
-            tasks.append(self.async_set_preset_mode(preset_mode))
-            
-        if tasks:
-            await asyncio.gather(*tasks)
+        try:
+            # 優化: 使用 asyncio.gather 並發執行後續指令，改善卡頓感
+            tasks = []
+            if percentage is not None:
+                tasks.append(self.async_set_percentage(percentage))
+            if preset_mode is not None:
+                tasks.append(self.async_set_preset_mode(preset_mode))
+                
+            if tasks:
+                await asyncio.gather(*tasks)
+        finally:
+            if turned_on_by_us:
+                self._is_turning_on = False
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the fan off."""
@@ -201,6 +211,9 @@ class Fan(MIoTServiceEntity, FanEntity):
                 self._is_turning_on = True
                 try:
                     await self.set_property_async(prop=self._prop_on, value=True)
+                    self._prop_value_map[self._prop_on] = True
+                    if hasattr(self.miot_device, 'props_cache'):
+                        self.miot_device.props_cache[self._prop_on.name] = True
                 finally:
                     self._is_turning_on = False
                 

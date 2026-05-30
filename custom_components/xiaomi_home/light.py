@@ -144,7 +144,10 @@ class Light(MIoTServiceEntity, LightEntity):
                             prop.value_range.min_,
                             prop.value_range.max_ + prop.value_range.step,
                             prop.value_range.step):
-                        mode_list[value] = f'mode {value}'
+                        val = min(value, prop.value_range.max_)
+                        mode_list[val] = f'mode {val}'
+                        if val == prop.value_range.max_:
+                            break
             if mode_list:
                 for val, desc in mode_list.items():
                     effect_name = f"Mode: {desc}" if desc in self._effect_map else desc

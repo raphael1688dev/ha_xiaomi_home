@@ -9,8 +9,11 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.components import persistent_notification
 from homeassistant.helpers import device_registry, entity_registry
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.util import slugify
+import re
 
-from .miot.common import slugify_did
+from .miot.common import slugify_did, MIoTHttp
 from .miot.miot_storage import (
     DeviceManufacturer, MIoTStorage, MIoTCert)
 from .miot.miot_spec import (
@@ -35,6 +38,7 @@ async def async_setup(hass: HomeAssistant, hass_config: dict) -> bool:
     hass.data[DOMAIN].setdefault('entities', {})
     for platform in SUPPORTED_PLATFORMS:
         hass.data[DOMAIN]['entities'][platform] = []
+    MIoTHttp.set_shared_session(async_get_clientsession(hass))
     return True
 
 
@@ -131,63 +135,30 @@ async def async_setup_entry(
         await manufacturer.init_async()
         miot_devices: list[MIoTDevice] = []
         er = entity_registry.async_get(hass=hass)
+        er_entries = list(entity_registry.async_entries_for_config_entry(er, entry_id))
         
-        # Migrate old unique_ids to standard format without DOMAIN prefix
-        @callback
-        def async_migrate_unique_ids() -> None:
-            for entry in entity_registry.async_entries_for_config_entry(er, entry_id):
-                old_unique_id = entry.unique_id
-                new_unique_id = old_unique_id
-                if new_unique_id.startswith(f"{DOMAIN}."):
-                    new_unique_id = new_unique_id.replace(f"{DOMAIN}.", "", 1)
-                # Old unique_ids were exactly the entity_ids, so they started with the platform domain
-                if new_unique_id.startswith(f"{entry.domain}."):
-                    new_unique_id = new_unique_id.replace(f"{entry.domain}.", "", 1)
-                    
-                # Migrate diagnostic sensors to include entry_id
-                if new_unique_id.endswith("_control_path") and not new_unique_id.startswith(entry_id):
-                    new_unique_id = f"{entry_id}_{new_unique_id}"
-                elif new_unique_id.endswith("_ip_address") and not new_unique_id.startswith(entry_id):
-                    new_unique_id = f"{entry_id}_{new_unique_id}"
-                    
-                if new_unique_id != old_unique_id:
-                    try:
-                        er.async_update_entity(entry.entity_id, new_unique_id=new_unique_id)
-                        _LOGGER.info("Successfully migrated unique_id from %s to %s", old_unique_id, new_unique_id)
-                    except ValueError:
-                        # Recovery: New unique ID already exists because a previous boot failed to migrate properly.
-                        # We must delete the erroneously created new entity to restore the legacy entity_id.
-                        existing_entity_id = er.async_get_entity_id(entry.domain, DOMAIN, new_unique_id)
-                        if existing_entity_id and existing_entity_id != entry.entity_id:
-                            er.async_remove(existing_entity_id)
-                            try:
-                                er.async_update_entity(entry.entity_id, new_unique_id=new_unique_id)
-                                _LOGGER.info("Recovered legacy entity %s by deleting duplicate %s", entry.entity_id, existing_entity_id)
-                            except ValueError as err:
-                                _LOGGER.warning("Failed to recover entity %s: %s", entry.entity_id, err)
-        
-        async_migrate_unique_ids()
+        # Register a migration script
+        await _async_migrate_legacy_entity_ids(hass, entry_id, er_entries)
 
-        for entry in entity_registry.async_entries_for_config_entry(
-            er, entry_id
-        ):
+        entries_to_remove = entity_registry.async_entries_for_config_entry(er, entry_id)
+        if not isinstance(entries_to_remove, list):
+            entries_to_remove = list(entries_to_remove)
+            
+        for entry in entries_to_remove:
             if (
                 entry.entity_id.startswith(f'{DOMAIN}.')
                 or entry.entity_id.split('.', 1)[0] not in SUPPORTED_PLATFORMS
             ):
                 er.async_remove(entity_id=entry.entity_id)
-                
-        # Helper function for DRY registry cleanup using unique_id
-        config_entries_entities = entity_registry.async_entries_for_config_entry(er, entry_id)
-        def _remove_from_registry_by_uid(unique_ids: list[str], platform: str = None):
-            uids_to_check = set(unique_ids)
-            for entry in config_entries_entities:
-                if entry.unique_id in uids_to_check:
-                    if platform and entry.domain != platform:
-                        continue
-                    # check if still exists before remove
-                    if er.async_get(entry.entity_id):
-                        er.async_remove(entity_id=entry.entity_id)
+        
+        # Remove entities from HA entity registry
+        def _remove_from_registry_by_uid(unique_ids: list[str]) -> None:
+            for uid in unique_ids:
+                for entry in er_entries:
+                    if entry.unique_id == uid:
+                        er.async_remove(entry.entity_id)
+                        er_entries.remove(entry)
+                        break
 
         for did, info in miot_client.device_list.items():
             spec_instance = await spec_parser.parse(urn=info['urn'])
@@ -203,54 +174,34 @@ async def async_setup_entry(
             miot_devices.append(device)
             device.spec_transform()
             
-            # Remove filter entities and non-standard entities using list reconstruction
+            # Remove filter entities and non-standard entities using helper function
+            def _filter_platform(platform_dict: dict, item_type: str, uid_gen_func, has_description=False):
+                if platform not in platform_dict:
+                    return
+                kept_items = []
+                for item in platform_dict[platform]:
+                    spec_item = item.spec if item_type == 'service' else item
+                    if spec_item.need_filter or (miot_client.hide_non_standard_entities and spec_item.proprietary):
+                        uids_to_remove = []
+                        if has_description:
+                            uids_to_remove.append(uid_gen_func(siid=spec_item.iid, description=spec_item.description, slugify_description=False))
+                            uids_to_remove.append(uid_gen_func(siid=spec_item.iid, description=spec_item.description))
+                        elif item_type == 'property':
+                            uids_to_remove.append(uid_gen_func(spec_name=spec_item.name, siid=spec_item.service.iid, piid=spec_item.iid))
+                        elif item_type == 'event':
+                            uids_to_remove.append(uid_gen_func(spec_name=spec_item.name, siid=spec_item.service.iid, eiid=spec_item.iid))
+                        elif item_type == 'action':
+                            uids_to_remove.append(uid_gen_func(spec_name=spec_item.name, siid=spec_item.service.iid, aiid=spec_item.iid))
+                        _remove_from_registry_by_uid(uids_to_remove)
+                    else:
+                        kept_items.append(item)
+                platform_dict[platform] = kept_items
+
             for platform in SUPPORTED_PLATFORMS:
-                if platform in device.entity_list:
-                    kept_entities = []
-                    for entity in device.entity_list[platform]:
-                        if isinstance(entity.spec, MIoTSpecService) and (
-                            entity.spec.need_filter or (miot_client.hide_non_standard_entities and entity.spec.proprietary)
-                        ):
-                            _remove_from_registry_by_uid([
-                                device.gen_service_unique_id(siid=entity.spec.iid, description=entity.spec.description, slugify_description=False),
-                                device.gen_service_unique_id(siid=entity.spec.iid, description=entity.spec.description)
-                            ])
-                        else:
-                            kept_entities.append(entity)
-                    device.entity_list[platform] = kept_entities
-
-                if platform in device.prop_list:
-                    kept_props = []
-                    for prop in device.prop_list[platform]:
-                        if prop.need_filter or (miot_client.hide_non_standard_entities and prop.proprietary):
-                            _remove_from_registry_by_uid([
-                                device.gen_prop_unique_id(spec_name=prop.name, siid=prop.service.iid, piid=prop.iid)
-                            ])
-                        else:
-                            kept_props.append(prop)
-                    device.prop_list[platform] = kept_props
-
-                if platform in device.event_list:
-                    kept_events = []
-                    for event in device.event_list[platform]:
-                        if event.need_filter or (miot_client.hide_non_standard_entities and event.proprietary):
-                            _remove_from_registry_by_uid([
-                                device.gen_event_unique_id(spec_name=event.name, siid=event.service.iid, eiid=event.iid)
-                            ])
-                        else:
-                            kept_events.append(event)
-                    device.event_list[platform] = kept_events
-
-                if platform in device.action_list:
-                    kept_actions = []
-                    for action in device.action_list[platform]:
-                        if action.need_filter or (miot_client.hide_non_standard_entities and action.proprietary):
-                            _remove_from_registry_by_uid([
-                                device.gen_action_unique_id(spec_name=action.name, siid=action.service.iid, aiid=action.iid)
-                            ])
-                        else:
-                            kept_actions.append(action)
-                    device.action_list[platform] = kept_actions
+                _filter_platform(device.entity_list, 'service', device.gen_service_unique_id, True)
+                _filter_platform(device.prop_list, 'property', device.gen_prop_unique_id, False)
+                _filter_platform(device.event_list, 'event', device.gen_event_unique_id, False)
+                _filter_platform(device.action_list, 'action', device.gen_action_unique_id, False)
 
             # Action debug
             if not miot_client.action_debug:
@@ -286,7 +237,7 @@ async def async_setup_entry(
                 
         # Register a migration script to fix any existing fallback entity_ids
         # generated in previous sessions due to the race condition.
-        await _async_migrate_legacy_entity_ids(hass, entry_id)
+        await _async_migrate_legacy_entity_ids(hass, entry_id, er_entries)
 
         await hass.config_entries.async_forward_entry_setups(
             config_entry, SUPPORTED_PLATFORMS)

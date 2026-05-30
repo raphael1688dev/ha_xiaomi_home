@@ -531,3 +531,10 @@ Example:
 - **Hotfix: Missing Entities & Features Restoration**:
   - Restored the dynamic property mapping fallback ("General conversion") in `miot_device.py`. This logic is critical for translating thousands of proprietary device features into standard Home Assistant components (`sensor`, `switch`, `select`, `number`). 
   - Without it, many customized device options (e.g., fan modes, light gradients, special toggles) and unsupported generic sensors completely disappeared. All missing functionalities and entities should now be fully restored.
+
+## New Features & Enhancements (Version 20260530r14)
+- **Deep Performance & Architecture Optimization (Phase G)**:
+  - **Memory & Hot-Path Efficiency**: Deployed `@cached_property` across heavily accessed dictionaries and dynamic strings in `miot_device.py` (`device_info`, `_uid_prefix`) and `miot_spec.py`. Dropped massive amounts of throwaway allocations (`{}`) during connectivity property evaluations.
+  - **Socket Exhaustion Fix**: Removed synchronous `aiohttp.ClientSession` instantiation spanning `miot_http` and `miot_oauth`, strictly injecting Home Assistant's core shared session to drastically lower connection overhead.
+  - **Faster Boot & I/O**: Initialized heavy Spec parsers in `miot_spec.py` via parallel `asyncio.gather` and implemented an `lru_cache` for `load_yaml_file` to eliminate duplicate disk reads across integrations and regions.
+  - **Code Deduplication & Public API Transition**: Consolidated overlapping code in `miot_mips.py` (`_get_topic`, `_parse_msg`) and enforced public getters across `MIoTClient`, formally severing the legacy practice of managers illegally accessing private state variables.
