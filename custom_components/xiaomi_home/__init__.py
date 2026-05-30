@@ -138,7 +138,7 @@ async def async_setup_entry(
         er_entries = list(entity_registry.async_entries_for_config_entry(er, entry_id))
         
         # Register a migration script
-        await _async_migrate_legacy_entity_ids(hass, entry_id, er_entries)
+        await _async_migrate_legacy_entity_ids(hass, entry_id)
 
         entries_to_remove = entity_registry.async_entries_for_config_entry(er, entry_id)
         if not isinstance(entries_to_remove, list):
@@ -237,7 +237,7 @@ async def async_setup_entry(
                 
         # Register a migration script to fix any existing fallback entity_ids
         # generated in previous sessions due to the race condition.
-        await _async_migrate_legacy_entity_ids(hass, entry_id, er_entries)
+        await _async_migrate_legacy_entity_ids(hass, entry_id)
 
         await hass.config_entries.async_forward_entry_setups(
             config_entry, SUPPORTED_PLATFORMS)
@@ -278,6 +278,12 @@ async def async_setup_entry(
             title='Xiaomi Home Oauth Error',
             message=f'Please re-add.\r\nerror: {oauth_error}'
         )
+    except Exception as err:
+        miot_client: MIoTClient = hass.data[DOMAIN].get('miot_clients', {}).pop(
+            entry_id, None)
+        if miot_client:
+            await miot_client.deinit_async()
+        raise err
 
     return True
 
