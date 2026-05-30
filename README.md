@@ -526,3 +526,8 @@ Example:
 - **Hotfix: Entity Initialization Crash**:
   - Fixed a critical Python scoping syntax bug in `miot_device.py` where variables required by subclasses (`_pending_write_ha_state_timer`, `_prop_changed_subs`) were mistakenly initialized inside a dangling `@property` getter rather than the actual `__init__` constructor.
   - Entities like `Fan` and `Light` will now initialize safely without throwing `AttributeError`.
+
+## New Features & Enhancements (Version 20260530r13)
+- **Hotfix: Missing Entities & Features Restoration**:
+  - Restored the dynamic property mapping fallback ("General conversion") in `miot_device.py`. This logic is critical for translating thousands of proprietary device features into standard Home Assistant components (`sensor`, `switch`, `select`, `number`). 
+  - Without it, many customized device options (e.g., fan modes, light gradients, special toggles) and unsupported generic sensors completely disappeared. All missing functionalities and entities should now be fully restored.
