@@ -1350,14 +1350,25 @@ class MIoTLan:
                 and sub_ts != device.sub_ts
             ):
                 device.subscribed = False
-                device.subscribe()
+                try:
+                    device.subscribe()
+                except Exception as err:
+                    _LOGGER.error('subscribe device error, %s, %s', did, err)
         if data_len > self.OT_PROBE_LEN:
             # handle device message
             try:
                 decrypted_data = device.decrypt_packet(data)
-                self.__message_handler(did, decrypted_data)
             except Exception as err:   # pylint: disable=broad-exception-caught
                 _LOGGER.error('decrypt packet error, %s, %s', did, err)
+                return
+            
+            # Since decryption succeeded, the packet is authentic. Update IP and if_name.
+            device.keep_alive(ip=ip, if_name=if_name)
+            
+            try:
+                self.__message_handler(did, decrypted_data)
+            except Exception as err:
+                _LOGGER.error('handle lan message error, %s, %s', did, err)
                 return
 
     def __message_handler(self, did: str, msg: dict) -> None:

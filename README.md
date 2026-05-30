@@ -475,3 +475,9 @@ Example:
 - **Log Spam Eradication**:
   - Implemented precise exception interception in the cloud polling module (`__refresh_props_from_cloud`).
   - The system will no longer spam massive stack traces when the Xiaomi Cloud access token expires (HTTP 401) or when the server is temporarily down (HTTP 5xx). Instead, it gracefully outputs a single, clean `WARNING` message, saving massive amounts of log space and preventing I/O lag.
+
+## New Features & Enhancements (Version 20260530r2)
+- **LAN Decrypt Error Fix**:
+  - Fixed a critical bug in `miot_lan.py` where a missing network interface (`if_name`) during early UDP packet reception caused the `send2device` ACK to crash.
+  - Corrected a misleading `try/except` scope that caused this LAN handling crash to be wrongly logged as a `decrypt packet error`.
+  - The system now securely authenticates the device's IP and interface immediately upon successful packet decryption, ensuring rock-solid local network stability.
