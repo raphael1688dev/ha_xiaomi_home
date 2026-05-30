@@ -482,6 +482,12 @@ Example:
   - Corrected a misleading `try/except` scope that caused this LAN handling crash to be wrongly logged as a `decrypt packet error`.
   - The system now securely authenticates the device's IP and interface immediately upon successful packet decryption, ensuring rock-solid local network stability.
 
+## New Features & Enhancements (Version 20260530r6)
+- **HA 2026.5.0 Naming Modernization**:
+  - Removed all `self.entity_id` hardcoding, returning full entity naming authority to Home Assistant core.
+  - Simplified and standardized `unique_id` to ensure absolute stability against device renaming.
+  - Automated transparent migration of `unique_id` via `async_migrate_unique_ids` which preserves user's old entity IDs to prevent immediate automation breakage. Users can now seamlessly convert all entities to the modern, clean format simply by renaming their device in the HA UI.
+
 ## New Features & Enhancements (Version 20260530r5)
 - **Hotfix: Duplicate Entities (`_2`) Resolution**:
   - Fixed an issue where the previous legacy ID restore generated IDs in the `xiaomi_home.` domain instead of the actual platform domain (e.g., `fan.`), and omitted the description slug. This mismatch caused HA to conflict with user-renamed entities, resulting in a wave of `_2` duplicate entities.

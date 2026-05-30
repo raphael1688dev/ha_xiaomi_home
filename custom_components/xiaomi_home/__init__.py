@@ -162,8 +162,8 @@ async def async_setup_entry(
                             entity.spec.need_filter or (miot_client.hide_non_standard_entities and entity.spec.proprietary)
                         ):
                             _remove_from_registry_by_uid([
-                                device.gen_service_entity_id(ha_domain=platform, siid=entity.spec.iid, description=entity.spec.description, slugify_description=False),
-                                device.gen_service_entity_id(ha_domain=platform, siid=entity.spec.iid, description=entity.spec.description)
+                                device.gen_service_unique_id(siid=entity.spec.iid, description=entity.spec.description, slugify_description=False),
+                                device.gen_service_unique_id(siid=entity.spec.iid, description=entity.spec.description)
                             ])
                         else:
                             kept_entities.append(entity)
@@ -174,7 +174,7 @@ async def async_setup_entry(
                     for prop in device.prop_list[platform]:
                         if prop.need_filter or (miot_client.hide_non_standard_entities and prop.proprietary):
                             _remove_from_registry_by_uid([
-                                device.gen_prop_entity_id(ha_domain=platform, spec_name=prop.name, siid=prop.service.iid, piid=prop.iid)
+                                device.gen_prop_unique_id(spec_name=prop.name, siid=prop.service.iid, piid=prop.iid)
                             ])
                         else:
                             kept_props.append(prop)
@@ -185,7 +185,7 @@ async def async_setup_entry(
                     for event in device.event_list[platform]:
                         if event.need_filter or (miot_client.hide_non_standard_entities and event.proprietary):
                             _remove_from_registry_by_uid([
-                                device.gen_event_entity_id(ha_domain=platform, spec_name=event.name, siid=event.service.iid, eiid=event.iid)
+                                device.gen_event_unique_id(spec_name=event.name, siid=event.service.iid, eiid=event.iid)
                             ])
                         else:
                             kept_events.append(event)
@@ -196,7 +196,7 @@ async def async_setup_entry(
                     for action in device.action_list[platform]:
                         if action.need_filter or (miot_client.hide_non_standard_entities and action.proprietary):
                             _remove_from_registry_by_uid([
-                                device.gen_action_entity_id(ha_domain=platform, spec_name=action.name, siid=action.service.iid, aiid=action.iid)
+                                device.gen_action_unique_id(spec_name=action.name, siid=action.service.iid, aiid=action.iid)
                             ])
                         else:
                             kept_actions.append(action)
@@ -206,19 +206,19 @@ async def async_setup_entry(
             if not miot_client.action_debug:
                 for action in device.action_list.get('notify', []):
                     _remove_from_registry_by_uid([
-                        device.gen_action_entity_id(ha_domain='text', spec_name=action.name, siid=action.service.iid, aiid=action.iid)
+                        device.gen_action_unique_id(spec_name=action.name, siid=action.service.iid, aiid=action.iid)
                     ])
                     
             # Binary sensor display
             if not miot_client.display_binary_bool:
                 for prop in device.prop_list.get('binary_sensor', []):
                     _remove_from_registry_by_uid([
-                        device.gen_prop_entity_id(ha_domain='binary_sensor', spec_name=prop.name, siid=prop.service.iid, piid=prop.iid)
+                        device.gen_prop_unique_id(spec_name=prop.name, siid=prop.service.iid, piid=prop.iid)
                     ], platform='binary_sensor')
             if not miot_client.display_binary_text:
                 for prop in device.prop_list.get('binary_sensor', []):
                     _remove_from_registry_by_uid([
-                        device.gen_prop_entity_id(ha_domain='sensor', spec_name=prop.name, siid=prop.service.iid, piid=prop.iid)
+                        device.gen_prop_unique_id(spec_name=prop.name, siid=prop.service.iid, piid=prop.iid)
                     ], platform='sensor')
 
         hass.data[DOMAIN]['devices'][entry_id] = miot_devices
