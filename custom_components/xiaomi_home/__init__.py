@@ -215,12 +215,12 @@ async def async_setup_entry(
                 for prop in device.prop_list.get('binary_sensor', []):
                     _remove_from_registry_by_uid([
                         device.gen_prop_unique_id(spec_name=prop.name, siid=prop.service.iid, piid=prop.iid)
-                    ], platform='binary_sensor')
+                    ])
             if not miot_client.display_binary_text:
                 for prop in device.prop_list.get('binary_sensor', []):
                     _remove_from_registry_by_uid([
                         device.gen_prop_unique_id(spec_name=prop.name, siid=prop.service.iid, piid=prop.iid)
-                    ], platform='sensor')
+                    ])
 
         hass.data[DOMAIN]['devices'][entry_id] = miot_devices
         
