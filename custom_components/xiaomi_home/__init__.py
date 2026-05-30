@@ -38,6 +38,44 @@ async def async_setup(hass: HomeAssistant, hass_config: dict) -> bool:
     return True
 
 
+async def _async_migrate_legacy_entity_ids(hass: HomeAssistant, entry_id: str) -> None:
+    """Migrate legacy entity IDs that fell back to unique_id format back to standard naming."""
+    er = entity_registry.async_get(hass)
+    dr = device_registry.async_get(hass)
+    
+    from homeassistant.util import slugify
+    
+    for entry in entity_registry.async_entries_for_config_entry(er, entry_id):
+        # The fallback entity ID looks exactly like `domain.unique_id`
+        expected_fallback_id = f"{entry.domain}.{entry.unique_id}"
+        
+        # We only force rename if the entity ID exactly matches the legacy fallback
+        # This protects users who have manually renamed their entity IDs in the UI!
+        if entry.entity_id == expected_fallback_id:
+            # We need the device name to generate the new entity ID
+            if entry.device_id:
+                device = dr.async_get(entry.device_id)
+                if device:
+                    device_name = device.name_by_user or device.name
+                    # original_name contains the string from `_attr_name` (e.g. "Environment Relative Humidity")
+                    entity_name = entry.original_name
+                    
+                    if device_name and entity_name:
+                        new_entity_id = f"{entry.domain}.{slugify(device_name)}_{slugify(entity_name)}"
+                        if new_entity_id != entry.entity_id:
+                            try:
+                                er.async_update_entity(entry.entity_id, new_entity_id=new_entity_id)
+                                _LOGGER.info(
+                                    "Forcibly migrated fallback entity %s to modern HA format %s", 
+                                    entry.entity_id, new_entity_id
+                                )
+                            except ValueError as err:
+                                _LOGGER.warning(
+                                    "Failed to force migrate fallback entity %s to %s: %s", 
+                                    entry.entity_id, new_entity_id, err
+                                )
+
+
 async def async_setup_entry(
     hass: HomeAssistant, config_entry: ConfigEntry
 ) -> bool:
@@ -222,6 +260,22 @@ async def async_setup_entry(
                     ], platform='sensor')
 
         hass.data[DOMAIN]['devices'][entry_id] = miot_devices
+        
+        # Pre-register devices in the device registry.
+        # This prevents a race condition where HA generates entity_ids for sub-entities
+        # before the device is fully registered, causing it to fall back to unique_id.
+        dr = device_registry.async_get(hass)
+        for device in miot_devices:
+            if device.device_info:
+                dr.async_get_or_create(
+                    config_entry_id=entry_id,
+                    **device.device_info
+                )
+                
+        # Register a migration script to fix any existing fallback entity_ids
+        # generated in previous sessions due to the race condition.
+        await _async_migrate_legacy_entity_ids(hass, entry_id)
+
         await hass.config_entries.async_forward_entry_setups(
             config_entry, SUPPORTED_PLATFORMS)
 
