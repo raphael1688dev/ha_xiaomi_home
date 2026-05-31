@@ -5,29 +5,29 @@ from custom_components.xiaomi_home import _async_migrate_legacy_entity_ids
 
 
 @pytest.mark.asyncio
-async def test_migration_legacy_action_orphans():
+async def test_migration_legacy_action_orphans() -> None:
     """Test that Phase 1 removes action orphans with unique_id == entity_id."""
-    hass_mock = MagicMock()
-    entry_id = "test_entry"
+    hass_mock: MagicMock = MagicMock()
+    entry_id: str = "test_entry"
     
     # Mock entity registry
-    er_mock = MagicMock()
+    er_mock: MagicMock = MagicMock()
     
     # Mock entities:
     # 1. An action orphan (button domain, unique_id == entity_id)
-    orphan_entry = MagicMock()
+    orphan_entry: MagicMock = MagicMock()
     orphan_entry.domain = "button"
     orphan_entry.unique_id = "button.my_action"
     orphan_entry.entity_id = "button.my_action"
     
     # 2. A normal entity (domain sensor, unique_id != entity_id)
-    normal_entry = MagicMock()
+    normal_entry: MagicMock = MagicMock()
     normal_entry.domain = "sensor"
     normal_entry.unique_id = "unique_123"
     normal_entry.entity_id = "sensor.my_sensor"
 
     # Set up entries return for config entry
-    entries_list = [orphan_entry, normal_entry]
+    entries_list: list[MagicMock] = [orphan_entry, normal_entry]
 
     with patch("custom_components.xiaomi_home.entity_registry.async_get", return_value=er_mock), \
          patch("custom_components.xiaomi_home.entity_registry.async_entries_for_config_entry", return_value=entries_list):
@@ -42,16 +42,16 @@ async def test_migration_legacy_action_orphans():
 
 
 @pytest.mark.asyncio
-async def test_migration_stable_format():
+async def test_migration_stable_format() -> None:
     """Test that Phase 2 migrates entities to stable formats based on expected map."""
-    hass_mock = MagicMock()
-    entry_id = "test_entry"
+    hass_mock: MagicMock = MagicMock()
+    entry_id: str = "test_entry"
     
     # Mock entity registry
-    er_mock = MagicMock()
+    er_mock: MagicMock = MagicMock()
     
     # Mock device
-    device_mock = MagicMock()
+    device_mock: MagicMock = MagicMock()
     device_mock.get_expected_entity_ids.return_value = {
         "12345_switch_p_2_1": "switch.device_switch"
     }
@@ -61,12 +61,12 @@ async def test_migration_stable_format():
 
     # Mock entity to migrate:
     # unique_id is in expected mapping, but entity_id is old format
-    entity_to_migrate = MagicMock()
+    entity_to_migrate: MagicMock = MagicMock()
     entity_to_migrate.domain = "switch"
     entity_to_migrate.unique_id = "12345_switch_p_2_1"
     entity_to_migrate.entity_id = "switch.old_entity_name"
 
-    entries_list = [entity_to_migrate]
+    entries_list: list[MagicMock] = [entity_to_migrate]
 
     with patch("custom_components.xiaomi_home.entity_registry.async_get", return_value=er_mock), \
          patch("custom_components.xiaomi_home.entity_registry.async_entries_for_config_entry", return_value=entries_list):

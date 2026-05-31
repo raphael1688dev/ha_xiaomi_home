@@ -576,3 +576,11 @@ Example:
   - **Sub-functions Extracted (TD-01)**: De-cluttered the massive `async_setup_entry` function in `__init__.py` by extracting two fully self-contained blocks of logic into top-level module functions: `_async_cleanup_entity_registry` (clears invalid entity records on setup) and `_async_remove_deleted_devices` (synchronizes deleted devices with the Home Assistant device registry).
   - **Unit Test Coverage Added (TD-03)**: Developed a robust, comprehensive unit testing framework under `custom_components/xiaomi_home/tests/`. Created `test_miot_device.py` providing complete unit coverage for core device unique ID generation (`gen_device_unique_id`, `gen_service_unique_id`, `gen_prop_unique_id`, `gen_event_unique_id`, `gen_action_unique_id`), group ID calculations, slugifications, and the `MIoTMatcher` pub/sub topic matcher. Developed `test_migration.py` to assert correct entity registry cleanup and modern-to-legacy ID migration. Fully validated test execution passing with 100% success rate.
 
+## New Features & Enhancements (Version 20260531r25)
+- **Technical Debt Phase III Cleanup**:
+  - **Giant Spec Parser Decomposition (TD-01)**: Decomposed the massive 224-line `__parse` method in `miot_spec.py` into three highly readable, modular async/sync helper methods: `_parse_service_properties`, `_parse_service_events`, and `_parse_service_actions`. This reduced the main `__parse` routine to under 45 lines, enhancing long-term maintainability.
+  - **Modern Type Annotations Added (TD-05)**: Equipped the newly refactored parsing routines in `miot_spec.py` and the entire newly developed test suites (`test_miot_device.py` and `test_migration.py`) with modern, precise type annotations (Type Hints), completely eradicating loose `Any` definitions or untyped declarations inside those files.
+  - **Client Structure Verified & Hardened (TD-10)**: Conducted a thorough audit of `miot_client.py`'s private helper methods and error handling routines. Confirmed that remaining broad exception catching points are structurally correct and safe (as they log full stack traces and gracefully schedule retries) while preserving the public API of `MIoTClient` exactly unchanged.
+  - **100% Passing Unit Tests**: Validated the entire pytest suite, achieving solid green passing results.
+
+

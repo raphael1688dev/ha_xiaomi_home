@@ -1172,6 +1172,172 @@ class MIoTSpecParser:
             url='https://miot-spec.org/miot-spec-v2/instance',
             params={'type': urn})
 
+    async def _parse_service_properties(
+        self,
+        service: dict[str, Any],
+        spec_service: MIoTSpecService,
+        type_strs: list[str],
+    ) -> None:
+        """Parse properties of a service."""
+        for property_ in service.get('properties', []):
+            if ('iid' not in property_ or 'type' not in property_ or
+                    'description' not in property_ or
+                    'format' not in property_ or 'access' not in property_):
+                continue
+            p_type_strs: list[str] = property_['type'].split(':')
+            # Handle special property.unit
+            unit = property_.get('unit', None)
+            spec_prop: MIoTSpecProperty = MIoTSpecProperty(
+                spec=property_,
+                service=spec_service,
+                format_=property_['format'],
+                access=property_['access'],
+                unit=unit if unit != 'none' else None)
+            spec_prop.name = p_type_strs[3]
+            # Filter spec property
+            spec_prop.need_filter = (
+                spec_service.need_filter or
+                (self._spec_filter.filter_property(siid=service['iid'],
+                                                   piid=property_['iid'])
+                 if 'need_filter' not in property_ else
+                 property_['need_filter']))
+            if spec_prop.need_filter:
+                continue
+            if p_type_strs[1] != 'miot-spec-v2':
+                spec_prop.proprietary = spec_service.proprietary or True
+                
+            p_type_strs_prefix_5 = ':'.join(p_type_strs[:5])
+                
+            spec_prop.description_trans = (
+                self._multi_lang.translate(
+                    f'p:{service["iid"]}:{property_["iid"]}') or
+                self._std_lib.property_translate(
+                    key=p_type_strs_prefix_5) or
+                property_['description'] or spec_prop.name)
+            # Modify value-list before translation
+            v_list: list[dict] = self._spec_modify.get_prop_value_list(
+                siid=service['iid'], piid=property_['iid'])
+            if (v_list is None) and ('value-list' in property_):
+                v_list = property_['value-list']
+            if v_list is not None:
+                for index, v in enumerate(v_list):
+                    if v['description'].strip() == '':
+                        v['description'] = f'v_{v["value"]}'
+                    v['name'] = v['description']
+                    v['description'] = (self._multi_lang.translate(
+                        f'v:{service["iid"]}:{property_["iid"]}:'
+                        f'{index}') or self._std_lib.value_translate(
+                            key=f'{type_strs[:5]}|{p_type_strs[3]}|'
+                            f'{v["description"]}') or v['name'])
+                spec_prop.value_list = MIoTSpecValueList.from_spec(v_list)
+            if 'value-range' in property_:
+                spec_prop.value_range = property_['value-range']
+            elif property_['format'] == 'bool':
+                v_tag = p_type_strs_prefix_5
+                v_descriptions = (await
+                                  self._bool_trans.translate_async(urn=v_tag
+                                                                  ))
+                if v_descriptions:
+                    # bool without value-list.name
+                    spec_prop.value_list = v_descriptions
+            # Prop modify
+            spec_prop.unit = self._spec_modify.get_prop_unit(
+                siid=service['iid'],
+                piid=property_['iid']) or spec_prop.unit
+            spec_prop.expr = self._spec_modify.get_prop_expr(
+                siid=service['iid'], piid=property_['iid'])
+            spec_prop.icon = self._spec_modify.get_prop_icon(
+                siid=service['iid'], piid=property_['iid'])
+            spec_service.properties.append(spec_prop)
+            custom_access = self._spec_modify.get_prop_access(
+                siid=service['iid'], piid=property_['iid'])
+            if custom_access:
+                spec_prop.access = custom_access
+            custom_format = self._spec_modify.get_prop_format(
+                siid=service['iid'], piid=property_['iid'])
+            if custom_format:
+                spec_prop.format_ = custom_format
+            custom_range = self._spec_modify.get_prop_value_range(
+                siid=service['iid'], piid=property_['iid'])
+            if custom_range:
+                spec_prop.value_range = custom_range
+            custom_name = self._spec_modify.get_prop_name(
+                siid=service['iid'], piid=property_['iid'])
+            if custom_name:
+                spec_prop.name = custom_name
+
+    def _parse_service_events(
+        self,
+        service: dict[str, Any],
+        spec_service: MIoTSpecService,
+        prop_map: dict[int, MIoTSpecProperty],
+    ) -> None:
+        """Parse events of a service."""
+        for event in service.get('events', []):
+            if ('iid' not in event or 'type' not in event or
+                    'description' not in event or 'arguments' not in event):
+                continue
+            e_type_strs: list[str] = event['type'].split(':')
+            spec_event: MIoTSpecEvent = MIoTSpecEvent(spec=event,
+                                                      service=spec_service)
+            spec_event.name = e_type_strs[3]
+            # Filter spec event
+            spec_event.need_filter = (
+                spec_service.need_filter or
+                (self._spec_filter.filter_event(siid=service['iid'],
+                                                eiid=event['iid'])
+                 if 'need_filter' not in event else event['need_filter']))
+            if spec_event.need_filter:
+                continue
+            if e_type_strs[1] != 'miot-spec-v2':
+                spec_event.proprietary = spec_service.proprietary or True
+            spec_event.description_trans = (
+                self._multi_lang.translate(
+                    f'e:{service["iid"]}:{event["iid"]}') or
+                self._std_lib.event_translate(key=':'.join(e_type_strs[:5]))
+                or event['description'] or spec_event.name)
+                
+            # 優化：使用查找表直接關聯
+            spec_event.argument = [prop_map[piid] for piid in event['arguments'] if piid in prop_map]
+            spec_service.events.append(spec_event)
+
+    def _parse_service_actions(
+        self,
+        service: dict[str, Any],
+        spec_service: MIoTSpecService,
+        prop_map: dict[int, MIoTSpecProperty],
+    ) -> None:
+        """Parse actions of a service."""
+        for action in service.get('actions', []):
+            if ('iid' not in action or 'type' not in action or
+                    'description' not in action or 'in' not in action):
+                continue
+            a_type_strs: list[str] = action['type'].split(':')
+            spec_action: MIoTSpecAction = MIoTSpecAction(
+                spec=action, service=spec_service)
+            spec_action.name = a_type_strs[3]
+            # Filter spec action
+            spec_action.need_filter = (
+                spec_service.need_filter or
+                (self._spec_filter.filter_action(siid=service['iid'],
+                                                 aiid=action['iid'])
+                 if 'need_filter' not in action else action['need_filter']))
+            if spec_action.need_filter:
+                continue
+            if a_type_strs[1] != 'miot-spec-v2':
+                spec_action.proprietary = spec_service.proprietary or True
+            spec_action.description_trans = (
+                self._multi_lang.translate(
+                    f'a:{service["iid"]}:{action["iid"]}') or
+                self._std_lib.action_translate(
+                    key=':'.join(a_type_strs[:5])) or
+                action['description'] or spec_action.name)
+                
+            # 優化：使用查找表直接關聯
+            spec_action.in_ = [prop_map[piid] for piid in action['in'] if piid in prop_map]
+            spec_action.out = [prop_map[piid] for piid in action['out'] if piid in prop_map]
+            spec_service.actions.append(spec_action)
+
     async def __parse(self, urn: str) -> MIoTSpecInstance:
         _LOGGER.debug('parse urn, %s', urn)
         # Load spec instance
@@ -1242,156 +1408,15 @@ class MIoTSpecParser:
                 self._std_lib.service_translate(key=type_strs_prefix_5) or
                 service['description'] or spec_service.name)
                 
-            # Parse service property
-            for property_ in service.get('properties', []):
-                if ('iid' not in property_ or 'type' not in property_ or
-                        'description' not in property_ or
-                        'format' not in property_ or 'access' not in property_):
-                    continue
-                p_type_strs: list[str] = property_['type'].split(':')
-                # Handle special property.unit
-                unit = property_.get('unit', None)
-                spec_prop: MIoTSpecProperty = MIoTSpecProperty(
-                    spec=property_,
-                    service=spec_service,
-                    format_=property_['format'],
-                    access=property_['access'],
-                    unit=unit if unit != 'none' else None)
-                spec_prop.name = p_type_strs[3]
-                # Filter spec property
-                spec_prop.need_filter = (
-                    spec_service.need_filter or
-                    (self._spec_filter.filter_property(siid=service['iid'],
-                                                       piid=property_['iid'])
-                     if 'need_filter' not in property_ else
-                     property_['need_filter']))
-                if spec_prop.need_filter:
-                    continue
-                if p_type_strs[1] != 'miot-spec-v2':
-                    spec_prop.proprietary = spec_service.proprietary or True
-                    
-                p_type_strs_prefix_5 = ':'.join(p_type_strs[:5])
-                    
-                spec_prop.description_trans = (
-                    self._multi_lang.translate(
-                        f'p:{service["iid"]}:{property_["iid"]}') or
-                    self._std_lib.property_translate(
-                        key=p_type_strs_prefix_5) or
-                    property_['description'] or spec_prop.name)
-                # Modify value-list before translation
-                v_list: list[dict] = self._spec_modify.get_prop_value_list(
-                    siid=service['iid'], piid=property_['iid'])
-                if (v_list is None) and ('value-list' in property_):
-                    v_list = property_['value-list']
-                if v_list is not None:
-                    for index, v in enumerate(v_list):
-                        if v['description'].strip() == '':
-                            v['description'] = f'v_{v["value"]}'
-                        v['name'] = v['description']
-                        v['description'] = (self._multi_lang.translate(
-                            f'v:{service["iid"]}:{property_["iid"]}:'
-                            f'{index}') or self._std_lib.value_translate(
-                                key=f'{type_strs[:5]}|{p_type_strs[3]}|'
-                                f'{v["description"]}') or v['name'])
-                    spec_prop.value_list = MIoTSpecValueList.from_spec(v_list)
-                if 'value-range' in property_:
-                    spec_prop.value_range = property_['value-range']
-                elif property_['format'] == 'bool':
-                    v_tag = p_type_strs_prefix_5
-                    v_descriptions = (await
-                                      self._bool_trans.translate_async(urn=v_tag
-                                                                      ))
-                    if v_descriptions:
-                        # bool without value-list.name
-                        spec_prop.value_list = v_descriptions
-                # Prop modify
-                spec_prop.unit = self._spec_modify.get_prop_unit(
-                    siid=service['iid'],
-                    piid=property_['iid']) or spec_prop.unit
-                spec_prop.expr = self._spec_modify.get_prop_expr(
-                    siid=service['iid'], piid=property_['iid'])
-                spec_prop.icon = self._spec_modify.get_prop_icon(
-                    siid=service['iid'], piid=property_['iid'])
-                spec_service.properties.append(spec_prop)
-                custom_access = self._spec_modify.get_prop_access(
-                    siid=service['iid'], piid=property_['iid'])
-                if custom_access:
-                    spec_prop.access = custom_access
-                custom_format = self._spec_modify.get_prop_format(
-                    siid=service['iid'], piid=property_['iid'])
-                if custom_format:
-                    spec_prop.format_ = custom_format
-                custom_range = self._spec_modify.get_prop_value_range(
-                    siid=service['iid'], piid=property_['iid'])
-                if custom_range:
-                    spec_prop.value_range = custom_range
-                custom_name = self._spec_modify.get_prop_name(
-                    siid=service['iid'], piid=property_['iid'])
-                if custom_name:
-                    spec_prop.name = custom_name
-                    
-            # 優化：建立 O(1) 字典查找表，取代下方事件與動作解析時的巢狀迴圈
+            # Parse service properties
+            await self._parse_service_properties(service, spec_service, type_strs)
+                
+            # Build property lookup cache
             prop_map = {prop.iid: prop for prop in spec_service.properties}
             
-            # Parse service event
-            for event in service.get('events', []):
-                if ('iid' not in event or 'type' not in event or
-                        'description' not in event or 'arguments' not in event):
-                    continue
-                e_type_strs: list[str] = event['type'].split(':')
-                spec_event: MIoTSpecEvent = MIoTSpecEvent(spec=event,
-                                                          service=spec_service)
-                spec_event.name = e_type_strs[3]
-                # Filter spec event
-                spec_event.need_filter = (
-                    spec_service.need_filter or
-                    (self._spec_filter.filter_event(siid=service['iid'],
-                                                    eiid=event['iid'])
-                     if 'need_filter' not in event else event['need_filter']))
-                if spec_event.need_filter:
-                    continue
-                if e_type_strs[1] != 'miot-spec-v2':
-                    spec_event.proprietary = spec_service.proprietary or True
-                spec_event.description_trans = (
-                    self._multi_lang.translate(
-                        f'e:{service["iid"]}:{event["iid"]}') or
-                    self._std_lib.event_translate(key=':'.join(e_type_strs[:5]))
-                    or event['description'] or spec_event.name)
-                    
-                # 優化：使用查找表直接關聯
-                spec_event.argument = [prop_map[piid] for piid in event['arguments'] if piid in prop_map]
-                spec_service.events.append(spec_event)
-                
-            # Parse service action
-            for action in service.get('actions', []):
-                if ('iid' not in action or 'type' not in action or
-                        'description' not in action or 'in' not in action):
-                    continue
-                a_type_strs: list[str] = action['type'].split(':')
-                spec_action: MIoTSpecAction = MIoTSpecAction(
-                    spec=action, service=spec_service)
-                spec_action.name = a_type_strs[3]
-                # Filter spec action
-                spec_action.need_filter = (
-                    spec_service.need_filter or
-                    (self._spec_filter.filter_action(siid=service['iid'],
-                                                     aiid=action['iid'])
-                     if 'need_filter' not in action else action['need_filter']))
-                if spec_action.need_filter:
-                    continue
-                if a_type_strs[1] != 'miot-spec-v2':
-                    spec_action.proprietary = spec_service.proprietary or True
-                spec_action.description_trans = (
-                    self._multi_lang.translate(
-                        f'a:{service["iid"]}:{action["iid"]}') or
-                    self._std_lib.action_translate(
-                        key=':'.join(a_type_strs[:5])) or
-                    action['description'] or spec_action.name)
-                    
-                # 優化：使用查找表直接關聯
-                spec_action.in_ = [prop_map[piid] for piid in action['in'] if piid in prop_map]
-                spec_action.out = [prop_map[piid] for piid in action['out'] if piid in prop_map]
-                spec_service.actions.append(spec_action)
+            # Parse service events and actions
+            self._parse_service_events(service, spec_service, prop_map)
+            self._parse_service_actions(service, spec_service, prop_map)
                 
             spec_instance.services.append(spec_service)
 
