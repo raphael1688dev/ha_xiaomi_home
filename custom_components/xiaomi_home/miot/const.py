@@ -120,3 +120,17 @@ MIHOME_CA_CERT_STR: str = '-----BEGIN CERTIFICATE-----\n' \
 
 MIHOME_CA_CERT_SHA256: str = \
     '8b7bf306be3632e08b0ead308249e5f2b2520dc921ad143872d5fcc7c68d6759'
+
+# Connect types that support LAN (local network) control.
+# Used in miot_client.py, miot_device.py, and sensor.py to determine
+# whether a device can be reached over the local network.
+# Values: 0=WiFi, 8=BLE Mesh(WiFi), 12=WiFi+BLE, 23=WiFi+BLE Mesh
+LAN_CAPABLE_CONNECT_TYPES: frozenset[int] = frozenset({0, 8, 12, 23})
+
+# MiHome cloud API error codes for device status.
+# Returned in the 'rc' field of cloud property-get responses.
+# -704010000: Unauthorized — device has likely been deleted from the account
+# -704042011: Device offline — the device is not reachable via cloud
+MIHOME_ERR_DEVICE_REMOVED: int = -704010000
+MIHOME_ERR_DEVICE_OFFLINE: int = -704042011
+

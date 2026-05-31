@@ -282,7 +282,7 @@ class MIoTNetwork:
                     url, timeout=self._DETECT_TIMEOUT):
                 return self._main_loop.time() - start_ts
         except Exception:  # pylint: disable=broad-exception-caught
-            pass
+            _LOGGER.debug('network http probe failed, url=%s', url)
         return self._DETECT_TIMEOUT
 
     def __get_network_info(self) -> dict[str, NetworkInfo]:

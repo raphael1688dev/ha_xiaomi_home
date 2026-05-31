@@ -47,7 +47,7 @@ from .specs.specv2entity import (
     SPEC_SERVICE_TRANS_MAP
 )
 from .common import slugify_name, slugify_did
-from .const import DOMAIN
+from .const import DOMAIN, LAN_CAPABLE_CONNECT_TYPES
 from .miot_client import MIoTClient
 from .miot_error import MIoTClientError, MIoTDeviceError
 from .miot_mips import MIoTDeviceState
@@ -920,7 +920,7 @@ class MIoTServiceEntity(Entity):
 
             
         # Set entity attr
-        if miot_device.connect_type in [0, 8, 12, 23]:
+        if miot_device.connect_type in LAN_CAPABLE_CONNECT_TYPES:
             self._attr_should_poll = True
         else:
             self._attr_should_poll = False
@@ -1247,7 +1247,7 @@ class MIoTPropertyEntity(Entity):
             spec_name=spec.name, siid=spec.service.iid, piid=spec.iid)
             
         # Set entity attr
-        if miot_device.connect_type in [0, 8, 12, 23]:
+        if miot_device.connect_type in LAN_CAPABLE_CONNECT_TYPES:
             self._attr_should_poll = True
         else:
             self._attr_should_poll = False

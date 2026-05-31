@@ -21,8 +21,9 @@ from homeassistant.components import zeroconf
 from .common import MIoTMatcher, slugify_did
 from .const import (
     DEFAULT_CTRL_MODE, DEFAULT_INTEGRATION_LANGUAGE, DEFAULT_NICK_NAME, DOMAIN,
-    MIHOME_CERT_EXPIRE_MARGIN, NETWORK_REFRESH_INTERVAL,
-    OAUTH2_CLIENT_ID, SUPPORT_CENTRAL_GATEWAY_CTRL,
+    LAN_CAPABLE_CONNECT_TYPES, MIHOME_CERT_EXPIRE_MARGIN,
+    MIHOME_ERR_DEVICE_OFFLINE, MIHOME_ERR_DEVICE_REMOVED,
+    NETWORK_REFRESH_INTERVAL, OAUTH2_CLIENT_ID, SUPPORT_CENTRAL_GATEWAY_CTRL,
     DEFAULT_COVER_DEAD_ZONE_WIDTH)
 from .miot_cloud import MIoTHttpClient, MIoTOauthClient
 from .miot_error import MIoTClientError, MIoTHttpError, MIoTErrorCode
@@ -713,7 +714,7 @@ class MIoTClient:
                         'code', MIoTErrorCode.CODE_MIPS_INVALID_RESULT.value)
                     if rc in [0, 1]:
                         return True
-                    if rc in [-704010000, -704042011]:
+                    if rc in [MIHOME_ERR_DEVICE_REMOVED, MIHOME_ERR_DEVICE_OFFLINE]:
                         # Device remove or offline
                         _LOGGER.error('device may be removed or offline, %s', did)
                         self._main_loop.create_task(
@@ -858,7 +859,7 @@ class MIoTClient:
                         'code', MIoTErrorCode.CODE_MIPS_INVALID_RESULT.value)
                     if rc in [0, 1]:
                         return result.get('out', [])
-                    if rc in [-704010000, -704042011]:
+                    if rc in [MIHOME_ERR_DEVICE_REMOVED, MIHOME_ERR_DEVICE_OFFLINE]:
                         # Device remove or offline
                         _LOGGER.error('device removed or offline, %s', did)
                         self._main_loop.create_task(
@@ -1239,7 +1240,7 @@ class MIoTClient:
                     'connect_type': info['connect_type']}
                 for did, info in self._device_list_cache.items()
                 if 'token' in info and 'connect_type' in info
-                and info['connect_type'] in [0, 8, 12, 23]
+                and info['connect_type'] in LAN_CAPABLE_CONNECT_TYPES
             })
         else:
             for did, info in self._device_list_lan.items():
@@ -1526,7 +1527,7 @@ class MIoTClient:
                     'connect_type': info['connect_type']}
                 for did, info in self._device_list_cache.items()
                 if 'token' in info and 'connect_type' in info
-                and info['connect_type'] in [0, 8, 12, 23]
+                and info['connect_type'] in LAN_CAPABLE_CONNECT_TYPES
             })
 
         self.__request_show_devices_changed_notify()

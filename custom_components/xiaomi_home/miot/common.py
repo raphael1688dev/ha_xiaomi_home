@@ -108,7 +108,8 @@ class MIoTHttp:
                         if response.status == 200:
                             return await response.text()
                         return None
-        except Exception:
+        except (aiohttp.ClientError, asyncio.TimeoutError, OSError) as err:
+            _LOGGER.warning('MIoTHttp.get_async failed, url=%s, %s', url, err)
             return None
 
     @staticmethod
@@ -149,9 +150,10 @@ class MIoTHttp:
                         if response.status == 200:
                             return await response.text()
                         return None
-        except Exception:
+        except (aiohttp.ClientError, asyncio.TimeoutError, OSError) as err:
+            _LOGGER.warning('MIoTHttp.post_async failed, url=%s, %s', url, err)
             return None
-            
+
     @staticmethod
     async def post_json_async(
         url: str, data: Optional[dict] = None, headers: Optional[dict] = None,
