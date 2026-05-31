@@ -561,3 +561,10 @@ Example:
   - Fixed a residual `TypeError` thrown by `_remove_from_registry_by_uid` during the startup phase. 
   - An outdated `platform='sensor'` keyword argument was erroneously passed into the helper method during the binary sensor filtration logic, causing config entry setups to abort. 
   - (Note: Subsequent `MipsCloudClient` reconnect errors were verified as normal behavior of the integration gracefully recovering from overseas connection drops, confirming the `r15` zombie-thread cleanup is working as intended).
+
+## New Features & Enhancements (Version 20260531r23)
+- **Technical Debt Phase I Cleanup**:
+  - **Dead Imports Removed (TD-04)**: Eliminated unused `urllib.request.Request`, `urlopen`, `urllib.error.URLError`, and `urllib.parse.urlencode` from `miot/common.py`. These were legacy remnants from a pre-aiohttp era and increased import time with no benefit.
+  - **Dead Code Removed (TD-08)**: Removed `hass.data[DOMAIN]['entities']` dictionary that was initialized and populated on startup but never read by any consumer. This was a silent no-op accumulating memory across all platform registrations.
+  - **Circular Import Eliminated (TD-09)**: Moved `_handle_devices_filter` utility function from `config_flow.py` into the shared `network.py` module. Both `config_flow.py` and `options_flow.py` now import it from the canonical location, completely eliminating the `from .config_flow import ...` lazy import (anti-pattern) that existed inside `options_flow.py`'s function body.
+  - **File I/O Exceptions Narrowed (TD-02)**: Changed two `except Exception` blocks in `miot/miot_i18n.py` that wrapped `load_json_file()` calls to the more precise `except (OSError, ValueError)`. This correctly covers file-not-found (`OSError`) and JSON parse failures (`json.JSONDecodeError` is a subclass of `ValueError`) without silently swallowing unrelated errors.

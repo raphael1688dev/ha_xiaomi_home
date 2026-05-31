@@ -60,7 +60,7 @@ from .miot.miot_network import MIoTNetwork
 from .miot.miot_client import MIoTClient, get_miot_instance_async
 from .miot.miot_spec import MIoTSpecParser
 from .miot.miot_lan import MIoTLan
-from .network import _handle_network_detect_addr
+from .network import _handle_network_detect_addr, _handle_devices_filter
 from .oauth import _handle_oauth_webhook
 
 _LOGGER = logging.getLogger(__name__)
@@ -684,7 +684,6 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     include_items['did'] = device_list_in
                 else:
                     exclude_items['did'] = device_list_in
-            from .config_flow import _handle_devices_filter
 
             statistics_logic: str = user_input.get('statistics_logic', 'or')
             device_filter_list = _handle_devices_filter(

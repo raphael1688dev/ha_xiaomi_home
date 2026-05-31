@@ -6,9 +6,6 @@ from os import path
 import random
 from typing import Any, Optional
 import hashlib
-from urllib.parse import urlencode
-from urllib.request import Request, urlopen
-from urllib.error import URLError
 
 import aiohttp
 from paho.mqtt.matcher import MQTTMatcher

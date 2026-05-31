@@ -32,12 +32,7 @@ async def async_setup(hass: HomeAssistant, hass_config: dict) -> bool:
     hass.data.setdefault(DOMAIN, {})
     # {[entry_id:str]: MIoTClient}, miot client instance
     hass.data[DOMAIN].setdefault('miot_clients', {})
-    # {[entry_id:str]: list[MIoTDevice]}
     hass.data[DOMAIN].setdefault('devices', {})
-    # {[entry_id:str]: entities}
-    hass.data[DOMAIN].setdefault('entities', {})
-    for platform in SUPPORTED_PLATFORMS:
-        hass.data[DOMAIN]['entities'][platform] = []
     MIoTHttp.set_shared_session(async_get_clientsession(hass))
     return True
 
@@ -328,7 +323,6 @@ async def async_unload_entry(
     unload_ok = await hass.config_entries.async_unload_platforms(
         config_entry, SUPPORTED_PLATFORMS)
     if unload_ok:
-        hass.data[DOMAIN]['entities'].pop(entry_id, None)
         hass.data[DOMAIN]['devices'].pop(entry_id, None)
     # Remove integration data
     miot_client: MIoTClient = hass.data[DOMAIN]['miot_clients'].pop(

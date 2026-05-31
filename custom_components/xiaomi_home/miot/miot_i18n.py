@@ -86,7 +86,7 @@ class _MIoTSpecMultiLang:
                     self._lang in trans_local_json[urn_key]):
                 trans_cache.update(trans_local_json[urn_key][self._lang])
                 trans_local = trans_local_json[urn_key]
-        except Exception as err:
+        except (OSError, ValueError) as err:
             _LOGGER.error('multi lang, load json file error, %s\n%s', err, traceback.format_exc())
         # Revert end
         # Default language
@@ -159,8 +159,9 @@ class MIoTI18n:
                 os.path.join(
                     os.path.dirname(os.path.abspath(__file__)),
                     f'i18n/{self._lang}.json'))
-        except Exception as err:
+        except (OSError, ValueError) as err:
             _LOGGER.error('load i18n file error, %s\n%s', err, traceback.format_exc())
+
             return
             
         # Check if the file is a valid JSON file
