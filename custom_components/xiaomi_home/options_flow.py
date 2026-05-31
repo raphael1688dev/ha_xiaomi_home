@@ -911,10 +911,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                         'net_interfaces': selected_if_new,
                         'enable_subscribe': enable_subscribe_new}
             ):
-                raise AbortFlow(
-                    reason='storage_error',
-                    description_placeholders={
-                        'error': 'Update net config error'})
+                raise AbortFlow(reason='storage_error_net_config')
             await self._miot_lan.update_net_ifs_async(net_ifs=selected_if_new)
             await self._miot_lan.update_subscribe_option(
                 enable_subscribe=enable_subscribe_new)
@@ -1095,9 +1092,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 _LOGGER.error(
                     'save devices async failed, %s, %s',
                     self._uid, self._cloud_server)
-                raise AbortFlow(
-                    reason='storage_error', description_placeholders={
-                        'error': 'save user devices error'})
+                raise AbortFlow(reason='storage_error_save_devices')
             self._need_reload = True
         if self._update_trans_rules:
             self._need_reload = True
@@ -1127,9 +1122,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     cloud_server=self._cloud_server,
                     config={'devices_remove': self._devices_remove})
         ):
-            raise AbortFlow(
-                reason='storage_error',
-                description_placeholders={'error': 'Update user config error'})
+            raise AbortFlow(reason='storage_error_user_config')
         entry_title = (
             f'{self._nick_name_new or self._nick_name}: '
             f'{self._uid} [{CLOUD_SERVERS[self._cloud_server]}]')

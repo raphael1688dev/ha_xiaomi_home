@@ -219,6 +219,9 @@
             "options_flow_error": "集成重新配置錯誤：{error}",
             "re_add": "請重新添加集成，錯誤信息：{error}",
             "storage_error": "集成存儲模塊異常。請重試或者重新添加集成：{error}",
+            "storage_error_net_config": "集成存儲錯誤：更新網絡配置失敗。請重試或者重新添加集成。",
+            "storage_error_save_devices": "集成存儲錯誤：保存設備列表失敗。請重試或者重新添加集成。",
+            "storage_error_user_config": "集成存儲錯誤：更新用戶配置失敗。請重試或者重新添加集成。",
             "inconsistent_account": "帳號信息不一致。請使用正確的帳號登錄。"
         }
     }

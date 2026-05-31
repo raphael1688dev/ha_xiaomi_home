@@ -219,6 +219,9 @@
             "options_flow_error": "Integration re-configuration error: {error}",
             "re_add": "Please re-add the integration. Error message: {error}",
             "storage_error": "Integration storage module exception. Please try again or re-add the integration: {error}",
+            "storage_error_net_config": "Integration storage error: failed to update network configuration. Please try again or re-add the integration.",
+            "storage_error_save_devices": "Integration storage error: failed to save device list. Please try again or re-add the integration.",
+            "storage_error_user_config": "Integration storage error: failed to update user configuration. Please try again or re-add the integration.",
             "inconsistent_account": "Account information is inconsistent. Please login with the correct account."
         }
     }

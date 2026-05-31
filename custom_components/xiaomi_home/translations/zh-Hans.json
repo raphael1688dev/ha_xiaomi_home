@@ -219,6 +219,9 @@
             "options_flow_error": "集成重新配置错误：{error}",
             "re_add": "请重新添加集成，错误信息：{error}",
             "storage_error": "集成存储模块异常。请重试或者重新添加集成：{error}",
+            "storage_error_net_config": "集成存储错误：更新网络配置失败。请重试或者重新添加集成。",
+            "storage_error_save_devices": "集成存储错误：保存设备列表失败。请重试或者重新添加集成。",
+            "storage_error_user_config": "集成存储错误：更新用户配置失败。请重试或者重新添加集成。",
             "inconsistent_account": "账号信息不一致。请使用正确的账号登录。"
         }
     }

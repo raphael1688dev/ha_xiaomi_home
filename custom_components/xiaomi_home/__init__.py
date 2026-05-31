@@ -115,6 +115,53 @@ async def _async_migrate_legacy_entity_ids(hass: HomeAssistant, entry_id: str, m
                 )
 
 
+def _async_cleanup_entity_registry(hass: HomeAssistant, entry_id: str) -> None:
+    """Clean up invalid entities from the entity registry."""
+    er = entity_registry.async_get(hass=hass)
+    entries_to_remove = entity_registry.async_entries_for_config_entry(er, entry_id)
+    if not isinstance(entries_to_remove, list):
+        entries_to_remove = list(entries_to_remove)
+
+    for entry in entries_to_remove:
+        if (
+            entry.entity_id.startswith(f'{DOMAIN}.')
+            or entry.entity_id.split('.', 1)[0] not in SUPPORTED_PLATFORMS
+        ):
+            er.async_remove(entity_id=entry.entity_id)
+
+
+async def _async_remove_deleted_devices(
+    hass: HomeAssistant,
+    entry_data: dict,
+    miot_client: MIoTClient,
+) -> None:
+    """Remove deleted devices from HA device registry."""
+    devices_remove = (await miot_client.miot_storage.load_user_config_async(
+        uid=entry_data['uid'],
+        cloud_server=entry_data['cloud_server'],
+        keys=['devices_remove'])).get('devices_remove', [])
+
+    if isinstance(devices_remove, list) and devices_remove:
+        dr = device_registry.async_get(hass)
+        for did in devices_remove:
+            device_entry = dr.async_get_device(
+                identifiers={(
+                    DOMAIN,
+                    slugify_did(
+                        cloud_server=entry_data['cloud_server'],
+                        did=did))},
+                connections=None)
+            if not device_entry:
+                _LOGGER.error('remove device not found, %s', did)
+                continue
+            dr.async_remove_device(device_id=device_entry.id)
+            _LOGGER.info(
+                'delete device entry, %s, %s', did, device_entry.id)
+        await miot_client.miot_storage.update_user_config_async(
+            uid=entry_data['uid'],
+            cloud_server=entry_data['cloud_server'],
+            config={'devices_remove': []})
+
 
 async def async_setup_entry(
     hass: HomeAssistant, config_entry: ConfigEntry
@@ -158,19 +205,9 @@ async def async_setup_entry(
             loop=miot_client.main_loop)
         await manufacturer.init_async()
         miot_devices: list[MIoTDevice] = []
+        _async_cleanup_entity_registry(hass, entry_id)
         er = entity_registry.async_get(hass=hass)
         er_entries = list(entity_registry.async_entries_for_config_entry(er, entry_id))
-        # Remove entities from HA entity registry
-        entries_to_remove = entity_registry.async_entries_for_config_entry(er, entry_id)
-        if not isinstance(entries_to_remove, list):
-            entries_to_remove = list(entries_to_remove)
-            
-        for entry in entries_to_remove:
-            if (
-                entry.entity_id.startswith(f'{DOMAIN}.')
-                or entry.entity_id.split('.', 1)[0] not in SUPPORTED_PLATFORMS
-            ):
-                er.async_remove(entity_id=entry.entity_id)
         
         # Remove entities from HA entity registry
         def _remove_from_registry_by_uid(unique_ids: list[str]) -> None:
@@ -269,31 +306,7 @@ async def async_setup_entry(
             config_entry, SUPPORTED_PLATFORMS)
 
         # Remove the deleted devices
-        devices_remove = (await miot_client.miot_storage.load_user_config_async(
-            uid=entry_data['uid'],
-            cloud_server=entry_data['cloud_server'],
-            keys=['devices_remove'])).get('devices_remove', [])
-            
-        if isinstance(devices_remove, list) and devices_remove:
-            dr = device_registry.async_get(hass)
-            for did in devices_remove:
-                device_entry = dr.async_get_device(
-                    identifiers={(
-                        DOMAIN,
-                        slugify_did(
-                            cloud_server=entry_data['cloud_server'],
-                            did=did))},
-                    connections=None)
-                if not device_entry:
-                    _LOGGER.error('remove device not found, %s', did)
-                    continue
-                dr.async_remove_device(device_id=device_entry.id)
-                _LOGGER.info(
-                    'delete device entry, %s, %s', did, device_entry.id)
-            await miot_client.miot_storage.update_user_config_async(
-                uid=entry_data['uid'],
-                cloud_server=entry_data['cloud_server'],
-                config={'devices_remove': []})
+        await _async_remove_deleted_devices(hass, entry_data, miot_client)
 
         await spec_parser.deinit_async()
         await manufacturer.deinit_async()

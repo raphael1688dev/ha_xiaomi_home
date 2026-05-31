@@ -25,7 +25,7 @@ from .const import (
     OAUTH2_CLIENT_ID, SUPPORT_CENTRAL_GATEWAY_CTRL,
     DEFAULT_COVER_DEAD_ZONE_WIDTH)
 from .miot_cloud import MIoTHttpClient, MIoTOauthClient
-from .miot_error import MIoTClientError, MIoTErrorCode
+from .miot_error import MIoTClientError, MIoTHttpError, MIoTErrorCode
 from .miot_mips import (
     MIoTDeviceState, MipsCloudClient, MipsDeviceState,
     MipsLocalClient)
@@ -77,7 +77,6 @@ class CtrlMode(Enum):
 class MIoTClient:
     """MIoT client instance."""
     # pylint: disable=unused-argument
-    # pylint: disable=broad-exception-caught
     # pylint: disable=inconsistent-quotes
     _main_loop: asyncio.AbstractEventLoop
 
@@ -597,7 +596,7 @@ class MIoTClient:
                 'refresh oauth info failed (%s, %s): %s (user needs to re-auth)',
                 self._uid, self._cloud_server, err)
             return False
-        except Exception as err:
+        except Exception as err:  # pylint: disable=broad-exception-caught
             self.__show_client_error_notify(
                 message=self._i18n.translate(
                     'miot.client.invalid_oauth_info'),  # type: ignore
@@ -759,7 +758,7 @@ class MIoTClient:
                         did=did, siid=siid, piid=piid)
                     if result is not None:
                         return result
-            except Exception as err:
+            except (MIoTClientError, MIoTHttpError, asyncio.TimeoutError) as err:
                 _LOGGER.error(
                     'client get prop from cloud error, %s, %s',
                     err, traceback.format_exc())
@@ -783,7 +782,7 @@ class MIoTClient:
                         res = await mips.get_prop_async(did=did, siid=siid, piid=piid)
                         if res is not None:
                             return res
-                    except Exception as err:
+                    except (MIoTClientError, asyncio.TimeoutError) as err:
                         _LOGGER.error('client get prop from gw error, %s\n%s', err, traceback.format_exc())
             # Lan
             device_lan = self._device_list_lan.get(did, None)
@@ -792,7 +791,7 @@ class MIoTClient:
                     res = await self._miot_lan.get_prop_async(did=did, siid=siid, piid=piid)
                     if res is not None:
                         return res
-                except Exception as err:
+                except (MIoTClientError, asyncio.TimeoutError) as err:
                     _LOGGER.error('client get prop from lan error, %s\n%s', err, traceback.format_exc())
             return None
 
@@ -1371,7 +1370,7 @@ class MIoTClient:
                 f'{params["did"]}/p/{params["siid"]}/{params["piid"]}'))
             for sub in subs:
                 sub.handler(params, sub.handler_ctx)
-        except Exception as err:
+        except Exception as err:  # pylint: disable=broad-exception-caught
             _LOGGER.error('on prop msg error, %s, %s\n%s', params, err, traceback.format_exc())
 
     @final
@@ -1381,7 +1380,7 @@ class MIoTClient:
                 f'{params["did"]}/e/{params["siid"]}/{params["eiid"]}'))
             for sub in subs:
                 sub.handler(params, sub.handler_ctx)
-        except Exception as err:
+        except Exception as err:  # pylint: disable=broad-exception-caught
             _LOGGER.error('on event msg error, %s, %s\n%s', params, err, traceback.format_exc())
 
     @final
@@ -1496,7 +1495,7 @@ class MIoTClient:
         try:
             result = await self._http.get_devices_async(
                 home_ids=list(self._entry_data.get('home_selected', {}).keys()))
-        except Exception as err:
+        except Exception as err:  # pylint: disable=broad-exception-caught
             _LOGGER.error('refresh cloud devices failed, %s\n%s', err, traceback.format_exc())
             self._refresh_cloud_devices_timer = self._main_loop.call_later(
                 REFRESH_CLOUD_DEVICES_RETRY_DELAY,
