@@ -446,6 +446,11 @@ class MIoTDevice:
         """Connection Type."""
         return (self.miot_client.device_list.get(self.did) or {}).get('connect_type', -1)
 
+    @property
+    def is_lan_capable(self) -> bool:
+        """Check if the device connect type is LAN capable."""
+        return self.connect_type in LAN_CAPABLE_CONNECT_TYPES
+
     @cached_property
     def did_tag(self) -> str:
         return slugify_did(
@@ -920,7 +925,7 @@ class MIoTServiceEntity(Entity):
 
             
         # Set entity attr
-        if miot_device.connect_type in LAN_CAPABLE_CONNECT_TYPES:
+        if miot_device.is_lan_capable:
             self._attr_should_poll = True
         else:
             self._attr_should_poll = False
@@ -1247,7 +1252,7 @@ class MIoTPropertyEntity(Entity):
             spec_name=spec.name, siid=spec.service.iid, piid=spec.iid)
             
         # Set entity attr
-        if miot_device.connect_type in LAN_CAPABLE_CONNECT_TYPES:
+        if miot_device.is_lan_capable:
             self._attr_should_poll = True
         else:
             self._attr_should_poll = False

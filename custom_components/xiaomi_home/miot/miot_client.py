@@ -590,8 +590,8 @@ class MIoTClient:
             return True
         except MIoTOauthError as err:
             self.__show_client_error_notify(
-                message=self._i18n.translate(
-                    'miot.client.invalid_oauth_info'),  # type: ignore
+                message=self._i18n.translate_str(
+                    'miot.client.invalid_oauth_info'),
                 notify_key='oauth_info')
             _LOGGER.warning(
                 'refresh oauth info failed (%s, %s): %s (user needs to re-auth)',
@@ -599,8 +599,8 @@ class MIoTClient:
             return False
         except Exception as err:  # pylint: disable=broad-exception-caught
             self.__show_client_error_notify(
-                message=self._i18n.translate(
-                    'miot.client.invalid_oauth_info'),  # type: ignore
+                message=self._i18n.translate_str(
+                    'miot.client.invalid_oauth_info'),
                 notify_key='oauth_info')
             _LOGGER.error(
                 'refresh oauth info error (%s, %s), %s, %s',
@@ -643,8 +643,8 @@ class MIoTClient:
             return True
         except MIoTClientError as error:
             self.__show_client_error_notify(
-                message=self._i18n.translate(
-                    'miot.client.invalid_cert_info'),  # type: ignore
+                message=self._i18n.translate_str(
+                    'miot.client.invalid_cert_info'),
                 notify_key='user_cert')
             _LOGGER.error(
                 'refresh user cert error, %s, %s',
@@ -725,8 +725,8 @@ class MIoTClient:
 
         # Show error message
         raise MIoTClientError(
-            f'{self._i18n.translate("miot.client.device_exec_error")}, '
-            f'{self._i18n.translate("error.common.-10007")}')
+            f'{self._i18n.translate_str("miot.client.device_exec_error")}, '
+            f'{self._i18n.translate_str("error.common.-10007")}')
 
     def request_refresh_prop(
         self, did: str, siid: int, piid: int
@@ -870,8 +870,8 @@ class MIoTClient:
         _LOGGER.error(
             'client action failed, %s.%d.%d', did, siid, aiid)
         raise MIoTClientError(
-            f'{self._i18n.translate("miot.client.device_exec_error")}, '
-            f'{self._i18n.translate("error.common.-10007")}')
+            f'{self._i18n.translate_str("miot.client.device_exec_error")}, '
+            f'{self._i18n.translate_str("error.common.-10007")}')
 
     def sub_prop(
         self, did: str, handler: Callable[[dict, Any], None],
@@ -970,13 +970,13 @@ class MIoTClient:
                 break
 
     def __get_exec_error_with_rc(self, rc: int) -> str:
-        err_msg: str = self._i18n.translate(
-            key=f'error.common.{rc}')  # type: ignore
+        err_msg: Optional[str] = self._i18n.translate_str(
+            key=f'error.common.{rc}')
         if not err_msg:
-            err_msg = f'{self._i18n.translate(key="error.common.-10000")}, '
+            err_msg = f'{self._i18n.translate_str(key="error.common.-10000")}, '
             err_msg += f'code={rc}'
         return (
-            f'{self._i18n.translate(key="miot.client.device_exec_error")}, '
+            f'{self._i18n.translate_str(key="miot.client.device_exec_error")}, '
             + err_msg)
 
     @final
@@ -1403,8 +1403,8 @@ class MIoTClient:
             type_=dict)  # type: ignore
         if not cache_list:
             self.__show_client_error_notify(
-                message=self._i18n.translate(
-                    'miot.client.invalid_device_cache'),  # type: ignore
+                message=self._i18n.translate_str(
+                    'miot.client.invalid_device_cache'),
                 notify_key='device_cache')
             raise MIoTClientError('load device list from cache error')
         else:
@@ -1505,8 +1505,8 @@ class MIoTClient:
             return
         if not result or 'devices' not in result:
             self.__show_client_error_notify(
-                message=self._i18n.translate(
-                    'miot.client.device_cloud_error'),  # type: ignore
+                message=self._i18n.translate_str(
+                    'miot.client.device_cloud_error'),
                 notify_key='device_cloud')
             return
         else:
@@ -1747,16 +1747,16 @@ class MIoTClient:
 
             self._persistence_notify(
                 f'{DOMAIN}{self._uid}{self._cloud_server}{notify_key}error',
-                self._i18n.translate(
-                    key='miot.client.xiaomi_home_error_title'),  # type: ignore
-                self._i18n.translate(
+                self._i18n.translate_str(
+                    key='miot.client.xiaomi_home_error_title'),
+                self._i18n.translate_str(
                     key='miot.client.xiaomi_home_error',
                     replace={
                         'nick_name': self._entry_data.get(
                             'nick_name', DEFAULT_NICK_NAME),
                         'uid': self._uid,
                         'cloud_server': self._cloud_server,
-                        'message': message}))  # type: ignore
+                        'message': message}))
         else:
             self._persistence_notify(
                 f'{DOMAIN}{self._uid}{self._cloud_server}{notify_key}error',
@@ -1815,38 +1815,38 @@ class MIoTClient:
 
         message = ''
         if 'add' in self._display_devs_notify and count_add:
-            message += self._i18n.translate(
+            message += self._i18n.translate_str(
                 key='miot.client.device_list_add',
                 replace={
                     'count': count_add,
-                    'message': message_add})  # type: ignore
+                    'message': message_add}) or ''
         if 'del' in self._display_devs_notify and count_del:
-            message += self._i18n.translate(
+            message += self._i18n.translate_str(
                 key='miot.client.device_list_del',
                 replace={
                     'count': count_del,
-                    'message': message_del})  # type: ignore
+                    'message': message_del}) or ''
         if 'offline' in self._display_devs_notify and count_offline:
-            message += self._i18n.translate(
+            message += self._i18n.translate_str(
                 key='miot.client.device_list_offline',
                 replace={
                     'count': count_offline,
-                    'message': message_offline})  # type: ignore
+                    'message': message_offline}) or ''
         if message != '':
             msg_hash = hash(message)
             if msg_hash == self._display_notify_content_hash:
                 _LOGGER.debug(
                     'device list changed notify content no change, return')
                 return
-            network_status = self._i18n.translate(
+            network_status = self._i18n.translate_str(
                 key='miot.client.network_status_online'
                 if self._network.network_status
                 else 'miot.client.network_status_offline')
             self._persistence_notify(
                 self.__gen_notify_key('dev_list_changed'),
-                self._i18n.translate(
-                    'miot.client.device_list_changed_title'),  # type: ignore
-                self._i18n.translate(
+                self._i18n.translate_str(
+                    'miot.client.device_list_changed_title'),
+                self._i18n.translate_str(
                     key='miot.client.device_list_changed',
                     replace={
                         'nick_name': self._entry_data.get(
@@ -1854,7 +1854,7 @@ class MIoTClient:
                         'uid': self._uid,
                         'cloud_server': self._cloud_server,
                         'network_status': network_status,
-                        'message': message}))  # type: ignore
+                        'message': message}))
             self._display_notify_content_hash = msg_hash
             _LOGGER.debug(
                 'show device list changed notify, add %s, del %s, offline %s',
@@ -1879,13 +1879,13 @@ class MIoTClient:
     @final
     def __show_central_state_changed_notify(self, connected: bool) -> None:
         conn_status: str = (
-            self._i18n.translate('miot.client.central_state_connected')
+            self._i18n.translate_str('miot.client.central_state_connected') or ''
             if connected else
-            self._i18n.translate('miot.client.central_state_disconnected'))
+            self._i18n.translate_str('miot.client.central_state_disconnected') or '')
         self._persistence_notify(
             self.__gen_notify_key('central_state_changed'),
-            self._i18n.translate('miot.client.central_state_changed_title'),
-            self._i18n.translate(key='miot.client.central_state_changed',
+            self._i18n.translate_str('miot.client.central_state_changed_title'),
+            self._i18n.translate_str(key='miot.client.central_state_changed',
                 replace={
                     'nick_name': self._entry_data.get(
                                 'nick_name', DEFAULT_NICK_NAME),

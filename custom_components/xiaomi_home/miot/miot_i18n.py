@@ -193,3 +193,13 @@ class MIoTI18n:
                 result = result.replace(f'{{{k}}}', str(v))
                 
         return result or None
+
+    def translate_str(
+        self, key: str, replace: Optional[dict[str, Any]] = None
+    ) -> Optional[str]:
+        """Translate key and expect a string, otherwise return None."""
+        result = self.translate(key, replace)
+        if isinstance(result, str):
+            return result
+        return None
+

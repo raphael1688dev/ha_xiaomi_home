@@ -1,4 +1,11 @@
 # CHANGELOG
+## v0.4.9 (Mod)
+### Added
+- Add `translate_str` helper method to `MIoTI18n` class to obtain type-safe string translations and remove over a dozen `# type: ignore` comments in `miot_client.py` and `oauth.py`.
+- Add `is_lan_capable` property on `MIoTDevice` class to encapsulate and deduplicate capability connection checks.
+### Changed
+- Move `tests/` directory from `custom_components/xiaomi_home/tests/` to the repository root directory `tests/` to optimize packaging footprint and prevent packaging tests into custom component release bundles.
+
 ## v0.4.8 (Mod)
 ### Added
 - Add CtrlMode (Auto, Cloud, Local) and poll priority configurations to Integration Config Flow.

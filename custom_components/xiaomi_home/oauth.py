@@ -88,8 +88,9 @@ async def _handle_oauth_webhook(hass, webhook_id, request):
 
         success_trans: dict = {}
         if i18n:
-            success_trans = i18n.translate(
-                'oauth2.success') or {}  # type: ignore
+            trans = i18n.translate('oauth2.success')
+            if isinstance(trans, dict):
+                success_trans = trans
         # Delete
         del hass.data[DOMAIN][webhook_id]['oauth_state']
         del hass.data[DOMAIN][webhook_id]['i18n']
@@ -110,10 +111,12 @@ async def _handle_oauth_webhook(hass, webhook_id, request):
         err_msg: str = str(err)
         if i18n:
             if isinstance(err, MIoTConfigError):
-                err_msg = i18n.translate(
+                err_msg = i18n.translate_str(
                     f'oauth2.error_msg.{err.code.value}'
-                ) or err.message  # type: ignore
-            fail_trans = i18n.translate('oauth2.fail') or {}  # type: ignore
+                ) or err.message
+            trans = i18n.translate('oauth2.fail')
+            if isinstance(trans, dict):
+                fail_trans = trans
         return web.Response(
             body=await oauth_redirect_page(
                 title=fail_trans.get('title', 'Authentication Failed'),

@@ -14,7 +14,7 @@ from homeassistant.const import EntityCategory
 
 from .miot.miot_device import MIoTDevice, MIoTPropertyEntity
 from .miot.miot_spec import MIoTSpecProperty
-from .miot.const import DOMAIN, LAN_CAPABLE_CONNECT_TYPES
+from .miot.const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -54,7 +54,7 @@ async def async_setup_entry(
     new_entities.extend([
         MIoTIPAddressSensor(miot_device=miot_device, entry_id=config_entry.entry_id)
         for miot_device in device_list
-        if miot_device.connect_type in LAN_CAPABLE_CONNECT_TYPES
+        if miot_device.is_lan_capable
     ])
 
     if new_entities:
