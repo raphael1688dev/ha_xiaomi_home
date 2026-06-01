@@ -6,6 +6,8 @@ import asyncio
 import os
 import platform
 import time
+import ast
+import operator
 from typing import Any, Optional, Type, Union
 from functools import cached_property
 import logging
@@ -391,6 +393,89 @@ class _MIoTSpecBase:
         return self.spec_id == value.spec_id
 
 
+_ALLOWED_OPERATORS = {
+    ast.Add: operator.add,
+    ast.Sub: operator.sub,
+    ast.Mult: operator.mul,
+    ast.Div: operator.truediv,
+    ast.FloorDiv: operator.floordiv,
+    ast.Mod: operator.mod,
+    ast.Pow: operator.pow,
+    ast.USub: operator.neg,
+    ast.UAdd: operator.pos,
+    ast.Not: operator.not_,
+    ast.Eq: operator.eq,
+    ast.NotEq: operator.ne,
+    ast.Lt: operator.lt,
+    ast.LtE: operator.le,
+    ast.Gt: operator.gt,
+    ast.GtE: operator.ge,
+}
+
+def safe_eval(expr_str: str, src_value: Any) -> Any:
+    """Safely evaluate mathematical and comparison expressions on src_value."""
+    if '__' in expr_str:
+        raise ValueError("Double underscores not allowed")
+
+    node = ast.parse(expr_str.strip(), mode='eval')
+
+    def _eval(n):
+        if isinstance(n, ast.Constant):  # Python >= 3.8
+            return n.value
+        elif hasattr(ast, 'Num') and isinstance(n, getattr(ast, 'Num')):  # Python < 3.8
+            return n.n
+        elif isinstance(n, ast.Name):
+            if n.id == 'src_value':
+                return src_value
+            elif n.id == 'True':
+                return True
+            elif n.id == 'False':
+                return False
+            elif n.id == 'None':
+                return None
+            raise ValueError(f"Name not allowed: {n.id}")
+        elif isinstance(n, ast.UnaryOp):
+            operand = _eval(n.operand)
+            op_type = type(n.op)
+            if op_type in _ALLOWED_OPERATORS:
+                return _ALLOWED_OPERATORS[op_type](operand)
+            raise ValueError(f"Unary operator not allowed: {op_type}")
+        elif isinstance(n, ast.BinOp):
+            left = _eval(n.left)
+            right = _eval(n.right)
+            op_type = type(n.op)
+            if op_type in _ALLOWED_OPERATORS:
+                return _ALLOWED_OPERATORS[op_type](left, right)
+            raise ValueError(f"Binary operator not allowed: {op_type}")
+        elif isinstance(n, ast.Compare):
+            left = _eval(n.left)
+            for op, comparator in zip(n.ops, n.comparators):
+                right = _eval(comparator)
+                op_type = type(op)
+                if op_type in _ALLOWED_OPERATORS:
+                    if not _ALLOWED_OPERATORS[op_type](left, right):
+                        return False
+                    left = right
+                else:
+                    raise ValueError(f"Comparison operator not allowed: {op_type}")
+            return True
+        elif isinstance(n, ast.Call):
+            if isinstance(n.func, ast.Name) and n.func.id == 'round':
+                args = [_eval(arg) for arg in n.args]
+                if len(args) == 1:
+                    return round(args[0])
+                elif len(args) == 2:
+                    return round(args[0], args[1])
+                raise ValueError("round takes 1 or 2 arguments")
+            raise ValueError("Only 'round' function is allowed")
+        elif isinstance(n, ast.Expression):
+            return _eval(n.body)
+        else:
+            raise ValueError(f"Unsupported node type: {type(n)}")
+
+    return _eval(node)
+
+
 class MIoTSpecProperty(_MIoTSpecBase):
     """MIoT SPEC property class."""
     unit: Optional[str]
@@ -501,8 +586,7 @@ class MIoTSpecProperty(_MIoTSpecBase):
         if not self.expr:
             return src_value
         try:
-            # 優化：強制移除 __builtins__ 以阻絕 eval 可能造成的 RCE 系統漏洞
-            return eval(self.expr, {"__builtins__": {}}, {'src_value': src_value})
+            return safe_eval(self.expr, src_value)
         except Exception as err:
             _LOGGER.error('eval expression error, %s, %s, %s, %s, %s', self.iid,
                           src_value, self.expr, err, traceback.format_exc())

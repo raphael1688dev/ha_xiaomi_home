@@ -1,4 +1,9 @@
 # CHANGELOG
+## v0.4.10 (Mod)
+### Added
+- Add a highly secure AST-based mathematical safe evaluator `safe_eval` in `miot_spec.py` to replace `eval()` and completely eliminate potential RCE vulnerabilities, with thorough unit tests in `tests/test_miot_spec.py`.
+- Split the monolithic 150-line `__check_oauth_async` in `config_flow.py` into 7 single-responsibility private helper methods to improve modularity and testability.
+
 ## v0.4.9 (Mod)
 ### Added
 - Add `translate_str` helper method to `MIoTI18n` class to obtain type-safe string translations and remove over a dozen `# type: ignore` comments in `miot_client.py` and `oauth.py`.

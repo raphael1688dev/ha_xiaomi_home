@@ -463,14 +463,17 @@ class XiaomiMihomeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             progress_task=self._cc_task_oauth,  # type: ignore
         )
 
-    async def __check_oauth_async(self) -> None:
-        # TASK 1: Get oauth code
+    async def _cc_get_oauth_code(self) -> str:
+        """Get oauth code from future."""
         if not self._cc_fut_oauth_code:
             raise MIoTConfigError('oauth_code_fut_error')
         oauth_code: Optional[str] = await self._cc_fut_oauth_code
         if not oauth_code:
             raise MIoTConfigError('oauth_code_error')
-        # TASK 2: Get access_token and user_info from miot_oauth
+        return oauth_code
+
+    async def _cc_fetch_tokens(self, oauth_code: str) -> None:
+        """Get access_token and user_info from miot_oauth."""
         if not self._auth_info:
             try:
                 if not self._miot_oauth:
@@ -501,7 +504,8 @@ class XiaomiMihomeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     'get_access_token, %s, %s', err, traceback.format_exc())
                 raise MIoTConfigError('get_token_error') from err
 
-        # TASK 3: Get home info
+    async def _cc_fetch_home_info(self) -> None:
+        """Get home info and update user config storage."""
         try:
             if not self._miot_http:
                 raise MIoTConfigError('http_client_error')
@@ -522,12 +526,13 @@ class XiaomiMihomeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 'get_homeinfos error, %s, %s', err, traceback.format_exc())
             raise MIoTConfigError('get_homeinfo_error') from err
 
-        # TASK 4: Abort if unique_id configured
-        # Each MiHome account can only configure one instance
+    async def _cc_check_unique_id(self) -> None:
+        """Set and check unique ID configuration."""
         await self.async_set_unique_id(f'{self._cloud_server}{self._uid}')
         self._abort_if_unique_id_configured()
 
-        # TASK 5: Query mdns info
+    def _cc_query_mips_services(self) -> Optional[dict]:
+        """Query mdns info for central gateways."""
         mips_list = None
         if self._cloud_server in SUPPORT_CENTRAL_GATEWAY_CTRL:
             try:
@@ -537,10 +542,12 @@ class XiaomiMihomeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     'async_update_services error, %s, %s',
                     err, traceback.format_exc())
                 raise MIoTConfigError('mdns_discovery_error') from err
+        return mips_list
 
-        # TASK 6: Generate devices filter
+    def _cc_generate_devices_filter(self, mips_list: Optional[dict]) -> None:
+        """Generate devices filter with found central gateways and homes."""
         home_list = {}
-        tip_devices = self._miot_i18n.translate(key='config.other.devices')
+        tip_devices = self._miot_i18n.translate_str(key='config.other.devices') or ''
         # home list
         for device_source in ['home_list','share_home_list',
                               'separated_shared_list']:
@@ -561,17 +568,16 @@ class XiaomiMihomeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     and mips_list[group_id].get('did', None) in dev_list
                 ):
                     # i18n
-                    tip_central = self._miot_i18n.translate(
-                        key='config.other.found_central_gateway')
-                    home_info['central_did'] = mips_list[group_id].get(
-                        'did', None)
+                    tip_central = self._miot_i18n.translate_str(
+                        key='config.other.found_central_gateway') or ''
                 home_list[home_id] = (
                     f'{home_info["home_name"]} '
                     f'[ {len(dev_list)} {tip_devices} {tip_central} ]')
 
         self._cc_home_list_show = dict(sorted(home_list.items()))
 
-        # TASK 7: Get user's MiHome certificate
+    async def _cc_get_mihome_cert(self) -> None:
+        """Get user's MiHome certificate."""
         if self._cloud_server in SUPPORT_CENTRAL_GATEWAY_CTRL:
             miot_cert = MIoTCert(
                 storage=self._miot_storage,
@@ -604,6 +610,28 @@ class XiaomiMihomeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         'get user cert error, %s, %s',
                         err, traceback.format_exc())
                     raise MIoTConfigError('get_cert_error') from err
+
+    async def __check_oauth_async(self) -> None:
+        # TASK 1: Get oauth code
+        oauth_code = await self._cc_get_oauth_code()
+
+        # TASK 2: Get access_token and user_info from miot_oauth
+        await self._cc_fetch_tokens(oauth_code)
+
+        # TASK 3: Get home info
+        await self._cc_fetch_home_info()
+
+        # TASK 4: Abort if unique_id configured
+        await self._cc_check_unique_id()
+
+        # TASK 5: Query mdns info
+        mips_list = self._cc_query_mips_services()
+
+        # TASK 6: Generate devices filter
+        self._cc_generate_devices_filter(mips_list)
+
+        # TASK 7: Get user's MiHome certificate
+        await self._cc_get_mihome_cert()
 
         # Auth success, unregister oauth webhook
         webhook_async_unregister(self.hass, webhook_id=self._virtual_did)
