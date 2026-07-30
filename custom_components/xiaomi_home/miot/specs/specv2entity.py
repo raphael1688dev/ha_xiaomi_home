@@ -9,11 +9,19 @@ from homeassistant.components.sensor import SensorStateClass
 from homeassistant.components.event import EventDeviceClass
 from homeassistant.components.binary_sensor import BinarySensorDeviceClass
 
-from homeassistant.const import (CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
-                                 EntityCategory, LIGHT_LUX, UnitOfEnergy,
+from homeassistant.const import (EntityCategory, LIGHT_LUX, UnitOfEnergy,
                                  UnitOfPower, UnitOfElectricCurrent,
                                  UnitOfElectricPotential, UnitOfTemperature,
                                  UnitOfPressure, PERCENTAGE)
+
+try:
+    from homeassistant.const import UnitOfDensity  # type: ignore
+    CONCENTRATION_MICROGRAMS_PER_CUBIC_METER = UnitOfDensity.MICROGRAMS_PER_CUBIC_METER
+except (ImportError, AttributeError):
+    try:
+        from homeassistant.const import CONCENTRATION_MICROGRAMS_PER_CUBIC_METER  # type: ignore
+    except (ImportError, AttributeError):
+        CONCENTRATION_MICROGRAMS_PER_CUBIC_METER = 'μg/m³'
 
 # 優化：定義共用的不可變權限常數，減少記憶體重複配置
 _R = frozenset({'read'})

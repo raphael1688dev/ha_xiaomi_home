@@ -1,4 +1,8 @@
 # CHANGELOG
+## v0.4.11 (Mod)
+### Fixed
+- Resolve Home Assistant Core 2026.8+ deprecation warnings regarding legacy concentration constants (`CONCENTRATION_MICROGRAMS_PER_CUBIC_METER`, `CONCENTRATION_MILLIGRAMS_PER_CUBIC_METER`, `CONCENTRATION_PARTS_PER_BILLION`, `CONCENTRATION_PARTS_PER_MILLION`) by using dynamic fallback imports for `UnitOfDensity` and `UnitOfRatio`.
+
 ## v0.4.10 (Mod)
 ### Added
 - Add a highly secure AST-based mathematical safe evaluator `safe_eval` in `miot_spec.py` to replace `eval()` and completely eliminate potential RCE vulnerabilities, with thorough unit tests in `tests/test_miot_spec.py`.
