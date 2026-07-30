@@ -74,11 +74,14 @@ def test_unique_id_generation() -> None:
 
 
 def test_device_tracker_extra_state_attributes() -> None:
-    """Test DeviceTracker extra_state_attributes without battery_level property getter."""
+    """Test DeviceTracker extra_state_attributes and dynamic _attr_* updates without property getter overrides."""
     from custom_components.xiaomi_home.device_tracker import DeviceTracker
     from custom_components.xiaomi_home.miot.miot_spec import MIoTSpecService
 
     assert "battery_level" not in DeviceTracker.__dict__
+    assert "location_name" not in DeviceTracker.__dict__
+    assert "latitude" not in DeviceTracker.__dict__
+    assert "longitude" not in DeviceTracker.__dict__
     
     mock_miot_device = MagicMock()
     mock_miot_device.miot_client.get_device_control_path.return_value = "LAN"
@@ -87,6 +90,12 @@ def test_device_tracker_extra_state_attributes() -> None:
     
     mock_prop_battery = MagicMock()
     mock_prop_battery.name = "battery-level"
+    mock_prop_lat = MagicMock()
+    mock_prop_lat.name = "latitude"
+    mock_prop_lon = MagicMock()
+    mock_prop_lon.name = "longitude"
+    mock_prop_area = MagicMock()
+    mock_prop_area.name = "area-id"
     
     mock_spec = MagicMock(spec=MIoTSpecService)
     mock_spec.name = "device-tracker"
@@ -98,13 +107,30 @@ def test_device_tracker_extra_state_attributes() -> None:
     
     mock_entity_data = MagicMock()
     mock_entity_data.spec = mock_spec
-    mock_entity_data.props = [mock_prop_battery]
+    mock_entity_data.props = [mock_prop_battery, mock_prop_lat, mock_prop_lon, mock_prop_area]
     mock_entity_data.platform = "device_tracker"
     
     tracker = DeviceTracker(miot_device=mock_miot_device, entity_data=mock_entity_data)
-    tracker.get_prop_value = MagicMock(return_value=85)
+    
+    def mock_get_prop_value(prop: MagicMock) -> Any:
+        if prop.name == "battery-level":
+            return 85
+        if prop.name == "latitude":
+            return 31.2304
+        if prop.name == "longitude":
+            return 121.4737
+        if prop.name == "area-id":
+            return "Home"
+        return None
+
+    tracker.get_prop_value = mock_get_prop_value
     
     attrs = tracker.extra_state_attributes
     assert attrs.get("battery_level") == 85
+    assert attrs.get("location_name") == "Home"
     assert attrs.get("control_path") == "LAN"
+    
+    assert tracker.latitude == 31.2304
+    assert tracker.longitude == 121.4737
+    assert tracker.location_name == "Home"
 

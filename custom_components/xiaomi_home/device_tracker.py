@@ -68,31 +68,16 @@ class DeviceTracker(MIoTServiceEntity, TrackerEntity):
             val = self.get_prop_value(prop=self._prop_battery_level)
             if val is not None:
                 attrs['battery_level'] = int(val)
+        if self._prop_latitude:
+            val = self.get_prop_value(prop=self._prop_latitude)
+            self._attr_latitude = float(val) if val is not None else None
+        if self._prop_longitude:
+            val = self.get_prop_value(prop=self._prop_longitude)
+            self._attr_longitude = float(val) if val is not None else None
+        if self._prop_area_id:
+            val = self.get_prop_value(prop=self._prop_area_id)
+            loc_str = str(val) if val is not None else None
+            self._attr_location_name = loc_str
+            if loc_str is not None:
+                attrs['location_name'] = loc_str
         return attrs
-
-    @property
-    def latitude(self) -> Optional[float]:
-        """The latitude coordinate of the device."""
-        if not self._prop_latitude:
-            return None
-        val = self.get_prop_value(prop=self._prop_latitude)
-        # 優化: 確保回傳嚴格的浮點數型別 (float)
-        return float(val) if val is not None else None
-
-    @property
-    def longitude(self) -> Optional[float]:
-        """The longitude coordinate of the device."""
-        if not self._prop_longitude:
-            return None
-        val = self.get_prop_value(prop=self._prop_longitude)
-        # 優化: 確保回傳嚴格的浮點數型別 (float)
-        return float(val) if val is not None else None
-
-    @property
-    def location_name(self) -> Optional[str]:
-        """The location name of the device."""
-        if not self._prop_area_id:
-            return None
-        val = self.get_prop_value(prop=self._prop_area_id)
-        # 優化: 確保回傳嚴格的字串型別 (str)
-        return str(val) if val is not None else None
