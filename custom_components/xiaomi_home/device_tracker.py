@@ -2,7 +2,7 @@
 """
 Device tracker entities for Xiaomi Home.
 """
-from typing import Optional
+from typing import Any, Optional
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -61,13 +61,14 @@ class DeviceTracker(MIoTServiceEntity, TrackerEntity):
                 self._prop_area_id = prop
 
     @property
-    def battery_level(self) -> Optional[int]:
-        """The battery level of the device."""
-        if not self._prop_battery_level:
-            return None
-        val = self.get_prop_value(prop=self._prop_battery_level)
-        # 優化: 確保回傳嚴格的整數型別 (int)，防止 HA 寫入警告
-        return int(val) if val is not None else None
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return the extra state attributes of the device tracker."""
+        attrs = super().extra_state_attributes
+        if self._prop_battery_level:
+            val = self.get_prop_value(prop=self._prop_battery_level)
+            if val is not None:
+                attrs['battery_level'] = int(val)
+        return attrs
 
     @property
     def latitude(self) -> Optional[float]:
