@@ -530,6 +530,8 @@ class MIoTDevice:
             for platform, items in platform_dict.items():
                 for item in items:
                     spec_item = item.spec if item_type == 'service' else item
+                    if item_type == 'service' and not isinstance(spec_item, MIoTSpecService):
+                        continue
                     
                     # Generate unique_id
                     if has_description:
@@ -718,8 +720,7 @@ class MIoTDevice:
                     entity_data.props.add(prop)
             # action
             for action in service.actions:
-                if action.name in set.union(
-                        required_actions, optional_actions):
+                if action.name in (required_actions | optional_actions):
                     action.platform = platform
                     entity_data.actions.add(action)
             service.platform = platform
