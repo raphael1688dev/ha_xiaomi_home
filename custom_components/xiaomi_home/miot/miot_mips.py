@@ -538,12 +538,13 @@ class _MipsClient(ABC):
         self.__mqtt_loop_handler()
 
     def __mqtt_write_handler(self) -> None:
-        self._internal_loop.remove_writer(self._mqtt_fd)
+        if self._mqtt_fd != -1:
+            self._internal_loop.remove_writer(self._mqtt_fd)
         self.__mqtt_loop_handler()
 
     def __mqtt_timer_handler(self) -> None:
         self.__mqtt_loop_handler()
-        if self._mqtt:
+        if self._mqtt and self._mqtt_fd != -1:
             self._mqtt_timer = self._internal_loop.call_later(
                 self.MQTT_INTERVAL_S, self.__mqtt_timer_handler)
 
@@ -556,13 +557,14 @@ class _MipsClient(ABC):
                 if not self._internal_loop.is_closed():
                     self._internal_loop.stop()
                 return
-            if self._mqtt:
+            if self._mqtt and self._mqtt_fd != -1:
                 self._mqtt.loop_read()
-            if self._mqtt:
+            if self._mqtt and self._mqtt_fd != -1:
                 self._mqtt.loop_write()
-            if self._mqtt:
+            if self._mqtt and self._mqtt_fd != -1:
                 self._mqtt.loop_misc()
-            if self._mqtt and self._mqtt.want_write():
+            if (self._mqtt and self._mqtt_fd != -1
+                    and self._mqtt.want_write()):
                 self._internal_loop.add_writer(
                     self._mqtt_fd, self.__mqtt_write_handler)
         except Exception as err:  # pylint: disable=broad-exception-caught
