@@ -3,7 +3,7 @@
 Sensor entities for Xiaomi Home.
 """
 import logging
-from typing import Any
+from typing import Any, Optional
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -155,6 +155,14 @@ class Sensor(MIoTPropertyEntity, SensorEntity):
             return self._value[:255]
 
         return self._value
+
+    @property
+    def extra_state_attributes(self) -> Optional[dict[str, Any]]:
+        """Return the untruncated value when the state has to cut it."""
+        if isinstance(self._value, str) and len(self._value) > 255:
+            return {'value': self._value}
+        return None
+
 
 class MIoTControlPathSensor(SensorEntity):
     """Diagnostic sensor to display the current control path of the device."""
