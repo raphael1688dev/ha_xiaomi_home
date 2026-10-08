@@ -3,7 +3,7 @@
 MIoT client instance.
 """
 from copy import deepcopy
-from typing import Any, Callable, Optional, final
+from typing import Any, Callable, Coroutine, Optional, final
 import asyncio
 import json
 import logging
@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from enum import Enum, auto
 from itertools import islice
 
+import aiohttp
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.components import zeroconf
@@ -26,7 +27,7 @@ from .const import (
     NETWORK_REFRESH_INTERVAL, OAUTH2_CLIENT_ID, SUPPORT_CENTRAL_GATEWAY_CTRL,
     DEFAULT_COVER_DEAD_ZONE_WIDTH)
 from .miot_cloud import MIoTHttpClient, MIoTOauthClient
-from .miot_error import MIoTClientError, MIoTHttpError, MIoTErrorCode
+from .miot_error import MIoTClientError, MIoTHttpError, MIoTErrorCode, MIoTMipsError
 from .miot_mips import (
     MIoTDeviceState, MipsCloudClient, MipsDeviceState,
     MipsLocalClient)
@@ -222,6 +223,17 @@ class MIoTClient:
         self._display_binary_bool = 'bool' in entry_data.get(
             'display_binary_mode', ['text'])
 
+        self._background_tasks: set[asyncio.Task] = set()
+
+    def _create_tracked_task(
+        self, coro: Coroutine[Any, Any, Any], name: Optional[str] = None
+    ) -> asyncio.Task:
+        """Create an asyncio Task and retain a strong reference to prevent GC in Python 3.14+."""
+        task = self._main_loop.create_task(coro, name=name)
+        self._background_tasks.add(task)
+        task.add_done_callback(self._background_tasks.discard)
+        return task
+
     async def init_async(self, session: Optional[Any] = None) -> None:
         # Load user config and check
         self._user_config = await self._storage.load_user_config_async(
@@ -408,6 +420,12 @@ class MIoTClient:
             message=None, notify_key='device_cache')
         self.__show_client_error_notify(
             message=None, notify_key='device_cloud')
+
+        # Cancel any pending background tasks
+        for task in list(self._background_tasks):
+            if not task.done():
+                task.cancel()
+        self._background_tasks.clear()
 
         _LOGGER.info('deinit_async, %s', self._uid)
 
@@ -717,7 +735,7 @@ class MIoTClient:
                     if rc in [MIHOME_ERR_DEVICE_REMOVED, MIHOME_ERR_DEVICE_OFFLINE]:
                         # Device remove or offline
                         _LOGGER.error('device may be removed or offline, %s', did)
-                        self._main_loop.create_task(
+                        self._create_tracked_task(
                             self.__refresh_cloud_device_with_dids_async(
                                 dids=[did]))
                     raise MIoTClientError(
@@ -741,7 +759,7 @@ class MIoTClient:
         if self._refresh_props_timer:
             return
         self._refresh_props_timer = self._main_loop.call_later(
-            REFRESH_PROPS_DELAY, lambda: self._main_loop.create_task(
+            REFRESH_PROPS_DELAY, lambda: self._create_tracked_task(
                 self.__refresh_props_handler()))
 
     async def get_prop_async(self, did: str, siid: int, piid: int) -> Any:
@@ -862,7 +880,7 @@ class MIoTClient:
                     if rc in [MIHOME_ERR_DEVICE_REMOVED, MIHOME_ERR_DEVICE_OFFLINE]:
                         # Device remove or offline
                         _LOGGER.error('device removed or offline, %s', did)
-                        self._main_loop.create_task(
+                        self._create_tracked_task(
                             self.__refresh_cloud_device_with_dids_async(
                                 dids=[did]))
                     raise MIoTClientError(
@@ -989,7 +1007,7 @@ class MIoTClient:
             self._refresh_token_timer.cancel()
             self._refresh_token_timer = None
         self._refresh_token_timer = self._main_loop.call_later(
-            delay_sec, lambda: self._main_loop.create_task(
+            delay_sec, lambda: self._create_tracked_task(
                 self.refresh_oauth_info_async()))
 
     @final
@@ -998,7 +1016,7 @@ class MIoTClient:
             self._refresh_cert_timer.cancel()
             self._refresh_cert_timer = None
         self._refresh_cert_timer = self._main_loop.call_later(
-            delay_sec, lambda: self._main_loop.create_task(
+            delay_sec, lambda: self._create_tracked_task(
                 self.refresh_user_cert_async()))
 
     @final
@@ -1313,10 +1331,16 @@ class MIoTClient:
                 'online', 'specV2Access', 'pushAvailable'
             ]
         }
-        gw_list = await mips.get_dev_list_async(
-            payload=json.dumps(payload))
+        try:
+            gw_list = await mips.get_dev_list_async(
+                payload=json.dumps(payload))
+        except (MIoTMipsError, Exception) as err:
+            _LOGGER.warning(
+                'local mips get_dev_list_async failed, %s: %s', did_list, err)
+            return
         if gw_list is None:
-            _LOGGER.error('local mips get_dev_list_async failed, %s', did_list)
+            _LOGGER.warning(
+                'local mips get_dev_list_async returned None, %s', did_list)
             return
         await self.__update_devices_from_gw_async(
             gw_list=gw_list, group_id=mips.group_id, filter_dids=[
@@ -1496,11 +1520,18 @@ class MIoTClient:
         try:
             result = await self._http.get_devices_async(
                 home_ids=list(self._entry_data.get('home_selected', {}).keys()))
+        except (TimeoutError, asyncio.TimeoutError, aiohttp.ClientError) as err:
+            _LOGGER.warning('refresh cloud devices failed (network/timeout), %s', err)
+            self._refresh_cloud_devices_timer = self._main_loop.call_later(
+                REFRESH_CLOUD_DEVICES_RETRY_DELAY,
+                lambda: self._create_tracked_task(
+                    self.__refresh_cloud_devices_async()))
+            return
         except Exception as err:  # pylint: disable=broad-exception-caught
             _LOGGER.error('refresh cloud devices failed, %s\n%s', err, traceback.format_exc())
             self._refresh_cloud_devices_timer = self._main_loop.call_later(
                 REFRESH_CLOUD_DEVICES_RETRY_DELAY,
-                lambda: self._main_loop.create_task(
+                lambda: self._create_tracked_task(
                     self.__refresh_cloud_devices_async()))
             return
         if not result or 'devices' not in result:
@@ -1553,7 +1584,7 @@ class MIoTClient:
         if self._refresh_cloud_devices_timer:
             self._refresh_cloud_devices_timer.cancel()
         self._refresh_cloud_devices_timer = self._main_loop.call_later(
-            delay_sec, lambda: self._main_loop.create_task(
+            delay_sec, lambda: self._create_tracked_task(
                 self.__refresh_cloud_devices_async()))
 
     @final
@@ -1650,11 +1681,17 @@ class MIoTClient:
                 'online', 'specV2Access', 'pushAvailable'
             ]
         }
-        gw_list: dict = await mips.get_dev_list_async(
-            payload=json.dumps(payload))
+        try:
+            gw_list = await mips.get_dev_list_async(
+                payload=json.dumps(payload))
+        except (MIoTMipsError, Exception) as err:
+            _LOGGER.warning(
+                'refresh gw devices with group_id failed, %s, %s: %s',
+                self._uid, group_id, err)
+            gw_list = None
         if gw_list is None:
-            _LOGGER.error(
-                'refresh gw devices with group_id failed, %s, %s',
+            _LOGGER.warning(
+                'refresh gw devices with group_id returned None, %s, %s',
                 self._uid, group_id)
             # Retry until success
             self.__request_refresh_gw_devices_by_group_id(
@@ -1679,7 +1716,7 @@ class MIoTClient:
                 refresh_timer.cancel()
             self._mips_local_state_changed_timers[group_id] = (
                 self._main_loop.call_later(
-                    0, lambda: self._main_loop.create_task(
+                    0, lambda: self._create_tracked_task(
                         self.__refresh_gw_devices_with_group_id_async(
                             group_id=group_id))))
         if refresh_timer:
@@ -1687,7 +1724,7 @@ class MIoTClient:
         self._mips_local_state_changed_timers[group_id] = (
             self._main_loop.call_later(
                 REFRESH_GATEWAY_DEVICES_DELAY,
-                lambda: self._main_loop.create_task(
+                lambda: self._create_tracked_task(
                     self.__refresh_gw_devices_with_group_id_async(
                         group_id=group_id))))
 
@@ -1718,7 +1755,7 @@ class MIoTClient:
             self._refresh_props_retry_count = 0
             if self._refresh_props_list:
                 self._refresh_props_timer = self._main_loop.call_later(
-                    REFRESH_PROPS_DELAY, lambda: self._main_loop.create_task(
+                    REFRESH_PROPS_DELAY, lambda: self._create_tracked_task(
                         self.__refresh_props_handler()))
             else:
                 self._refresh_props_timer = None
@@ -1736,7 +1773,7 @@ class MIoTClient:
         _LOGGER.debug(
             'refresh props failed, retry, %s', self._refresh_props_retry_count)
         self._refresh_props_timer = self._main_loop.call_later(
-            REFRESH_PROPS_RETRY_DELAY, lambda: self._main_loop.create_task(
+            REFRESH_PROPS_RETRY_DELAY, lambda: self._create_tracked_task(
                 self.__refresh_props_handler()))
 
     @final

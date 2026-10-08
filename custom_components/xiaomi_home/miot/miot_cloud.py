@@ -672,11 +672,21 @@ class MIoTHttpClient:
         }
 
     async def get_props_async(self, params: list) -> list:
+        clean_params = []
+        for p in params:
+            if isinstance(p, dict) and 'did' in p and 'siid' in p and 'piid' in p:
+                clean_params.append({
+                    'did': str(p['did']),
+                    'siid': int(p['siid']),
+                    'piid': int(p['piid']),
+                })
+        if not clean_params:
+            return []
         res_obj = await self.__mihome_api_post_async(
             url_path='/app/v2/miotspec/prop/get',
             data={
                 'datasource': 1,
-                'params': params
+                'params': clean_params
             },
         )
         if 'result' not in res_obj:

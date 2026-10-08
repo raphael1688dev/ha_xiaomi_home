@@ -352,6 +352,10 @@ class _MipsClient(ABC):
         if self._logger:
             self._logger.info(f'{self._client_id}, '+msg, *args, **kwargs)
 
+    def log_warning(self, msg, *args, **kwargs) -> None:
+        if self._logger:
+            self._logger.warning(f'{self._client_id}, '+msg, *args, **kwargs)
+
     def log_error(self, msg, *args, **kwargs) -> None:
         if self._logger:
             self._logger.error(f'{self._client_id}, '+msg, *args, **kwargs)
@@ -625,13 +629,13 @@ class _MipsClient(ABC):
             self._event_disconnect.clear)
 
     def __on_connect_failed(self, client: Client, user_data: Any) -> None:
-        self.log_error('mips connect failed')
+        self.log_warning('mips connect failed')
         # Try to reconnect
         self.__mips_try_reconnect()
 
     def __on_disconnect(self,  client, user_data, rc, props) -> None:
         if self._mqtt_state:
-            (self.log_info if rc == 0 else self.log_error)(
+            (self.log_info if rc == 0 else self.log_warning)(
                 f'mips disconnect, {rc}, {props}')
             self._mqtt_state = False
             if self._mqtt_timer:
@@ -762,7 +766,7 @@ class _MipsClient(ABC):
         interval: float = 0
         if not immediately:
             interval = self.__get_next_reconnect_time()
-            self.log_error(
+            self.log_warning(
                 'mips try reconnect after %ss', interval)
         self._mips_reconnect_timer = self._internal_loop.call_later(
             interval, self.__mips_connect)

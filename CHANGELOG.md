@@ -1,4 +1,11 @@
 # CHANGELOG
+## v0.4.13 (Mod)
+### Fixed
+- Fix Python 3.14+ aggressive garbage collection bug causing `Error doing job: Task was destroyed but it is pending! coro=<MIoTClient.__refresh_props_handler()...>` by retaining strong references to background asyncio tasks in `MIoTClient._background_tasks`.
+- Fix JSON serialization error `TypeError: Type is not JSON serializable: coroutine` in cloud property polling: decouple coroutines from request dictionaries in `MIoTLanManager`, sanitize request parameters to pure `{did, siid, piid}` dicts before calling `get_props_async`, and add defense-in-depth sanitization in `MIoTHttpClient.get_props_async`.
+- Prevent unhandled task exceptions `Task exception was never retrieved ... MIoTMipsError('invalid result')` by wrapping `mips.get_dev_list_async` calls in `try...except (MIoTMipsError, Exception)`.
+- Optimize logging levels during temporary network disconnects/reconnects and timeouts in `MIoTMips`, `MIoTCloudManager`, and `MIoTClient` from ERROR to WARNING to eliminate log flooding.
+
 ## v0.4.12 (Mod)
 ### Fixed
 - Resolve Home Assistant Core 2026.8+ deprecation warnings regarding legacy concentration constants (`CONCENTRATION_MICROGRAMS_PER_CUBIC_METER`, `CONCENTRATION_MILLIGRAMS_PER_CUBIC_METER`, `CONCENTRATION_PARTS_PER_BILLION`, `CONCENTRATION_PARTS_PER_MILLION`) by using dynamic fallback imports for `UnitOfDensity` and `UnitOfRatio`.
