@@ -153,12 +153,21 @@ class MIoTI18n:
         if self._data:
             return
         data = None
+        lang = self._lang
+        if not os.path.isfile(os.path.join(
+                os.path.dirname(os.path.abspath(__file__)),
+                f'i18n/{lang}.json')):
+            _LOGGER.warning(
+                'localization file for language "%s" not found. Integration UI switched to "%s", however, '
+                'the selected language "%s" will be used to retrieve data from Xiaomi Cloud.',
+                self._lang, DEFAULT_INTEGRATION_LANGUAGE, self._lang)
+            lang = DEFAULT_INTEGRATION_LANGUAGE
         try:
             data = await self._main_loop.run_in_executor(
                 None, load_json_file,
                 os.path.join(
                     os.path.dirname(os.path.abspath(__file__)),
-                    f'i18n/{self._lang}.json'))
+                    f'i18n/{lang}.json'))
         except (OSError, ValueError) as err:
             _LOGGER.error('load i18n file error, %s\n%s', err, traceback.format_exc())
 

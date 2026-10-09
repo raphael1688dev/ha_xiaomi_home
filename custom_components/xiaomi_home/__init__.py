@@ -243,6 +243,9 @@ async def async_setup_entry(
                 kept_items = []
                 for item in platform_dict[platform]:
                     spec_item = item.spec if item_type == 'service' else item
+                    if (item_type == 'service' and not isinstance(spec_item, MIoTSpecService)):
+                        kept_items.append(item)
+                        continue
                     if spec_item.need_filter or (miot_client.hide_non_standard_entities and spec_item.proprietary):
                         uids_to_remove = []
                         if has_description:
