@@ -23,7 +23,7 @@ except (ImportError, AttributeError):
     except (ImportError, AttributeError):
         CONCENTRATION_MICROGRAMS_PER_CUBIC_METER = 'μg/m³'
 
-# 優化：定義共用的不可變權限常數，減少記憶體重複配置
+# Optimized: Define shared immutable permission constants to reduce memory re-allocation
 _R = frozenset({'read'})
 _W = frozenset({'write'})
 _RW = frozenset({'read', 'write'})

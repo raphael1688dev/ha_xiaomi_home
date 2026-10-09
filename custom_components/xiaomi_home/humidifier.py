@@ -31,14 +31,14 @@ async def async_setup_entry(
 
     new_entities = []
     for miot_device in device_list:
-        # 處理加濕器實體
+        # Handle humidifier entities
         for data in miot_device.entity_list.get('humidifier', []):
             data.platform = 'humidifier'
             data.device_class = HumidifierDeviceClass.HUMIDIFIER
             new_entities.append(
                 Humidifier(miot_device=miot_device, entity_data=data))
                 
-        # 處理除濕器實體
+        # Handle dehumidifier entities
         for data in miot_device.entity_list.get('dehumidifier', []):
             data.platform = 'dehumidifier'
             data.device_class = HumidifierDeviceClass.DEHUMIDIFIER
@@ -95,7 +95,7 @@ class Humidifier(MIoTServiceEntity, HumidifierEntity):
                                   self.entity_id)
                     continue
                 self._mode_map = prop.value_list.to_map()
-                # 優化: 預先建立 O(1) 的模式反向查找字典，避免執行期效能損耗
+                # Optimized: Pre-build O(1) mode reverse lookup dictionary to prevent runtime performance overhead
                 self._mode_reverse_map = {v: k for k, v in self._mode_map.items()}
                 
                 self._attr_available_modes = list(self._mode_map.values())
@@ -117,7 +117,7 @@ class Humidifier(MIoTServiceEntity, HumidifierEntity):
 
     async def async_set_mode(self, mode: str) -> None:
         """Set new target preset mode."""
-        # 優化: 使用 O(1) 字典查找取代 O(N) 遍歷
+        # Optimized: Use O(1) dictionary lookup instead of O(N) traversal
         mode_val = self._mode_reverse_map.get(mode)
         if mode_val is not None:
             await self.set_property_async(prop=self._prop_mode, value=mode_val)
@@ -128,7 +128,7 @@ class Humidifier(MIoTServiceEntity, HumidifierEntity):
         if not self._prop_on:
             return None
         val = self.get_prop_value(prop=self._prop_on)
-        # 優化: 嚴格轉換為 bool 型別並安全過濾 None，符合 HA 規範
+        # Optimized: Strictly cast to bool and safely filter None, complying with HA standards
         return bool(val) if val is not None else None
 
     @property

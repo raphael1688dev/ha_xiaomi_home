@@ -146,7 +146,7 @@ class Vacuum(MIoTServiceEntity, StateVacuumEntity):
                                   self.entity_id)
                     continue
                 self._fan_level_map = prop.value_list.to_map()
-                # 優化: 預先建立 O(1) 風速反向查找字典，取代 O(N) 掃描
+                # Optimized: Pre-build O(1) fan speed reverse lookup dictionary instead of O(N) scanning
                 self._fan_level_reverse_map = {v: k for k, v in self._fan_level_map.items()}
                 self._attr_fan_speed_list = list(self._fan_level_map.values())
                 self._attr_supported_features |= VacuumEntityFeature.FAN_SPEED
@@ -211,7 +211,7 @@ class Vacuum(MIoTServiceEntity, StateVacuumEntity):
 
     async def async_set_fan_speed(self, fan_speed: str, **kwargs: Any) -> None:
         """Set fan speed."""
-        # 優化: O(1) 字典查找取代 O(N) 遍歷
+        # Optimized: Use O(1) dictionary lookup instead of O(N) traversal
         fan_level_value = self._fan_level_reverse_map.get(fan_speed)
         if fan_level_value is not None:
             await self.set_property_async(prop=self._prop_fan_level,
@@ -223,7 +223,7 @@ class Vacuum(MIoTServiceEntity, StateVacuumEntity):
         if not self._fan_level_map or not self._prop_fan_level:
             return None
         val = self.get_prop_value(prop=self._prop_fan_level)
-        # 優化: 直接使用 O(1) 字典獲取並加上安全過濾
+        # Optimized: Retrieve directly using O(1) dictionary with safe fallback
         return self._fan_level_map.get(val) if val is not None else None
 
     if HA_CORE_HAS_ACTIVITY:

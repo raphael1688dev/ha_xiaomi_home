@@ -22,7 +22,7 @@ async def async_setup_entry(
     device_list: list[MIoTDevice] = hass.data[DOMAIN]['devices'][
         config_entry.entry_id]
 
-    # 優化: 扁平化巢狀迴圈並改為 List Comprehension，提升大量設備時的載入效能
+    # Optimized: Flatten nested loops using list comprehension, improving loading performance with large device counts
     new_entities = [
         BinarySensor(miot_device=miot_device, spec=prop)
         for miot_device in device_list
@@ -46,13 +46,13 @@ class BinarySensor(MIoTPropertyEntity, BinarySensorEntity):
     @property
     def is_on(self) -> bool | None:
         """On/Off state. True if the binary sensor is on, False otherwise."""
-        # 優化: 阻擋啟動初期 _value 為 None 時所導致的「幽靈觸發 (Ghost Triggers)」
+        # Optimized: Block 'Ghost Triggers' caused by _value being None during initial startup
         if self._value is None:
             return None
 
-        # 針對門窗感測器 (contact-state) 的反轉邏輯
+        # Invert logic specifically for door/window sensors (contact-state)
         if self.spec.name == 'contact-state':
             return not bool(self._value)
             
-        # 優化: 確保嚴格回傳 boolean 型別，符合 HA 規範
+        # Optimized: Ensure strict boolean return type, complying with HA standards
         return bool(self._value)

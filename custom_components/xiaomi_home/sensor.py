@@ -28,7 +28,7 @@ async def async_setup_entry(
     device_list: list[MIoTDevice] = hass.data[DOMAIN]['devices'][
         config_entry.entry_id]
 
-    # 扁平化巢狀迴圈，改用效能更好的列表推導式
+    # Flatten nested loop using list comprehension for better performance
     new_entities = [
         Sensor(miot_device=miot_device, spec=prop)
         for miot_device in device_list
@@ -108,7 +108,7 @@ class Sensor(MIoTPropertyEntity, SensorEntity):
     @property
     def native_value(self) -> Any:
         """Return the current value of the sensor."""
-        # 保護尚未取得設備狀態時的情境
+        # Guard against uninitialized device states
         if self._value is None:
             return None
 
@@ -124,7 +124,7 @@ class Sensor(MIoTPropertyEntity, SensorEntity):
                     
         if self._value_list:
             str_val = str(self._value)
-            # O(1) 字典查找
+            # O(1) dictionary lookup
             if str_val in self._val_desc_map:
                 return self._val_desc_map[str_val]
                 

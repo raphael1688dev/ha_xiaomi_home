@@ -50,7 +50,7 @@ class Event(MIoTEventEntity, EventEntity):
         self, name: str, arguments: dict[str, Any] | None = None
     ) -> None:
         """Trigger event."""
-        # 優化: 確保 arguments 為 None 時能安全給予空字典，避免潛在的 HA 屬性報錯
+        # Optimized: Safely fallback to empty dict when arguments is None to avoid HA attribute errors
         self._trigger_event(
             event_type=name,
             event_attributes=arguments or {}

@@ -43,5 +43,5 @@ class Button(MIoTActionEntity, ButtonEntity):
 
     async def async_press(self) -> None:
         """Press the button."""
-        # 優化: 移除多餘的 return，符合 async_press -> None 的型別宣告規範
+        # Optimized: Remove redundant return to conform with async_press -> None type specification
         await self.action_async()

@@ -28,7 +28,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry,
 
     new_entities = []
     
-    # 優化: 使用 mapping 對應表將多個重複的迴圈結構扁平化，提升程式碼可讀性與擴充性
+    # Optimized: Flatten repeated loop structures using mapping table, enhancing readability and extensibility
     mapping = [
         ('air-conditioner', AirConditioner),
         ('heater', Heater),
@@ -150,7 +150,7 @@ class FeaturePresetMode(MIoTServiceEntity, ClimateEntity):
                               prop_name, self.entity_id)
                 return
             self._mode_map = prop.value_list.to_map()
-            # 優化: 預先建立 O(1) 查找字典
+            # Optimized: Pre-build O(1) lookup dictionary
             self._mode_reverse_map = {v: k for k, v in self._mode_map.items()}
             self._attr_preset_modes = prop.value_list.descriptions
             self._attr_supported_features |= (
@@ -196,7 +196,7 @@ class FeatureFanMode(MIoTServiceEntity, ClimateEntity):
                               self.entity_id)
             else:
                 self._fan_mode_map = prop.value_list.to_map()
-                # 優化: 預先建立 O(1) 查找字典
+                # Optimized: Pre-build O(1) lookup dictionary
                 self._fan_mode_reverse_map = {v: k for k, v in self._fan_mode_map.items()}
                 self._attr_fan_modes = prop.value_list.descriptions
                 self._attr_supported_features |= ClimateEntityFeature.FAN_MODE
@@ -430,7 +430,7 @@ class Heater(FeatureOnOff, FeatureTargetTemperature, FeatureTemperature,
     def hvac_mode(self) -> Optional[HVACMode]:
         """The current hvac mode."""
         is_on = self.get_prop_value(prop=self._prop_on)
-        # 優化: 保護尚未準備好的設備，防止回傳錯誤的 OFF 狀態
+        # Optimized: Guard unprepared devices to prevent returning incorrect OFF state
         if is_on is None:
             return None
         return HVACMode.HEAT if is_on else HVACMode.OFF
@@ -491,7 +491,7 @@ class AirConditioner(FeatureOnOff, FeatureTargetTemperature,
                     elif item.name in {'heat_cool'}:
                         self._hvac_mode_map[item.value] = HVACMode.HEAT_COOL
                         
-                # 優化: 預先建立 O(1) 查找字典
+                # Optimized: Pre-build O(1) lookup dictionary
                 self._hvac_mode_reverse_map = {v: k for k, v in self._hvac_mode_map.items()}
                 self._attr_hvac_modes = list(self._hvac_mode_map.values())
                 self._prop_mode = prop
@@ -523,7 +523,7 @@ class AirConditioner(FeatureOnOff, FeatureTargetTemperature,
         if self._prop_mode is None:
             return
             
-        # 優化: 取代 O(N) get_map_key 掃描
+        # Optimized: Replace O(N) get_map_key scan
         mode_value = self._hvac_mode_reverse_map.get(hvac_mode)
         if mode_value is None or not await self.set_property_async(prop=self._prop_mode, value=mode_value):
             raise RuntimeError(f'set climate prop.mode failed, {hvac_mode}, {self.entity_id}')
@@ -591,7 +591,7 @@ class AirConditioner(FeatureOnOff, FeatureTargetTemperature,
             }.get(v_ac_state['M'], None)
             
             if mode:
-                # 優化: 快速查找
+                # Optimized: Fast lookup
                 val = self._hvac_mode_reverse_map.get(mode)
                 if val is not None:
                     self.set_prop_value(prop=self._prop_mode, value=val)

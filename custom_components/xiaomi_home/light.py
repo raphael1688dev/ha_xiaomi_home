@@ -39,7 +39,7 @@ async def async_setup_entry(
     device_list: list[MIoTDevice] = hass.data[DOMAIN]['devices'][
         config_entry.entry_id]
 
-    # 優化: 扁平化雙層迴圈改用 List Comprehension，加速設備載入
+    # Optimized: Flatten nested loops with list comprehension for faster entity loading
     new_entities = [
         Light(miot_device=miot_device, entity_data=data)
         for miot_device in device_list
@@ -173,7 +173,7 @@ class Light(MIoTServiceEntity, LightEntity):
         value_on = self.get_prop_value(prop=self._prop_on)
         if value_on is None:
             return None
-        # 優化: 移除原先冗長的特例寫法，直接用 bool() 安全轉型，兼容 int(1/0) 與 bool(True/False)
+        # Optimized: Safely cast to bool, compatible with both int(1/0) and bool(True/False)
         return bool(value_on)
 
     @property
@@ -222,13 +222,13 @@ class Light(MIoTServiceEntity, LightEntity):
 
         Shall set attributes in kwargs if applicable.
         """
-        # 1. 確保燈光是開啟的 (避免尚未開機時，屬性指令被設備忽略)
+        # 1. Ensure light is on (prevents device from ignoring property commands when off)
         if self._prop_on and not self.is_on:
             value_on = True if self._prop_on.format_ == bool else 1
             await self.set_property_async(
                 prop=self._prop_on, value=value_on, write_ha_state=False)
 
-        # 優化: 2. 將所有屬性設定打包為任務，併發傳送以消除「瀑布式」延遲卡頓
+        # Optimized: 2. Bundle all property updates and send concurrently to eliminate waterfall delays
         tasks = []
 
         # brightness
@@ -249,7 +249,7 @@ class Light(MIoTServiceEntity, LightEntity):
             
         # rgb color
         if ATTR_RGB_COLOR in kwargs and self._prop_color:
-            r, g, b = kwargs[ATTR_RGB_COLOR]  # 優化: 簡化陣列取值
+            r, g, b = kwargs[ATTR_RGB_COLOR]  # Optimized: Unpack tuple directly
             rgb = (r << 16) | (g << 8) | b
             tasks.append(self.set_property_async(
                 prop=self._prop_color, value=rgb,
@@ -265,7 +265,7 @@ class Light(MIoTServiceEntity, LightEntity):
                     prop=prop, value=val,
                     write_ha_state=False))
 
-        # 併發執行所有屬性調整
+        # Concurrently execute all property adjustments
         if tasks:
             await asyncio.gather(*tasks)
 

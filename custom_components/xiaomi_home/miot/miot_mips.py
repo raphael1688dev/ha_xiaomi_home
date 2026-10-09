@@ -946,7 +946,7 @@ class MipsCloudClient(_MipsClient):
                 self.log_error(f'on_state_msg, invalid json msg, {payload}')
                 return
                 
-            # {"device_id":"xxxx","device_name":"米家智能插座3   ","event":"online",
+            # {"device_id":"xxxx","device_name":"Xiaomi Smart Plug 3   ","event":"online",
             # "model": "cuco.plug.v3","timestamp":1709001070828,"uid":xxxx}
             if msg is None or 'device_id' not in msg or 'event' not in msg:
                 self.log_error(f'on_state_msg, recv unknown msg, {payload}')
@@ -1494,7 +1494,7 @@ class MipsLocalClient(_MipsClient):
             if mips_msg.payload is None:
                 self.log_error('devListChange msg is None')
                 return
-            # Optimized: 保護 JSON 解析，避免異常崩潰
+            # Optimized: Guard JSON parsing to prevent crashes
             try:
                 payload_obj: dict = json.loads(mips_msg.payload)
                 dev_list = payload_obj.get('devList', None)
@@ -1589,7 +1589,7 @@ class MipsLocalClient(_MipsClient):
                 'code': MIoTErrorCode.CODE_MIPS_INVALID_RESULT.value,
                 'message': f'Error: {result}'}
 
-    # Optimized: 解決串行阻塞問題，使用並行 (Concurrent) 處理提升效能
+    # Optimized: Resolve serial blocking using concurrent processing to improve performance
     async def __get_prop_timer_handle(self) -> None:
         async def _fetch_and_set(did_key: str, req_item: dict) -> None:
             _LOGGER.debug('get prop, %s, %s', did_key, req_item)
@@ -1609,7 +1609,7 @@ class MipsLocalClient(_MipsClient):
                 continue
             item = self._get_prop_queue[did].pop()
             tasks.append(_fetch_and_set(did, item))
-            # 若已經為空，直接移除，避免下次空轉
+            # If empty, remove directly to prevent idle looping
             if not self._get_prop_queue[did]:
                 self._get_prop_queue.pop(did, None)
 

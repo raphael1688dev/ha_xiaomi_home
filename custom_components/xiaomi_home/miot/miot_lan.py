@@ -13,7 +13,7 @@ import socket
 import struct
 import threading
 from typing import Any, Callable, Coroutine, Optional, final
-import hashlib  # 使用內建 hashlib 提升效能
+import hashlib  # Built-in hashlib for better performance
 
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives import padding
@@ -394,7 +394,7 @@ class _MIoTLanDevice:
         self.online = True
 
     def __md5(self, data: bytes) -> bytes:
-        # Optimized: 使用 hashlib.md5，底層為 C 實作，大幅提升運算效率
+        # Optimized: Use hashlib.md5 (C-level implementation) for higher efficiency
         return hashlib.md5(data).digest()
 
 
@@ -1106,7 +1106,7 @@ class MIoTLan:
         self.__sendto(if_name=if_name, data=msg, address=ip, port=self.OT_PORT)
 
     def broadcast_device_state(self, did: str, state: dict) -> None:
-        # Optimized: 使用原生的 run_coroutine_threadsafe 將任務安全排入主迴圈
+        # Optimized: Use native run_coroutine_threadsafe to schedule tasks safely in main loop
         for handler in self._device_state_sub_map.values():
             asyncio.run_coroutine_threadsafe(
                 handler.handler(did, state, handler.handler_ctx),
@@ -1433,7 +1433,7 @@ class MIoTLan:
         if filter_id in self._reply_msg_buffer:
             return True
             
-        # Optimized: 移除不必要的 lambda，直接將 pop 方法與參數傳給 call_later
+        # Optimized: Remove redundant lambda, passing pop directly to call_later
         self._reply_msg_buffer[filter_id] = self._internal_loop.call_later(
             5, self._reply_msg_buffer.pop, filter_id, None
         )
@@ -1469,7 +1469,7 @@ class MIoTLan:
                     for if_name in self._broadcast_socks:
                         self.ping(if_name=if_name, target_ip=device.ip)
         except Exception as err:
-            # Optimized: 移除了多餘且無意義的 pass
+            # Optimized: Removed redundant pass statement
             _LOGGER.error('ping device error, %s', err)
             
         scan_time = self.__get_next_scan_time()

@@ -128,7 +128,7 @@ class FeatureVolumeSet(_FeatureBase):
         if not self._prop_volume or not self._prop_volume.value_range:
             return None
         val = self.get_prop_value(prop=self._prop_volume)
-        # 優化: 確保轉型為 float 且防範 NoneType 錯誤
+        # Optimized: Ensure float cast and guard against NoneType error
         if val is None:
             return None
         return float(val / self._prop_volume.value_range.max_)
@@ -157,7 +157,7 @@ class FeatureVolumeMute(_FeatureBase):
         if not self._prop_mute:
             return None
         val = self.get_prop_value(prop=self._prop_mute)
-        # 優化: 嚴格轉換布林值
+        # Optimized: Strictly convert to boolean
         return bool(val) if val is not None else None
 
 
@@ -275,7 +275,7 @@ class FeatureSoundMode(_FeatureBase):
                 _LOGGER.error('mode value_list is None, %s', self.entity_id)
                 continue
             self._sound_mode_map = prop.value_list.to_map()
-            # 優化: 預先建立 O(1) 的反向查詢字典
+            # Optimized: Pre-build O(1) reverse lookup dictionary
             self._sound_mode_reverse_map = {v: k for k, v in self._sound_mode_map.items()}
             self._attr_sound_mode_list = list(self._sound_mode_map.values())
             self._attr_supported_features |= MediaPlayerEntityFeature.SELECT_SOUND_MODE
@@ -284,7 +284,7 @@ class FeatureSoundMode(_FeatureBase):
     async def async_select_sound_mode(self, sound_mode: str) -> None:
         if not self._prop_sound_mode:
             return
-        # 優化: O(1) 字典查找取代 O(N)
+        # Optimized: Use O(1) dictionary lookup instead of O(N)
         mode_val = self._sound_mode_reverse_map.get(sound_mode)
         if mode_val is not None:
             await self.set_property_async(prop=self._prop_sound_mode, value=mode_val)
@@ -317,7 +317,7 @@ class FeatureSource(_FeatureBase):
                               self.entity_id)
                 continue
             self._source_map = prop.value_list.to_map()
-            # 優化: 預先建立 O(1) 的反向查詢字典
+            # Optimized: Pre-build O(1) reverse lookup dictionary
             self._source_reverse_map = {v: k for k, v in self._source_map.items()}
             self._attr_source_list = list(self._source_map.values())
             self._attr_supported_features |= MediaPlayerEntityFeature.SELECT_SOURCE
@@ -326,7 +326,7 @@ class FeatureSource(_FeatureBase):
     async def async_select_source(self, source: str) -> None:
         if not self._prop_source:
             return
-        # 優化: O(1) 字典查找取代 O(N)
+        # Optimized: Use O(1) dictionary lookup instead of O(N)
         source_val = self._source_reverse_map.get(source)
         if source_val is not None:
             await self.set_property_async(prop=self._prop_source, value=source_val)

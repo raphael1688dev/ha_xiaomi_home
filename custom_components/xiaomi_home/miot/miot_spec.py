@@ -768,7 +768,7 @@ class MIoTSpecInstance:
                                              expr=prop.get('expr', None))
                 spec_service.properties.append(spec_prop)
                 
-            # 優化: 建立屬性的 O(1) 快取查找表，取代原有的 O(N^2) 尋找寫法
+            # Optimized: Build O(1) property lookup cache instead of O(N^2) search
             prop_map = {prop.iid: prop for prop in spec_service.properties}
 
             for event in service['events']:
@@ -912,7 +912,7 @@ class _SpecFilter:
             _LOGGER.error('spec filter, invalid spec filter content')
             return
             
-        # 優化: 移除不必要的 list() 包裝，減少記憶體複製
+        # Optimized: Remove unnecessary list() wrapping to reduce memory copy
         for values in filter_data.values():
             if not isinstance(values, dict):
                 _LOGGER.error('spec filter, invalid spec filter data')
@@ -1381,7 +1381,7 @@ class MIoTSpecParser:
                 self._std_lib.event_translate(key=':'.join(e_type_strs[:5]))
                 or event['description'] or spec_event.name)
                 
-            # 優化：使用查找表直接關聯
+            # Optimized: Associate directly using lookup table
             spec_event.argument = [prop_map[piid] for piid in event['arguments'] if piid in prop_map]
             spec_service.events.append(spec_event)
 
@@ -1417,7 +1417,7 @@ class MIoTSpecParser:
                     key=':'.join(a_type_strs[:5])) or
                 action['description'] or spec_action.name)
                 
-            # 優化：使用查找表直接關聯
+            # Optimized: Associate directly using lookup table
             spec_action.in_ = [prop_map[piid] for piid in action['in'] if piid in prop_map]
             spec_action.out = [prop_map[piid] for piid in action['out'] if piid in prop_map]
             spec_service.actions.append(spec_action)
@@ -1484,7 +1484,7 @@ class MIoTSpecParser:
             if type_strs[1] != 'miot-spec-v2':
                 spec_service.proprietary = True
             
-            # 優化：預先組合字串，避免在後續重複操作
+            # Optimized: Pre-compose string to avoid duplicate joins
             type_strs_prefix_5 = ':'.join(type_strs[:5])
                 
             spec_service.description_trans = (

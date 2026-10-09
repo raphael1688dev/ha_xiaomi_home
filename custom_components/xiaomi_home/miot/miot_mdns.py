@@ -76,7 +76,7 @@ class MipsServiceData:
         
         # Parse profile
         self.did = str(int.from_bytes(self.profile_bin[1:9], byteorder='big'))
-        # 優化: 使用 bytes 內建的 .hex() 取代 binascii 模組
+        # Optimized: Use built-in bytes .hex() instead of binascii module
         self.group_id = self.profile_bin[9:17][::-1].hex()
         self.role = int(self.profile_bin[20] >> 4)
         self.suite_mqtt = ((self.profile_bin[22] >> 1) & 0x01) == 0x01
@@ -155,7 +155,7 @@ class MipsService:
     def unsub_service_change(self, key: str) -> None:
         if not key:
             return
-        # 優化: 找出目標 keys 一次性移除，避免在迴圈中做無謂的 tuple 索引存取
+        # Optimized: Collect target keys and remove them directly, avoiding redundant tuple index access in loop
         keys_to_remove = [k for k in self._sub_list if k[0] == key]
         for k in keys_to_remove:
             self._sub_list.pop(k, None)
@@ -168,7 +168,7 @@ class MipsService:
             'mdns discovery changed, %s, %s, %s',
             state_change, name, service_type)
 
-        # 優化: 修正原本穿透造成對已離線設備發送 async_request 引發 5 秒超時阻塞的問題
+        # Optimized: Prevent sending async_request to offline devices causing 5-second timeout delays
         if state_change is ServiceStateChange.Removed:
             _LOGGER.debug('Ignore mdns REMOVED package for: %s', name)
             return
@@ -210,7 +210,7 @@ class MipsService:
                     state=MipsServiceState.ADDED,
                     data=self._services[service_data.group_id])
         except MipsServiceError as error:
-            # 加上 info.name 方便除錯，避免印出整個 info 物件造成 log 過於凌亂
+            # Add info.name for easier debugging and cleaner logs
             _LOGGER.error('invalid mips service, %s, %s', error, info.name)
 
     def __call_service_change(
@@ -219,7 +219,7 @@ class MipsService:
         _LOGGER.info('call service change, %s, %s', state, data)
         target_group = data.get('group_id')
         
-        # 優化: 透過 tuple 解構讓配對邏輯更清晰
+        # Optimized: Clarify matching logic via tuple unpacking
         for (k_key, k_group), handler in list(self._sub_list.items()):
             if k_group in (target_group, '*'):
                 self._main_loop.create_task(

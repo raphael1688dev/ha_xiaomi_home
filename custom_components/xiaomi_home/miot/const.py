@@ -24,7 +24,7 @@ SPEC_STD_LIB_EFFECTIVE_TIME = 3600*24*14
 # seconds, 14 days
 MANUFACTURER_EFFECTIVE_TIME = 3600*24*14
 
-# 使用 tuple 確保全域常數的不可變性 (Immutable)
+# Use tuple to ensure immutability of global constants
 SUPPORTED_PLATFORMS: tuple[str, ...] = (
     'binary_sensor',
     'button',
@@ -46,7 +46,7 @@ SUPPORTED_PLATFORMS: tuple[str, ...] = (
     'water_heater',
 )
 
-# 使用 set 提升 `in` 運算子的查詢效能至 O(1)，並保持不可變性
+# Use set to optimize 'in' operator lookups to O(1) while maintaining immutability
 UNSUPPORTED_MODELS: frozenset[str] = frozenset({
     'chuangmi.ir.v2',
     'era.airp.cwb03',
@@ -56,9 +56,9 @@ UNSUPPORTED_MODELS: frozenset[str] = frozenset({
 
 DEFAULT_CLOUD_SERVER: str = 'cn'
 
-# 使用 MappingProxyType 設定為唯讀字典，防止執行期被意外竄改
+# Use MappingProxyType to enforce read-only dictionary, preventing runtime modifications
 CLOUD_SERVERS = MappingProxyType({
-    'cn': '中国大陆',
+    'cn': 'China Mainland',
     'de': 'Europe',
     'i2': 'India',
     'ru': 'Russia',
@@ -95,7 +95,7 @@ DEFAULT_CTRL_MODE: str = 'auto'
 # DO NOT CHANGE UNLESS YOU HAVE AN ADMINISTRATOR PERMISSION
 OAUTH_REDIRECT_URL: str = 'http://homeassistant.local:8123'
 
-# 憑證字串格式維持原樣，以避免改變字串造成 SHA256 驗證失敗
+# Keep certificate string formatting as-is to avoid altering SHA256 verification
 MIHOME_CA_CERT_STR: str = '-----BEGIN CERTIFICATE-----\n' \
     'MIIBazCCAQ+gAwIBAgIEA/UKYDAMBggqhkjOPQQDAgUAMCIxEzARBgNVBAoTCk1p\n' \
     'amlhIFJvb3QxCzAJBgNVBAYTAkNOMCAXDTE2MTEyMzAxMzk0NVoYDzIwNjYxMTEx\n' \

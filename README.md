@@ -1,7 +1,5 @@
 # Xiaomi Home Integration for Home Assistant
 
-[English](./README.md) | [简体中文](./doc/README_zh.md)
-
 Xiaomi Home Integration is an integrated component of Home Assistant supported by Xiaomi official. It allows you to use Xiaomi IoT smart devices in Home Assistant.
 
 ## 🚀 Mod Features (raphael1688dev fork)
@@ -390,12 +388,12 @@ Example:
 ```
 {
     "urn:miot-spec-v2:device:health-pot:0000A051:chunmi-a1": {
-        "zh-Hant": {
-            "service:002": "養生壺",
-            "service:002:property:001": "工作狀態",
-            "service:002:property:001:valuelist:000": "待機中",
-            "service:002:action:002": "停止烹飪",
-            "service:005:event:001": "烹飪完成"
+        "en": {
+            "service:002": "Health Pot",
+            "service:002:property:001": "Operating Status",
+            "service:002:property:001:valuelist:000": "Standby",
+            "service:002:action:002": "Stop Cooking",
+            "service:005:event:001": "Cooking Completed"
         }
     }
 }
@@ -406,7 +404,7 @@ Example:
 ## Documents
 
 - [License](./LICENSE.md)
-- Contribution Guidelines: [English](./CONTRIBUTING.md) | [简体中文](./doc/CONTRIBUTING_zh.md)
+- [Contribution Guidelines](./CONTRIBUTING.md)
 - [ChangeLog](./CHANGELOG.md)
 - Development Documents: https://developers.home-assistant.io/docs/creating_component_index
 - [FAQ](https://github.com/XiaoMi/ha_xiaomi_home/wiki)
@@ -432,8 +430,8 @@ Example:
   - **Case Sensitivity & Slugify Fix**: Enforced strict lowercase mapping and `slugify_description=True` (especially for Service entities like `indicator_light`) for all newly generated `unique_id`s in `miot_device.py` to perfectly match historical HA registry entries. This fully resolves issues where entities like `Indicator Light` (with spaces and capitalization) would crash against legacy `indicator_light` (slugified) entries.
   - **Auto-Recovery**: Enhanced `__init__.py` to automatically detect and delete erroneously created duplicate entities (like `_2`), seamlessly restoring legacy entity IDs and preserving all user automations.
 - **Included Models (Strict Whitelist)**: To guarantee the highest performance and zero technical debt, this native transpilation layer is strictly limited to 19 core smart home components from specific reliable brands:
-  - **Yeelight (易來)**: Only `yeelink.light.lamp*` (檯燈/落地燈) and `yeelink.light.bslamp*` (床頭燈) series.
-  - **Smartmi & Dmaker (智米/造夢者)**: All `zhimi.fan` and `dmaker.fan` series.
+  - **Yeelight**: Only `yeelink.light.lamp*` (desk/floor lamp) and `yeelink.light.bslamp*` (bedside lamp) series.
+  - **Smartmi & Dmaker**: All `zhimi.fan` and `dmaker.fan` series.
   - *(All other appliances, sensors, and brands are explicitly excluded from this local translation layer)*
 
 ## New Features & Enhancements (Version 20260527r7)

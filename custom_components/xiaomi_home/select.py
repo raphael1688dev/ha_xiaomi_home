@@ -41,7 +41,7 @@ class Select(MIoTPropertyEntity, SelectEntity):
         """Initialize the Select."""
         super().__init__(miot_device=miot_device, spec=spec)
         
-        # 優化: 預先建立 O(1) 的雙向查找字典，取代原本低效的 O(N) 陣列掃描
+        # Optimized: Pre-build O(1) bidirectional lookup dictionaries instead of inefficient O(N) array scans
         self._val_to_desc = {}
         self._desc_to_val = {}
         
@@ -53,7 +53,7 @@ class Select(MIoTPropertyEntity, SelectEntity):
 
     async def async_select_option(self, option: str) -> None:
         """Change the selected option."""
-        # 優化: 使用 O(1) 字典反向查找
+        # Optimized: Use O(1) dictionary reverse lookup
         val = self._desc_to_val.get(option)
         if val is not None:
             await self.set_property_async(value=val)
@@ -65,5 +65,5 @@ class Select(MIoTPropertyEntity, SelectEntity):
         if self._value is None:
             return None
             
-        # 優化: 使用 O(1) 字典正向查找
+        # Optimized: Use O(1) dictionary forward lookup
         return self._val_to_desc.get(self._value)

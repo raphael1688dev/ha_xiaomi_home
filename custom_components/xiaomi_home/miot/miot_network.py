@@ -53,7 +53,7 @@ class MIoTNetwork:
     _ip_addr_map: dict[str, float]
     _http_addr_map: dict[str, float]
     
-    # 延遲初始化以確保在正確的 Asyncio Event Loop 內建立
+    # Deferred initialization to ensure creation inside the correct asyncio event loop
     _http_session: Optional[aiohttp.ClientSession]
 
     _refresh_interval: int
@@ -100,7 +100,7 @@ class MIoTNetwork:
         self._done_event = asyncio.Event()
 
     async def init_async(self) -> bool:
-        # 在協程內部初始化 ClientSession，遵守 aiohttp 最佳實踐
+        # Initialize ClientSession inside coroutine following aiohttp best practices
         if self._http_session is None and self._own_session:
             self._http_session = aiohttp.ClientSession()
             
@@ -201,7 +201,7 @@ class MIoTNetwork:
             ):
                 return True
                 
-            # 移除不必要的 list unpacking 寫法
+            # Remove unnecessary list unpacking
             results = await asyncio.gather(
                 self.ping_multi_async(), 
                 self.http_multi_async()
@@ -226,7 +226,7 @@ class MIoTNetwork:
             if addr in self._ip_addr_map:
                 self._ip_addr_map[addr] = ts
                 
-        # 改用 Generator 提升效能，遇到第一個 True 即可提前回傳
+        # Use generator expression to improve performance with short-circuit evaluation
         return any(ts < self._DETECT_TIMEOUT for ts in results)
 
     async def http_multi_async(
@@ -240,7 +240,7 @@ class MIoTNetwork:
             if addr in self._http_addr_map:
                 self._http_addr_map[addr] = ts
                 
-        # 改用 Generator 提升效能
+        # Use generator expression to improve performance
         return any(ts < self._DETECT_TIMEOUT for ts in results)
 
     def __calc_network_address(self, ip: str, netmask: str) -> str:
@@ -262,7 +262,7 @@ class MIoTNetwork:
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL
             )
-            # 加入 asyncio.wait_for 防止 subprocess 因系統異常而永久卡死
+            # Add asyncio.wait_for to prevent subprocess from hanging indefinitely on system issues
             await asyncio.wait_for(process.communicate(), timeout=self._DETECT_TIMEOUT + 1)
             
             if process.returncode == 0:
@@ -326,16 +326,16 @@ class MIoTNetwork:
                     self._main_loop.create_task(handler(status))
                 self._network_status = status
 
-            # 優化：使用 Set 集合運算來處理新增與移除的介面，避免邊歷遍邊修改字典的問題
+            # Optimized: Use set operations to handle interface additions/removals without mutating dict during iteration
             current_names = set(self._network_info.keys())
             new_names = set(infos.keys())
 
-            # 處理移除的介面 (存在於 current_names 但不在 new_names)
+            # Handle removed interfaces (present in current_names but not in new_names)
             for name in (current_names - new_names):
                 removed_info = self._network_info.pop(name)
                 self.__call_network_info_change(InterfaceStatus.REMOVE, removed_info)
 
-            # 處理新增與更新的介面
+            # Handle added and updated interfaces
             for name, info in infos.items():
                 if name not in current_names:
                     # Add

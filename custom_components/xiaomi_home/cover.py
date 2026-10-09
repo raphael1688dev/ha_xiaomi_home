@@ -19,7 +19,7 @@ from .miot.const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
-# 優化: 提取常數映射表，取代原本冗長的 if-elif 判斷
+# Optimized: Constant mapping dictionary to replace verbose if-elif checks
 _DEVICE_CLASS_MAP = {
     'curtain': CoverDeviceClass.CURTAIN,
     'window-opener': CoverDeviceClass.WINDOW,
@@ -36,7 +36,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry,
     new_entities = []
     for miot_device in device_list:
         for data in miot_device.entity_list.get('cover', []):
-            # 優化: O(1) 字典查找設備類別
+            # Optimized: O(1) dictionary lookup for device class
             if data.spec.name in _DEVICE_CLASS_MAP:
                 data.spec.device_class = _DEVICE_CLASS_MAP[data.spec.name]
             new_entities.append(Cover(miot_device=miot_device, entity_data=data))
@@ -55,7 +55,7 @@ class Cover(MIoTServiceEntity, CoverEntity):
     _prop_motor_value_pause: Optional[int]
     _prop_status: Optional[MIoTSpecProperty]
     
-    # 優化: 將 list 改為 set，提升 in 判斷的查詢效能至 O(1)
+    # Optimized: Use set instead of list for O(1) membership check performance
     _prop_status_opening: set[int]
     _prop_status_closing: set[int]
     _prop_status_closed: set[int]
@@ -211,7 +211,7 @@ class Cover(MIoTServiceEntity, CoverEntity):
             self._prop_pos_opening = pos > current
             self._prop_pos_closing = pos < current
         
-        # 優化: 防護 ZeroDivisionError 並修正 min 偏移值的邏輯漏洞
+        # Optimized: Protect against ZeroDivisionError and handle min offset calculation
         if self._prop_position_value_range and self._prop_position_value_range > 0:
             pos_val = (pos * self._prop_position_value_range / 100) + (self._prop_position_value_min or 0)
             pos = round(pos_val)
@@ -239,7 +239,7 @@ class Cover(MIoTServiceEntity, CoverEntity):
         if pos_val is None:
             return None
             
-        # 優化: 防護 ZeroDivisionError 並補上 min 偏移值的正確計算
+        # Optimized: Protect against ZeroDivisionError and calculate position using min offset
         if self._prop_position_value_range and self._prop_position_value_range > 0:
             pos = round((pos_val - (self._prop_position_value_min or 0)) * 100 / self._prop_position_value_range)
         else:

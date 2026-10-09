@@ -38,7 +38,7 @@ async def async_setup_entry(
     device_list: list[MIoTDevice] = hass.data[DOMAIN]['devices'][
         config_entry.entry_id]
         
-    # 優化: 扁平化雙層迴圈改用 List Comprehension
+    # Optimized: Flatten nested loops with list comprehension
     new_entities = [
         Fan(miot_device=miot_device, entity_data=data)
         for miot_device in device_list
@@ -120,7 +120,7 @@ class Fan(MIoTServiceEntity, FanEntity):
             ):
                 # Fan level with value-list
                 self._speed_name_map = prop.value_list.to_map()
-                # 優化: 預先建立 O(1) 速度反查字典
+                # Optimized: Pre-build O(1) reverse speed lookup map
                 self._speed_name_reverse_map = {v: k for k, v in self._speed_name_map.items()}
                 self._speed_names = list(self._speed_name_map.values())
                 self._attr_speed_count = len(self._speed_names)
@@ -133,7 +133,7 @@ class Fan(MIoTServiceEntity, FanEntity):
                     'mode value_list is None, %s', self.entity_id)
             else:
                 self._mode_map = prop.value_list.to_map()
-                # 優化: 預先建立 O(1) 模式反查字典
+                # Optimized: Pre-build O(1) reverse mode lookup map
                 self._mode_reverse_map = {v: k for k, v in self._mode_map.items()}
                 self._attr_preset_modes = list(self._mode_map.values())
                 self._attr_supported_features |= FanEntityFeature.PRESET_MODE
@@ -169,7 +169,7 @@ class Fan(MIoTServiceEntity, FanEntity):
     ) -> None:
         """Turn the fan on."""
         turned_on_by_us = False
-        # 先確認啟動，避免關機狀態下被設備拒絕其它指令
+        # Ensure device is turned on first to prevent rejecting subsequent commands while off
         if not self.is_on and not self._is_turning_on:
             self._is_turning_on = True
             turned_on_by_us = True
@@ -183,7 +183,7 @@ class Fan(MIoTServiceEntity, FanEntity):
                 raise
 
         try:
-            # 優化: 使用 asyncio.gather 並發執行後續指令，改善卡頓感
+            # Optimized: Use asyncio.gather to concurrently execute commands and reduce latency
             tasks = []
             if percentage is not None:
                 tasks.append(self.async_set_percentage(percentage))
@@ -218,7 +218,7 @@ class Fan(MIoTServiceEntity, FanEntity):
                     self._is_turning_on = False
                 
             if self._speed_names:
-                # 優化: 使用 O(1) 字典反查，取代原本低效的 O(N) get_map_key 掃描
+                # Optimized: Use O(1) reverse lookup map to replace O(N) get_map_key scan
                 speed_str = percentage_to_ordered_list_item(self._speed_names, percentage)
                 speed_val = self._speed_name_reverse_map.get(speed_str)
                 if speed_val is not None:
@@ -234,7 +234,7 @@ class Fan(MIoTServiceEntity, FanEntity):
 
     async def async_set_preset_mode(self, preset_mode: str) -> None:
         """Set the preset mode."""
-        # 優化: 使用 O(1) 字典反查
+        # Optimized: Use O(1) reverse lookup map
         mode_val = self._mode_reverse_map.get(preset_mode)
         if mode_val is not None:
             await self.set_property_async(prop=self._prop_mode, value=mode_val)
@@ -261,7 +261,7 @@ class Fan(MIoTServiceEntity, FanEntity):
         if not self._prop_on:
             return None
         val = self.get_prop_value(prop=self._prop_on)
-        # 優化: 嚴格轉換為 bool 型別，避免 HA 警告
+        # Optimized: Explicitly cast to bool to comply with HA guidelines
         return bool(val) if val is not None else None
 
     @property

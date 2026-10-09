@@ -178,8 +178,6 @@
 - Fix the MIoT-Spec-V2 of zhimi.fan.v3 fan-level, cuco.plug.cp1md voltage and current, zimi.plug.zncz01 electric-power, giot.plug.v8icm power-consumption unit, yunmi.kettle.r3 tds unit, and dmaker.fan.p5 fan-level. [#1037](https://github.com/XiaoMi/ha_xiaomi_home/pull/1037)
 
 ## v0.3.0
-注意：v0.3.0 变更了部分实体 unique_id 的生成规则，如果勾选 xiaomi_home > 配置 > 更新实体转换规则，会导致部分实体已配置的自动化失效。如果想要避免重新配置大量自动化，可使用这个[补丁](https://github.com/XiaoMi/ha_xiaomi_home/pull/972)。
-
 CAUTION: v0.3.0 changes the unique_id of some entities. If you check the option `xiaomi_home > CONFIGURE > Update entity conversion rules`, it may cause the automation settings for these entities to fail. To avoid having to reconfigure a large number of automation settings, you can use this [patch](https://github.com/XiaoMi/ha_xiaomi_home/pull/972).
 ### Added
 - Import the devices in the shared homes and the separated shared devices. [#1021](https://github.com/XiaoMi/ha_xiaomi_home/pull/1021)
@@ -218,8 +216,6 @@ CAUTION: v0.3.0 changes the unique_id of some entities. If you check the option 
 ## v0.2.2
 This version has modified the conversion rules of the climate entity, which will have effect on the devices with the ptc-bath-heater, the air-conditioner and the air-fresh service. After updating, you need to restart Home Assistant and check `xiaomi_home > CONFIGURE >
 Update entity conversion rules > NEXT` to reload the integration.
-
-这个版本修改了浴霸、空调、新风机的实体转换规则，更新之后需要重启 Home Assistant，并且勾选 `xiaomi_home > 配置 > 更新实体转换规则 > 下一步` 重新加载集成。
 ### Added
 - Add conversion rules for the air-conditioner service and the air-fresh service. [#879](https://github.com/XiaoMi/ha_xiaomi_home/pull/879)
 ### Changed
@@ -242,8 +238,6 @@ Update entity conversion rules > NEXT` to reload the integration.
 
 ## v0.2.0
 This version has modified some default units of sensors. After updating, it may cause Home Assistant to pop up some compatibility warnings. You can re-add the integration to resolve it.
-
-这个版本修改了一些传感器默认单位，更新后会导致 Home Assistant 弹出一些兼容性提示，您可以重新添加集成解决。
 
 ### Added
 - Add prop trans rule for surge-power. [#595](https://github.com/XiaoMi/ha_xiaomi_home/pull/595)

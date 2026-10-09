@@ -99,7 +99,7 @@ class WaterHeater(MIoTServiceEntity, WaterHeaterEntity):
                     _LOGGER.error('mode value_list is None, %s', self.entity_id)
                     continue
                 self._mode_map = prop.value_list.to_map()
-                # 優化: 預先建立 O(1) 模式反向查找字典，取代 O(N) 掃描
+                # Optimized: Pre-build O(1) mode reverse lookup dictionary instead of O(N) scanning
                 self._mode_reverse_map = {v: k for k, v in self._mode_map.items()}
                 self._attr_operation_list = list(self._mode_map.values())
                 self._prop_mode = prop
@@ -131,10 +131,10 @@ class WaterHeater(MIoTServiceEntity, WaterHeaterEntity):
             await self.set_property_async(prop=self._prop_on, value=True)
             return
             
-        # 優化: 使用 O(1) 字典查找模式對應數值
+        # Optimized: Use O(1) dictionary lookup for mode mapping
         mode_val = self._mode_reverse_map.get(operation_mode)
         if mode_val is not None:
-            # 確保設備在切換模式前處於開機狀態
+            # Ensure device is turned on before changing operation mode
             val_on = self.get_prop_value(prop=self._prop_on)
             if val_on is None or not bool(val_on):
                 await self.set_property_async(prop=self._prop_on,

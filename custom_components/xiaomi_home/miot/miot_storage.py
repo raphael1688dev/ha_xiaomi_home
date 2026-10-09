@@ -80,7 +80,7 @@ class MIoTStorage:
         self, key: str, op_type: MIoTStorageType, fut: asyncio.Future
     ) -> None:
         def fut_done_callback(f: asyncio.Future):
-            # 優化：防止 Race condition，確保要移除的 Future 是自己本身
+            # Optimized: Prevent race conditions, ensuring the removed Future is self
             if self._file_future.get(key, (None, None))[1] is f:
                 self._file_future.pop(key, None)
 
@@ -663,7 +663,7 @@ class MIoTCert:
     def __did_hash(self, did: str) -> str:
         sha1_hash = hashes.Hash(hashes.SHA1(), backend=default_backend())
         sha1_hash.update(did.encode('utf-8'))
-        # 優化：使用內建 C 方法的 .hex()
+        # Optimized: Use built-in C method .hex()
         return sha1_hash.finalize().hex()
 
 

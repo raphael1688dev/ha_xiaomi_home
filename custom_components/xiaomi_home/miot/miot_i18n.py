@@ -144,7 +144,7 @@ class MIoTI18n:
     def __init__(
         self, lang: str, loop: Optional[asyncio.AbstractEventLoop] = None
     ) -> None:
-        # 優化: 使用現代的 get_running_loop() 避免 Python 3.10+ 的 DeprecationWarning
+        # Optimized: Use modern get_running_loop() to avoid Python 3.10+ DeprecationWarning
         self._main_loop = loop or asyncio.get_running_loop()
         self._lang = lang
         self._data = {}
@@ -166,14 +166,14 @@ class MIoTI18n:
             
         # Check if the file is a valid JSON file
         if not isinstance(data, dict):
-            # 優化: 修正原本筆誤的錯誤日誌 (原本寫 valid file)
+            # Optimized: Fix typo in error log (previously said valid file)
             _LOGGER.error('invalid i18n json file format, %s', data)
             return
             
         self._data = data
 
     async def deinit_async(self) -> None:
-        # 優化: 使用 clear() 讓底層直接清空字典，提升記憶體回收效率
+        # Optimized: Use clear() to empty dictionary and improve garbage collection efficiency
         self._data.clear()
 
     def translate(
@@ -181,7 +181,7 @@ class MIoTI18n:
     ) -> Union[str, dict, None]:
         result: Any = self._data
         
-        # 優化: 嚴格判斷 result 是否為字典，防護字串提早出現造成的 TypeError 系統崩潰
+        # Optimized: Strictly check if result is a dict to prevent TypeError crash if intermediate node is str
         for item in key.split('.'):
             if not isinstance(result, dict) or item not in result:
                 return None
@@ -189,7 +189,7 @@ class MIoTI18n:
             
         if isinstance(result, str) and replace:
             for k, v in replace.items():
-                # 優化: 改用 f-string 提升字串拼接效能與可讀性
+                # Optimized: Use f-string to improve string interpolation performance and readability
                 result = result.replace(f'{{{k}}}', str(v))
                 
         return result or None
