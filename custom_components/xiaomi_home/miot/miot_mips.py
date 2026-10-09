@@ -1332,11 +1332,11 @@ class MipsLocalClient(_MipsClient):
             name: str = info.get('name', None)
             urn: str = info.get('urn', None)
             model: str = info.get('model', None)
-            if name is None or urn is None or model is None:
-                self.log_error(f'invalid device info, {did}, {info}')
-                continue
             if model in UNSUPPORTED_MODELS:
                 self.log_info(f'unsupported model, {model}, {did}')
+                continue
+            if name is None or urn is None or model is None:
+                self.log_error(f'invalid device info, {did}, {info}')
                 continue
             device_list[did] = {
                 'did': did,
