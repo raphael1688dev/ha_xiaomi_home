@@ -75,8 +75,9 @@ class MIoTCloudManager:
                     list(clean_request_list.keys()))
             return True
         except (TimeoutError, asyncio.TimeoutError, aiohttp.ClientError) as err:
+            err_msg = f'{type(err).__name__}: {err}' if str(err) else type(err).__name__
             _LOGGER.warning(
-                'refresh props failed, cloud network/timeout: %s', err)
+                'refresh props failed, cloud network/timeout: %s', err_msg)
             self.client.refresh_props_list.update(clean_request_list)
             return False
         except MIoTClientError as err:

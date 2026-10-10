@@ -97,3 +97,63 @@ async def test_get_dev_list_async_standard_devlist(mock_mips_local: MipsLocalCli
     assert "did456" in devices
     assert devices["did456"]["online"] is False
     assert devices["did456"]["push_available"] is False
+
+
+def test_on_mips_disconnect_cleans_in_flight_requests(mock_mips_local: MipsLocalClient) -> None:
+    """Test _on_mips_disconnect immediately aborts all in-flight requests with error callback."""
+    from custom_components.xiaomi_home.miot.miot_mips import _MipsRequest
+
+    mock_mips_local.log_debug = MagicMock()
+    mock_mips_local.main_loop = MagicMock()
+
+    mock_timer = MagicMock()
+    callback_called = []
+
+    def on_reply_cb(payload: str, ctx: any) -> None:
+        callback_called.append((payload, ctx))
+
+    req = _MipsRequest(
+        mid=12345,
+        on_reply=on_reply_cb,
+        on_reply_ctx="ctx1",
+        timer=mock_timer
+    )
+    mock_mips_local._request_map = {"12345": req}
+
+    mock_mips_local._on_mips_disconnect(rc=7, props={})
+
+    assert mock_timer.cancel.called
+    assert len(callback_called) == 1
+    reply_payload, reply_ctx = callback_called[0]
+    parsed_reply = json.loads(reply_payload)
+    assert parsed_reply["error"]["code"] == -10001
+    assert parsed_reply["error"]["message"] == "mips disconnected"
+    assert reply_ctx == "ctx1"
+    assert len(mock_mips_local._request_map) == 0
+
+
+@pytest.mark.asyncio
+async def test_clear_prop_queue_cancels_timer_and_resolves_futures(mock_mips_local: MipsLocalClient) -> None:
+    """Test __clear_prop_queue cancels timer and resolves pending futures to None."""
+    import asyncio
+
+    mock_timer = MagicMock()
+    mock_mips_local._get_prop_timer = mock_timer
+
+    loop = asyncio.get_running_loop()
+    fut1 = loop.create_future()
+    fut2 = loop.create_future()
+
+    mock_mips_local._get_prop_queue = {
+        "did1": [{"fut": fut1}],
+        "did2": [{"fut": fut2}],
+    }
+
+    mock_mips_local._MipsLocalClient__clear_prop_queue()
+
+    assert mock_timer.cancel.called
+    assert mock_mips_local._get_prop_timer is None
+    assert await fut1 is None
+    assert await fut2 is None
+    assert len(mock_mips_local._get_prop_queue) == 0
+

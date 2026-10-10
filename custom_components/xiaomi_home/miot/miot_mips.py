@@ -629,13 +629,16 @@ class _MipsClient(ABC):
             self._event_disconnect.clear)
 
     def __on_connect_failed(self, client: Client, user_data: Any) -> None:
-        self.log_warning('mips connect failed')
+        self.log_info('mips connect failed')
         # Try to reconnect
         self.__mips_try_reconnect()
 
     def __on_disconnect(self,  client, user_data, rc, props) -> None:
         if self._mqtt_state:
-            (self.log_info if rc == 0 else self.log_warning)(
+            # Common disconnect codes: 0 (clean), 7 (connection lost), 16 (server disconnect), None
+            is_auth_error = rc in (4, 5) or str(rc) in (
+                '4', '5', 'Bad username or password', 'Not authorized')
+            (self.log_warning if is_auth_error else self.log_info)(
                 f'mips disconnect, {rc}, {props}')
             self._mqtt_state = False
             if self._mqtt_timer:
@@ -766,7 +769,7 @@ class _MipsClient(ABC):
         interval: float = 0
         if not immediately:
             interval = self.__get_next_reconnect_time()
-            self.log_warning(
+            self.log_info(
                 'mips try reconnect after %ss', interval)
         self._mips_reconnect_timer = self._internal_loop.call_later(
             interval, self.__mips_connect)
@@ -1123,11 +1126,27 @@ class MipsLocalClient(_MipsClient):
         # MIPS local thread name use group_id
         super().connect(self._group_id)
 
+    def __clear_prop_queue(self) -> None:
+        """Clear queued property requests on main loop."""
+        if self._get_prop_timer:
+            self._get_prop_timer.cancel()
+            self._get_prop_timer = None
+        for items in list(self._get_prop_queue.values()):
+            for item in items:
+                fut = item.get('fut')
+                if fut and not fut.done():
+                    fut.set_result(None)
+        self._get_prop_queue.clear()
+
     @final
     def disconnect(self) -> None:
         super().disconnect()
-        self._request_map = {}
+        for req in list(self._request_map.values()):
+            if req.timer:
+                req.timer.cancel()
+        self._request_map.clear()
         self._msg_matcher = MIoTMatcher()
+        self.main_loop.call_soon_threadsafe(self.__clear_prop_queue)
 
     @staticmethod
     def _get_topic(action: str, did: str, siid: Optional[int], iid: Optional[int]) -> str:
@@ -1230,9 +1249,8 @@ class MipsLocalClient(_MipsClient):
         })
         if self._get_prop_timer is None:
             self._get_prop_timer = self.main_loop.call_later(
-                0.1,
-                self.main_loop.create_task,
-                self.__get_prop_timer_handle())
+                0.1, lambda: self.main_loop.create_task(
+                    self.__get_prop_timer_handle()))
         return await fut
 
     @final
@@ -1441,7 +1459,7 @@ class MipsLocalClient(_MipsClient):
             f'{payload}')
 
         def on_request_timeout(req: _MipsRequest):
-            self.log_error(
+            self.log_debug(
                 f'on mips request timeout, {req.mid}, {pub_topic}'
                 f', {payload}')
             self._request_map.pop(str(req.mid), None)
@@ -1490,7 +1508,20 @@ class MipsLocalClient(_MipsClient):
 
     @final
     def _on_mips_disconnect(self, rc: int, props: dict) -> None:
-        pass
+        self.log_debug(f'mips local disconnect cleanup, {rc}, {props}')
+        for req in list(self._request_map.values()):
+            if req.timer:
+                req.timer.cancel()
+            if req.on_reply:
+                try:
+                    req.on_reply(
+                        '{"error":{"code":-10001, "message":"mips disconnected"}}',
+                        req.on_reply_ctx)
+                except Exception as err:  # pylint: disable=broad-exception-caught
+                    self.log_debug(
+                        'error invoking on_reply during disconnect: %s', err)
+        self._request_map.clear()
+        self.main_loop.call_soon_threadsafe(self.__clear_prop_queue)
 
     @final
     def _on_mips_message(self, topic: str, payload: bytes) -> None:
@@ -1602,8 +1633,9 @@ class MipsLocalClient(_MipsClient):
 
         def on_msg_reply(payload: str, ctx: Any):
             fut: asyncio.Future = ctx
-            if fut:
-                self.main_loop.call_soon_threadsafe(fut.set_result, payload)
+            if fut and not fut.done():
+                self.main_loop.call_soon_threadsafe(
+                    lambda f=fut, p=payload: f.set_result(p) if not f.done() else None)
         if not self.__request_external(
                 topic=topic,
                 payload=payload,
@@ -1611,7 +1643,8 @@ class MipsLocalClient(_MipsClient):
                 on_reply_ctx=fut_handler,
                 timeout_ms=timeout_ms):
             # Request error
-            fut_handler.set_result('internal request error')
+            if not fut_handler.done():
+                fut_handler.set_result('internal request error')
 
         result = await fut_handler
         try:
@@ -1630,9 +1663,11 @@ class MipsLocalClient(_MipsClient):
                 payload=req_item['param'],
                 timeout_ms=req_item['timeout_ms'])
             if res is None or 'value' not in res:
-                req_item['fut'].set_result(None)
+                if not req_item['fut'].done():
+                    req_item['fut'].set_result(None)
             else:
-                req_item['fut'].set_result(res['value'])
+                if not req_item['fut'].done():
+                    req_item['fut'].set_result(res['value'])
 
         tasks = []
         for did in list(self._get_prop_queue.keys()):

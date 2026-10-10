@@ -1529,7 +1529,9 @@ class MIoTClient:
             result = await self._http.get_devices_async(
                 home_ids=list(self._entry_data.get('home_selected', {}).keys()))
         except (TimeoutError, asyncio.TimeoutError, aiohttp.ClientError) as err:
-            _LOGGER.warning('refresh cloud devices failed (network/timeout), %s', err)
+            err_msg = f'{type(err).__name__}: {err}' if str(err) else type(err).__name__
+            _LOGGER.warning(
+                'refresh cloud devices failed (network/timeout), %s', err_msg)
             self._refresh_cloud_devices_timer = self._main_loop.call_later(
                 REFRESH_CLOUD_DEVICES_RETRY_DELAY,
                 lambda: self._create_tracked_task(
