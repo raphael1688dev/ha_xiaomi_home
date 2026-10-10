@@ -1,4 +1,13 @@
 # CHANGELOG
+## v0.4.14 (Mod)
+### Fixed
+- Abort in-flight requests immediately on MIPS socket disconnection in `MipsLocalClient._on_mips_disconnect` and cancel pending timers, preventing hanging requests from cascading into 10-second timeout error logs.
+- Clear pending property requests in `_get_prop_queue` upon disconnection to immediately resolve awaiting futures and prevent integration task stalls.
+- Demote `on_request_timeout` internal log from ERROR to DEBUG level to avoid flooding Home Assistant system logs when sub-devices or local proxy queries time out.
+- Demote routine MQTT disconnection and reconnect scheduling logs in `_MipsClient` from WARNING to INFO level, reserving WARNING for persistent authentication/authorization errors.
+- Fix empty string formatting for `TimeoutError` and `aiohttp.ClientError` in `MIoTClient` and `MIoTCloudManager` by including exception type names when `str(err)` is empty.
+- Expand unit test suite with test coverage for in-flight request cleanup and property queue clearing upon disconnection (20 passing tests).
+
 ## v0.4.13 (Mod)
 ### Fixed
 - Fix Python 3.14+ aggressive garbage collection bug causing `Error doing job: Task was destroyed but it is pending! coro=<MIoTClient.__refresh_props_handler()...>` by retaining strong references to background asyncio tasks in `MIoTClient._background_tasks`.
