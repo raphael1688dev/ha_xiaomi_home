@@ -127,6 +127,7 @@ class MIoTClient:
     _sub_device_state: dict[str, MipsDeviceState]
 
     _mips_local_state_changed_timers: dict[str, asyncio.TimerHandle]
+    _mips_local_refresh_retry_counts: dict[str, int]
     _refresh_token_timer: Optional[asyncio.TimerHandle]
     _refresh_cert_timer: Optional[asyncio.TimerHandle]
     _refresh_cloud_devices_timer: Optional[asyncio.TimerHandle]
@@ -200,6 +201,7 @@ class MIoTClient:
         self._sub_device_state = {}
 
         self._mips_local_state_changed_timers = {}
+        self._mips_local_refresh_retry_counts = {}
         self._refresh_token_timer = None
         self._refresh_cert_timer = None
         self._refresh_cloud_devices_timer = None
@@ -387,6 +389,7 @@ class MIoTClient:
                             self._mips_local_state_changed_timers.values()):
                         timer_item.cancel()
                     self._mips_local_state_changed_timers.clear()
+                self._mips_local_refresh_retry_counts.clear()
             self._miot_lan.unsub_lan_state(
                 key=f'{self._uid}-{self._cloud_server}')
             if self._miot_lan.init_done:
@@ -1204,9 +1207,14 @@ class MIoTClient:
             return
         if state:
             # Connected
+            self._mips_local_refresh_retry_counts.pop(group_id, None)
             self.__request_refresh_gw_devices_by_group_id(group_id=group_id)
         else:
             # Disconnect
+            self._mips_local_refresh_retry_counts.pop(group_id, None)
+            refresh_timer = self._mips_local_state_changed_timers.pop(group_id, None)
+            if refresh_timer:
+                refresh_timer.cancel()
             for did, info in self._device_list_gateway.items():
                 if info.get('group_id', None) != group_id:
                     # Not belong to this gateway
@@ -1685,18 +1693,22 @@ class MIoTClient:
             gw_list = await mips.get_dev_list_async(
                 payload=json.dumps(payload))
         except (MIoTMipsError, Exception) as err:
-            _LOGGER.warning(
-                'refresh gw devices with group_id failed, %s, %s: %s',
-                self._uid, group_id, err)
-            gw_list = None
-        if gw_list is None:
-            _LOGGER.warning(
-                'refresh gw devices with group_id returned None, %s, %s',
-                self._uid, group_id)
-            # Retry until success
+            retries = self._mips_local_refresh_retry_counts.get(group_id, 0) + 1
+            self._mips_local_refresh_retry_counts[group_id] = retries
+            retry_delay = min(REFRESH_GATEWAY_DEVICES_DELAY * (2 ** min(retries - 1, 4)), 60)
+            if retries <= 3:
+                _LOGGER.info(
+                    'refresh gw devices with group_id temporarily failed (attempt %d/3), will retry in %ds, %s, %s: %s',
+                    retries, retry_delay, self._uid, group_id, err)
+            else:
+                _LOGGER.warning(
+                    'refresh gw devices with group_id failed (attempt %d), will retry in %ds, %s, %s: %s',
+                    retries, retry_delay, self._uid, group_id, err)
             self.__request_refresh_gw_devices_by_group_id(
-                group_id=group_id)
+                group_id=group_id, delay=retry_delay)
             return
+
+        self._mips_local_refresh_retry_counts.pop(group_id, None)
         await self.__update_devices_from_gw_async(
             gw_list=gw_list, group_id=group_id, filter_dids=[
                 did for did, info in self._device_list_gateway.items()
@@ -1705,7 +1717,7 @@ class MIoTClient:
 
     @final
     def __request_refresh_gw_devices_by_group_id(
-        self, group_id: str, immediately: bool = False
+        self, group_id: str, immediately: bool = False, delay: Optional[int] = None
     ) -> None:
         """Request refresh gateway devices by group_id"""
         refresh_timer = self._mips_local_state_changed_timers.get(
@@ -1719,11 +1731,13 @@ class MIoTClient:
                     0, lambda: self._create_tracked_task(
                         self.__refresh_gw_devices_with_group_id_async(
                             group_id=group_id))))
+            return
         if refresh_timer:
             return
+        timer_delay = delay if delay is not None else REFRESH_GATEWAY_DEVICES_DELAY
         self._mips_local_state_changed_timers[group_id] = (
             self._main_loop.call_later(
-                REFRESH_GATEWAY_DEVICES_DELAY,
+                timer_delay,
                 lambda: self._create_tracked_task(
                     self.__refresh_gw_devices_with_group_id_async(
                         group_id=group_id))))

@@ -1286,7 +1286,7 @@ class MipsLocalClient(_MipsClient):
                 return result_obj['error']
         return {
             'code': MIoTErrorCode.CODE_INTERNAL_ERROR.value,
-            'message': 'Invalid result'}
+            'message': f'Invalid result: {result_obj}'}
 
     @final
     async def action_async(
@@ -1316,7 +1316,7 @@ class MipsLocalClient(_MipsClient):
                 return result_obj['error']
         return {
             'code': MIoTErrorCode.CODE_INTERNAL_ERROR.value,
-            'message': 'Invalid result'}
+            'message': f'Invalid result: {result_obj}'}
 
     @final
     async def get_dev_list_async(
@@ -1325,10 +1325,31 @@ class MipsLocalClient(_MipsClient):
         result_obj = await self.__request_async(
             topic='proxy/getDevList', payload=payload or '{}',
             timeout_ms=timeout_ms)
-        if not result_obj or 'devList' not in result_obj:
-            raise MIoTMipsError('invalid result')
+        if not result_obj:
+            raise MIoTMipsError('empty response from gateway')
+        if isinstance(result_obj, dict):
+            if 'error' in result_obj:
+                err = result_obj['error']
+                if isinstance(err, dict):
+                    err_code = err.get('code')
+                    err_msg = err.get('message', 'unknown error')
+                    if err_code == -10006:
+                        raise MIoTMipsError(f'request timeout ({timeout_ms}ms)')
+                    raise MIoTMipsError(f'gateway error ({err_code}): {err_msg}')
+                raise MIoTMipsError(f'gateway error: {err}')
+            if 'code' in result_obj and result_obj['code'] != 0:
+                raise MIoTMipsError(
+                    f"gateway error ({result_obj['code']}): {result_obj.get('message', 'unknown error')}")
+
+        dev_list = result_obj.get('devList') if isinstance(result_obj, dict) else None
+        if dev_list is None and isinstance(result_obj, dict) and isinstance(result_obj.get('result'), dict):
+            dev_list = result_obj['result'].get('devList')
+
+        if not isinstance(dev_list, dict):
+            raise MIoTMipsError(f"invalid result (devList missing or invalid): {result_obj}")
+
         device_list = {}
-        for did, info in result_obj['devList'].items():
+        for did, info in dev_list.items():
             name: str = info.get('name', None)
             urn: str = info.get('urn', None)
             model: str = info.get('model', None)
@@ -1354,8 +1375,19 @@ class MipsLocalClient(_MipsClient):
             topic='proxy/getMijiaActionGroupList',
             payload='{}',
             timeout_ms=timeout_ms)
-        if not result_obj or 'result' not in result_obj:
-            raise MIoTMipsError('invalid result')
+        if not result_obj:
+            raise MIoTMipsError('empty response from gateway')
+        if isinstance(result_obj, dict):
+            if 'error' in result_obj:
+                err = result_obj['error']
+                if isinstance(err, dict) and err.get('code') == -10006:
+                    raise MIoTMipsError(f'request timeout ({timeout_ms}ms)')
+                raise MIoTMipsError(f'gateway error: {err}')
+            if 'code' in result_obj and result_obj['code'] != 0:
+                raise MIoTMipsError(
+                    f"gateway error ({result_obj['code']}): {result_obj.get('message', 'unknown error')}")
+        if not isinstance(result_obj, dict) or 'result' not in result_obj or not isinstance(result_obj['result'], list):
+            raise MIoTMipsError(f"invalid result: {result_obj}")
         return result_obj['result']
 
     @final
@@ -1373,7 +1405,7 @@ class MipsLocalClient(_MipsClient):
                 return result_obj['error']
         return {
             'code': MIoTErrorCode.CODE_MIPS_INVALID_RESULT.value,
-            'message': 'invalid result'}
+            'message': f'invalid result: {result_obj}'}
 
     @final
     @property
