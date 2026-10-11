@@ -75,14 +75,14 @@ INTEGRATION_LANGUAGES = MappingProxyType({
     'es': 'Español',
     'fr': 'Français',
     'it': 'Italiano',
-    'ja': '日本語',
+    'ja': '\u65e5\u672c\u8a9e',
     'nl': 'Nederlands',
     'pt': 'Português',
     'pt-BR': 'Português (Brasil)',
     'ru': 'Русский',
     'tr': 'Türkçe',
-    'zh-Hans': '简体中文',
-    'zh-Hant': '繁體中文'
+    'zh-Hans': '\u7b80\u4f53\u4e2d\u6587',
+    'zh-Hant': '\u7e41\u9ad4\u4e2d\u6587'
 })
 
 DEFAULT_COVER_DEAD_ZONE_WIDTH: int = 0
