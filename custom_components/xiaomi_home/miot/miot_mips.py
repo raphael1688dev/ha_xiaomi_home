@@ -590,9 +590,10 @@ class _MipsClient(ABC):
                 ca_certs=self._ca_file,
                 certfile=self._cert_file,
                 keyfile=self._key_file)
+            self._mqtt.tls_insecure_set(True)
         else:
             self._mqtt.tls_set(tls_version=ssl.PROTOCOL_TLS_CLIENT)
-        self._mqtt.tls_insecure_set(True)
+            self._mqtt.tls_insecure_set(False)
         self._mqtt.on_connect = self.__on_connect
         self._mqtt.on_connect_fail = self.__on_connect_failed
         self._mqtt.on_disconnect = self.__on_disconnect
@@ -1053,7 +1054,13 @@ class MipsCloudClient(_MipsClient):
         if not bc_list:
             return
         # The message from the cloud is not packed.
-        payload_str: str = payload.decode('utf-8')
+        try:
+            payload_str: str = payload.decode('utf-8')
+        except UnicodeDecodeError as err:
+            self.log_error(
+                f'on message, drop non-utf-8 payload, {err}, {topic}, '
+                f'{payload.hex()}')
+            return
         # self.log_debug(f"on broadcast, {topic}, {payload}")
         for item in bc_list or []:
             if item.handler is None:

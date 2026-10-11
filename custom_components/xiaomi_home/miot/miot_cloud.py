@@ -719,7 +719,11 @@ class MIoTHttpClient:
         if not props_buffer:
             _LOGGER.error('get prop error, empty request list')
             return False
-        results = await self.get_props_async(props_buffer)
+        try:
+            results = await self.get_props_async(props_buffer)
+        except Exception as err:  # pylint: disable=broad-exception-caught
+            _LOGGER.error('get prop batch failed, %s', err)
+            results = []
 
         for result in results:
             if not all(

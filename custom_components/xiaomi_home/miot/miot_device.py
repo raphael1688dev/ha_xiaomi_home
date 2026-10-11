@@ -142,7 +142,7 @@ MIOT_UNIT_MAP = {
     'meter': UnitOfLength.METERS,
     'km': UnitOfLength.KILOMETERS,
     'm3/h': UnitOfVolumeFlowRate.CUBIC_METERS_PER_HOUR,
-    '毫摩尔每升': UnitOfBloodGlucoseConcentration.MILLIMOLE_PER_LITER,
+    '\u6beb\u6469\u5c14\u6bcf\u5347': UnitOfBloodGlucoseConcentration.MILLIMOLE_PER_LITER,
     'mmol/L': UnitOfBloodGlucoseConcentration.MILLIMOLE_PER_LITER,
     'rpm': REVOLUTIONS_PER_MINUTE,
     'gram': UnitOfMass.GRAMS,

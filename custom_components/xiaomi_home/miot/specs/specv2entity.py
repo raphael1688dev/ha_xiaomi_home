@@ -23,6 +23,15 @@ except (ImportError, AttributeError):
     except (ImportError, AttributeError):
         CONCENTRATION_MICROGRAMS_PER_CUBIC_METER = 'μg/m³'
 
+try:
+    from homeassistant.const import UnitOfRatio  # type: ignore
+    CONCENTRATION_PARTS_PER_MILLION = UnitOfRatio.PARTS_PER_MILLION
+except (ImportError, AttributeError):
+    try:
+        from homeassistant.const import CONCENTRATION_PARTS_PER_MILLION  # type: ignore
+    except (ImportError, AttributeError):
+        CONCENTRATION_PARTS_PER_MILLION = 'ppm'
+
 # Optimized: Define shared immutable permission constants to reduce memory re-allocation
 _R = frozenset({'read'})
 _W = frozenset({'write'})
@@ -597,6 +606,12 @@ SPEC_PROP_TRANS_MAP = MappingProxyType({
             'entity': 'sensor',
             'state_class': SensorStateClass.MEASUREMENT,
             'unit_of_measurement': CONCENTRATION_MICROGRAMS_PER_CUBIC_METER
+        },
+        'co2-density': {
+            'device_class': SensorDeviceClass.CO2,
+            'entity': 'sensor',
+            'state_class': SensorStateClass.MEASUREMENT,
+            'unit_of_measurement': CONCENTRATION_PARTS_PER_MILLION
         },
         'atmospheric-pressure': {
             'device_class': SensorDeviceClass.ATMOSPHERIC_PRESSURE,
