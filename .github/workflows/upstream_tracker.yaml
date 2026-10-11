@@ -2,8 +2,8 @@ name: Upstream Release Tracker
 
 on:
   schedule:
-    # Run every Monday at 00:00 UTC
-    - cron: '0 0 * * 1'
+    # Run daily at 02:00 UTC
+    - cron: '0 2 * * *'
   workflow_dispatch:
 
 jobs:
@@ -11,7 +11,7 @@ jobs:
     name: Check Upstream Releases
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       issues: write
 
     steps:
@@ -29,3 +29,21 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           python3 scripts/check_upstream.py
+
+      - name: Create Tracking Issue If New Release Detected
+        if: steps.tracker.outputs.has_new_release == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ steps.tracker.outputs.new_tag }}"
+          # Check if an open issue for this tag already exists to avoid duplicates
+          EXISTING_ISSUE=$(gh issue list --repo ${{ github.repository }} --state open --search "$TAG" --json number -q '.[0].number')
+          if [ -n "$EXISTING_ISSUE" ]; then
+            echo "An open tracking issue already exists (#$EXISTING_ISSUE) for $TAG. Skipping creation."
+          else
+            gh issue create \
+              --repo ${{ github.repository }} \
+              --title "[Upstream Sync] Official Xiaomi release $TAG detected" \
+              --body-file upstream_report.md
+            echo "Created tracking issue for $TAG."
+          fi

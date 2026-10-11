@@ -96,10 +96,15 @@ def main():
     print(f"[*] Upstream release link:     {release_url}")
     print("-" * 70)
 
+    github_output_path = os.environ.get("GITHUB_OUTPUT")
+
     if latest_tag == tracked_version:
         print(f"[✓] Your fork is 100% up to date with the latest upstream release ({latest_tag})!")
         print("    No new upstream releases detected.")
         print("=" * 70)
+        if github_output_path:
+            with open(github_output_path, "a", encoding="utf-8") as gho:
+                gho.write("has_new_release=false\n")
         sys.exit(0)
 
     print(f"[!] NEW UPSTREAM RELEASE DETECTED: {tracked_version} -> {latest_tag}")
@@ -134,6 +139,43 @@ def main():
     print("    4. Run 'python3 scripts/quality_audit.py' to verify tests and compliance.")
     print("    5. Once adopted, run 'python3 scripts/check_upstream.py --update' to advance tracking.")
     print("=" * 70)
+
+    # Generate Markdown report for GitHub Issue
+    report_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "upstream_report.md")
+    with open(report_file, "w", encoding="utf-8") as rf:
+        rf.write(f"## 🚀 New Upstream Release Detected: `{latest_tag}`\n\n")
+        rf.write(f"A new official release has been detected from [{UPSTREAM_REPO}]({release_url}).\n\n")
+        rf.write(f"- **Tracked Version**: `{tracked_version}`\n")
+        rf.write(f"- **New Upstream Version**: `{latest_tag}` ({latest_name})\n")
+        rf.write(f"- **Published Date**: {published_at}\n")
+        rf.write(f"- **Full Diff Comparison**: [{tracked_version}...{latest_tag}]({compare_url})\n\n")
+        rf.write(f"### 📦 Commits Ahead ({len(commits)})\n\n")
+        for commit in commits[:25]:
+            sha = commit.get("sha", "")[:7]
+            author = commit.get("commit", {}).get("author", {}).get("name", "Unknown")
+            msg = commit.get("commit", {}).get("message", "").split("\n")[0]
+            rf.write(f"- [`{sha}`](https://github.com/{UPSTREAM_REPO}/commit/{commit.get('sha', '')}) {msg} (by @{author})\n")
+        if len(commits) > 25:
+            rf.write(f"- ... and {len(commits) - 25} more commits.\n")
+        rf.write(f"\n### 📁 Modified Files ({len(files)})\n\n")
+        for file_info in files[:30]:
+            fn = file_info.get("filename", "")
+            cat = categorize_file(fn)
+            rf.write(f"- `{fn}` — **{cat}**\n")
+        if len(files) > 30:
+            rf.write(f"- ... and {len(files) - 30} more files.\n")
+        rf.write("\n### 🛠️ Triage & Quality Gate Checklist\n\n")
+        rf.write("- [ ] Review high-value spec overrides in `spec_modify.yaml`\n")
+        rf.write("- [ ] Port critical bug fixes into `miot_cloud.py` / `miot_mips.py`\n")
+        rf.write("- [ ] Enforce zero Chinese policy (use Unicode escapes `\\uXXXX` for Chinese spec strings)\n")
+        rf.write("- [ ] Run `python3 scripts/quality_audit.py` to ensure 100% test pass rate\n")
+        rf.write("- [ ] Run `python3 scripts/check_upstream.py --update` to advance tracking marker\n")
+
+    if github_output_path:
+        with open(github_output_path, "a", encoding="utf-8") as gho:
+            gho.write("has_new_release=true\n")
+            gho.write(f"new_tag={latest_tag}\n")
+            gho.write(f"compare_url={compare_url}\n")
 
     if args.update:
         save_tracked_version(latest_tag)
