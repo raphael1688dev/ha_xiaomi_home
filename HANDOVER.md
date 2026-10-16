@@ -36,3 +36,25 @@ To prevent the codebase from regressing into a buggy, laggy state, observe these
 
 ---
 *Signed, Raphael & Antigravity (May 2026)*
+
+## October 2026 Update (v0.5.1 / v0.5.2)
+
+Maintenance of the fork was handed over to Claude Code on 2026-10-16. Decisions and conventions since then:
+
+### Decisions
+- **English only**: `INTEGRATION_LANGUAGES` contains only `en`; the Chinese translation and i18n files are gone and `bool_trans.yaml` / `multi_lang.json` keep English only. Config entries created with another language are migrated to English in `async_setup_entry` (entity IDs are kept). Do not re-add languages without updating `test/check_rule_format.py::test_miot_lang_integrity`.
+- **Supported cores**: `hacs.json` declares Home Assistant 2026.5.0+. APIs introduced later (for example `async_get_device_by_identifier`, the HA 2026.11 `native_*` temperature properties, the `DeviceInfo` dataclass) are used through feature detection with a fallback, never unconditionally.
+
+### Additional red lines
+6. **Never build an `entity_id` from `spec.platform` alone**: entities created on a different platform (dehumidifiers, binary sensors shown as sensors, debug action text entities) must pass `ha_domain`, because HA rejects mismatched domains from 2027.5.
+7. **Never use `set.union()` on spec mapping sets**: `SPEC_DEVICE_TRANS_MAP` uses `frozenset`; use the `|` operator. `MIoTSpecInstance` (whole-device entities) has no `iid` / `need_filter` / `proprietary`, so check `isinstance(..., MIoTSpecService)` before touching them.
+8. **Do not override `TrackerEntity.location_name` or `battery_level`**: both are removed in HA 2027.7; battery level is a separate sensor.
+
+### Workflow
+- Quality gate: `python3 scripts/quality_audit.py` (Chinese character policy, compilation, `tests/`, the offline `test/` suite and `test/check_rule_format.py`).
+- Branch, commit, fast-forward merge into `main`, push. Contributor PRs are cherry-picked with their authorship kept, then closed with a comment.
+- Releases: tag `YYYYMMDDrNN`, title `<tag> (vX.Y.Z Mod)`, notes taken from `CHANGELOG.md`. Publishing a release triggers `release.yaml`, which uploads `xiaomi_home.zip`.
+- Known CI backlog: `validate-lint` fails on long-standing pylint style messages, and the HACS license check fails because `LICENSE.md` is Xiaomi's custom license.
+
+---
+*Updated by Claude Code (October 2026)*
