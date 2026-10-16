@@ -1,4 +1,5 @@
 """Unit tests for MIoT device utility functions and common utilities."""
+from typing import Any
 import pytest
 from unittest.mock import MagicMock
 from custom_components.xiaomi_home.miot.common import (

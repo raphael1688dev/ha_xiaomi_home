@@ -89,10 +89,13 @@ def check_unit_tests() -> bool:
     pytest_bin = test_env_pytest if os.path.isfile(test_env_pytest) else "pytest"
 
     # tests/ holds the fork's unit tests; test/ holds the upstream suite, whose
-    # offline cases (incl. the spec rule format checks) are marked "github"
+    # offline cases are marked "github". check_rule_format.py is not named
+    # test_*.py, so pytest only collects it when passed explicitly (as CI does)
     suites = [
         ("tests/", [pytest_bin, "tests/", "-q"]),
         ("test/ -m github", [pytest_bin, "test/", "-m", "github", "-q"]),
+        ("test/check_rule_format.py -m github",
+         [pytest_bin, "test/check_rule_format.py", "-m", "github", "-q"]),
     ]
     passed = True
     for name, cmd in suites:

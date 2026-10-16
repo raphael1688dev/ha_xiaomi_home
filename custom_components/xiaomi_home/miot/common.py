@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import logging
 from os import path
 import random
 from typing import Any, Optional
@@ -12,6 +13,8 @@ from paho.mqtt.matcher import MQTTMatcher
 import yaml
 from slugify import slugify
 import functools
+
+_LOGGER = logging.getLogger(__name__)
 
 MIOT_ROOT_PATH: str = path.dirname(path.abspath(__file__))
 

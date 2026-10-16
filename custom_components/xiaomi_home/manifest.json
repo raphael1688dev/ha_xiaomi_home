@@ -19,7 +19,6 @@
         "construct>=2.10.56",
         "paho-mqtt",
         "numpy",
-        "cryptography",
         "psutil"
     ],
     "version": "20261016r34",

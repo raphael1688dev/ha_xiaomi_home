@@ -27,7 +27,9 @@ from .const import (
     NETWORK_REFRESH_INTERVAL, OAUTH2_CLIENT_ID, SUPPORT_CENTRAL_GATEWAY_CTRL,
     DEFAULT_COVER_DEAD_ZONE_WIDTH)
 from .miot_cloud import MIoTHttpClient, MIoTOauthClient
-from .miot_error import MIoTClientError, MIoTHttpError, MIoTErrorCode, MIoTMipsError
+from .miot_error import (
+    MIoTClientError, MIoTHttpError, MIoTErrorCode, MIoTMipsError,
+    MIoTOauthError)
 from .miot_mips import (
     MIoTDeviceState, MipsCloudClient, MipsDeviceState,
     MipsLocalClient)
