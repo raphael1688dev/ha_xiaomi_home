@@ -73,7 +73,7 @@ The integration is built around the `miot/` core package:
 
 **miot_network.py**: Network status monitoring and IP address detection.
 
-**miot_i18n.py**: Multi-language support (13 languages). Manages translations for entity names.
+**miot_i18n.py**: Translations for entity names and integration messages. This fork ships English only (`INTEGRATION_LANGUAGES = {"en"}`); entries created with another language are migrated to English on setup.
 
 ### Entity Conversion (specs/specv2entity.py)
 

@@ -23,7 +23,8 @@ from .miot.miot_storage import (
 from .miot.miot_spec import (
     MIoTSpecInstance, MIoTSpecParser, MIoTSpecService)
 from .miot.const import (
-    DEFAULT_INTEGRATION_LANGUAGE, DOMAIN, SUPPORTED_PLATFORMS)
+    DEFAULT_INTEGRATION_LANGUAGE, DOMAIN, INTEGRATION_LANGUAGES,
+    SUPPORTED_PLATFORMS)
 from .miot.miot_error import MIoTOauthError
 from .miot.miot_device import MIoTDevice
 from .miot.miot_client import MIoTClient, get_miot_instance_async
@@ -192,6 +193,15 @@ async def async_setup_entry(
 
     entry_id = config_entry.entry_id
     entry_data = dict(config_entry.data)
+
+    # Only English is supported; migrate entries set up with another language
+    if entry_data.get('integration_language') not in INTEGRATION_LANGUAGES:
+        _LOGGER.info(
+            'migrate integration language %s to %s, %s',
+            entry_data.get('integration_language'),
+            DEFAULT_INTEGRATION_LANGUAGE, entry_id)
+        entry_data['integration_language'] = DEFAULT_INTEGRATION_LANGUAGE
+        hass.config_entries.async_update_entry(config_entry, data=entry_data)
 
     ha_persistent_notify(
         notify_id=f'{entry_id}.oauth_error', title=None, message=None)

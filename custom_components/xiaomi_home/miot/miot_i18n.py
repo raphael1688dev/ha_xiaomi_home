@@ -49,16 +49,7 @@ class _MIoTSpecMultiLang:
         # Get multi lang from cloud
         try:
             trans_cloud = await self.__get_multi_lang_async(urn)
-            if self._lang == 'zh-Hans':
-                # Simplified Chinese
-                trans_cache = trans_cloud.get('zh_cn', {})
-            elif self._lang == 'zh-Hant':
-                # Traditional Chinese, zh_hk or zh_tw
-                trans_cache = trans_cloud.get('zh_hk', {})
-                if not trans_cache:
-                    trans_cache = trans_cloud.get('zh_tw', {})
-            else:
-                trans_cache = trans_cloud.get(self._lang, {})
+            trans_cache = trans_cloud.get(self._lang, {})
         except Exception as err:
             trans_cloud = {}
             _LOGGER.info('get multi lang from cloud failed, %s, %s\n%s', urn, err, traceback.format_exc())

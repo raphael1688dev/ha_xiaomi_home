@@ -149,6 +149,8 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         self._poll_priority = self._entry_data.get('poll_priority', 'cloud_first')
         self._integration_language = self._entry_data.get(
             'integration_language', DEFAULT_INTEGRATION_LANGUAGE)
+        if self._integration_language not in INTEGRATION_LANGUAGES:
+            self._integration_language = DEFAULT_INTEGRATION_LANGUAGE
         self._cover_dz_width = self._entry_data.get(
             'cover_dead_zone_width', DEFAULT_COVER_DEAD_ZONE_WIDTH)
         self._nick_name = self._entry_data.get('nick_name', DEFAULT_NICK_NAME)

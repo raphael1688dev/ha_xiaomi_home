@@ -69,20 +69,10 @@ CLOUD_SERVERS = MappingProxyType({
 SUPPORT_CENTRAL_GATEWAY_CTRL: tuple[str, ...] = ('cn',)
 
 DEFAULT_INTEGRATION_LANGUAGE: str = 'en'
+# This fork only ships English; entries created with another language are
+# migrated to English in async_setup_entry.
 INTEGRATION_LANGUAGES = MappingProxyType({
-    'de': 'Deutsch',
     'en': 'English',
-    'es': 'Español',
-    'fr': 'Français',
-    'it': 'Italiano',
-    'ja': '\u65e5\u672c\u8a9e',
-    'nl': 'Nederlands',
-    'pt': 'Português',
-    'pt-BR': 'Português (Brasil)',
-    'ru': 'Русский',
-    'tr': 'Türkçe',
-    'zh-Hans': '\u7b80\u4f53\u4e2d\u6587',
-    'zh-Hant': '\u7e41\u9ad4\u4e2d\u6587'
 })
 
 DEFAULT_COVER_DEAD_ZONE_WIDTH: int = 0
