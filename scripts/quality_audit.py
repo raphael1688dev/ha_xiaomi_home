@@ -4,7 +4,7 @@
 Checks:
     1. Zero Chinese characters across Python source and documentation files.
     2. Python compilation (py_compile) across all Python files.
-    3. Automated test suite (pytest tests/).
+    3. Automated test suites (pytest tests/ and the github-marked test/).
     4. Version formatting in manifest.json.
 
 Usage:
@@ -22,10 +22,11 @@ WORKSPACE_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 def scan_for_chinese(root_dir: str) -> list[tuple[str, int, str]]:
     """Scan all .py and .md files for Chinese characters."""
     violations = []
+    skip_dirs = {".git", "test_env", "__pycache__", ".pytest_cache"}
     for dirpath, dirs, files in os.walk(root_dir):
-        # Exclude git, virtualenvs, and test cache
-        if any(skip in dirpath for skip in [".git", "test_env", "__pycache__", ".pytest_cache"]):
-            continue
+        # Prune by exact directory name, a substring match would also skip
+        # ".github" or any path that merely contains "test_env"
+        dirs[:] = [d for d in dirs if d not in skip_dirs]
         for file in files:
             if file.endswith((".py", ".md")):
                 filepath = os.path.join(dirpath, file)
@@ -87,17 +88,25 @@ def check_unit_tests() -> bool:
     test_env_pytest = os.path.join(WORKSPACE_ROOT, "test_env", "bin", "pytest")
     pytest_bin = test_env_pytest if os.path.isfile(test_env_pytest) else "pytest"
 
-    cmd = [pytest_bin, "tests/", "-q"]
-    result = subprocess.run(cmd, cwd=WORKSPACE_ROOT, env=env, capture_output=True, text=True)
-    if result.returncode != 0:
-        print("      [FAILED] Tests failed:")
-        print(result.stdout)
-        print(result.stderr)
-        return False
-    # Extract passed count
-    summary = result.stdout.strip().split("\n")[-1]
-    print(f"      [PASSED] {summary}")
-    return True
+    # tests/ holds the fork's unit tests; test/ holds the upstream suite, whose
+    # offline cases (incl. the spec rule format checks) are marked "github"
+    suites = [
+        ("tests/", [pytest_bin, "tests/", "-q"]),
+        ("test/ -m github", [pytest_bin, "test/", "-m", "github", "-q"]),
+    ]
+    passed = True
+    for name, cmd in suites:
+        result = subprocess.run(cmd, cwd=WORKSPACE_ROOT, env=env, capture_output=True, text=True)
+        if result.returncode != 0:
+            print(f"      [FAILED] {name} tests failed:")
+            print(result.stdout)
+            print(result.stderr)
+            passed = False
+            continue
+        # Extract passed count
+        summary = result.stdout.strip().split("\n")[-1]
+        print(f"      [PASSED] {name}: {summary}")
+    return passed
 
 
 def check_manifest_version() -> bool:

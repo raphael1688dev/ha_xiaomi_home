@@ -11,7 +11,7 @@ jobs:
     name: Check Upstream Releases
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
       issues: write
 
     steps:
@@ -36,14 +36,18 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG="${{ steps.tracker.outputs.new_tag }}"
-          # Check if an open issue for this tag already exists to avoid duplicates
-          EXISTING_ISSUE=$(gh issue list --repo ${{ github.repository }} --state open --search "$TAG" --json number -q '.[0].number')
+          TITLE="[Upstream Sync] Official Xiaomi release $TAG detected"
+          # Match the exact title in open AND closed issues, so a closed issue
+          # (triaged but .upstream_version not yet bumped) is not recreated daily
+          EXISTING_ISSUE=$(gh issue list --repo ${{ github.repository }} --state all \
+            --search "\"$TITLE\" in:title" --limit 50 --json number,title \
+            | jq -r --arg t "$TITLE" '[.[] | select(.title == $t)][0].number // empty')
           if [ -n "$EXISTING_ISSUE" ]; then
-            echo "An open tracking issue already exists (#$EXISTING_ISSUE) for $TAG. Skipping creation."
+            echo "A tracking issue already exists (#$EXISTING_ISSUE) for $TAG. Skipping creation."
           else
             gh issue create \
               --repo ${{ github.repository }} \
-              --title "[Upstream Sync] Official Xiaomi release $TAG detected" \
+              --title "$TITLE" \
               --body-file upstream_report.md
             echo "Created tracking issue for $TAG."
           fi

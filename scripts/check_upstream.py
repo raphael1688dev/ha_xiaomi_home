@@ -152,9 +152,15 @@ def main():
         rf.write(f"### 📦 Commits Ahead ({len(commits)})\n\n")
         for commit in commits[:25]:
             sha = commit.get("sha", "")[:7]
-            author = commit.get("commit", {}).get("author", {}).get("name", "Unknown")
             msg = commit.get("commit", {}).get("message", "").split("\n")[0]
-            rf.write(f"- [`{sha}`](https://github.com/{UPSTREAM_REPO}/commit/{commit.get('sha', '')}) {msg} (by @{author})\n")
+            # Only GitHub logins may be @-mentioned; a git author name could
+            # notify an unrelated account, so wrap it in code instead
+            login = (commit.get("author") or {}).get("login")
+            if login:
+                author = f"@{login}"
+            else:
+                author = f"`{commit.get('commit', {}).get('author', {}).get('name', 'Unknown')}`"
+            rf.write(f"- [`{sha}`](https://github.com/{UPSTREAM_REPO}/commit/{commit.get('sha', '')}) {msg} (by {author})\n")
         if len(commits) > 25:
             rf.write(f"- ... and {len(commits) - 25} more commits.\n")
         rf.write(f"\n### 📁 Modified Files ({len(files)})\n\n")
