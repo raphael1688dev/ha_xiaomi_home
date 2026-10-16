@@ -11,13 +11,10 @@
         "ffmpeg",
         "zeroconf"
     ],
-    "documentation": "https://github.com/xiaomi/ha-xiaomi-home/blob/main/README.md",
+    "documentation": "https://github.com/raphael1688dev/ha_xiaomi_home/blob/main/README.md",
     "integration_type": "hub",
-    "iot_class": "cloud_polling",
+    "iot_class": "cloud_push",
     "issue_tracker": "https://github.com/raphael1688dev/ha_xiaomi_home/issues",
-    "loggers": [
-        "Xiaomi Home"
-    ],
     "requirements": [
         "construct>=2.10.56",
         "paho-mqtt",
@@ -25,7 +22,7 @@
         "cryptography",
         "psutil"
     ],
-    "version": "20261011r33",
+    "version": "20261016r34",
     "zeroconf": [
         "_miot-central._tcp.local."
     ]

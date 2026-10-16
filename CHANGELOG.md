@@ -1,4 +1,20 @@
 # CHANGELOG
+## v0.5.1 (Mod)
+### Fixed
+- Home Assistant 2026.10 compliance: entities no longer set an `entity_id` whose domain differs from their platform (dehumidifiers, binary sensors shown as text sensors, debug action text entities), which HA deprecates and rejects from 2027.5.
+- Replace the deprecated `DeviceRegistry.async_get_device` with `async_get_device_by_identifier` (fallback kept for older cores), and register devices with `DeviceInfo.as_dict()` when available (HA 2026.11 dataclass).
+- Prepare for HA 2026.11: climate and water heater entities implement the `native_*` temperature properties on cores that provide them, and keep the legacy names on older cores. Water heaters without a unit now default to Celsius.
+- Device tracker: drop the deprecated `location_name` and `battery_level` usage (removed in HA 2027.7). Battery level is now a separate battery sensor, `area-id` stays available as the `location_name` attribute, and latitude/longitude are read live instead of lagging one update.
+- Humidifier modes: Chinese mode names now match (value-list names are slugified to pinyin), duplicate standard modes no longer hide device values, and the legacy description-based mode names keep working in existing automations.
+- Options flow reloads the entry through `async_schedule_reload` instead of an untracked task.
+- Demote non-UTF-8 MQTT payload and cloud batch read failures to WARNING, with a truncated payload dump and the exception type name.
+- Manifest: `iot_class` is `cloud_push`, remove the invalid `loggers` entry, and point `documentation` to this fork.
+- CI: the upstream tracker only @-mentions GitHub logins, no longer recreates closed tracking issues, and runs with read-only contents permission; the quality audit prunes excluded directories by exact name and also runs the offline `test/` suite.
+
+## v0.5.0 (Mod)
+### Fixed
+- Adopt upstream 0.5.0 fixes: safe future draining on cloud batch request errors, integer step alignment for non-zero `min_` value ranges, cloud MQTT broker hostname verification, dropping non-UTF-8 cloud messages, humidifier standard mode mapping, `co2-density` CO2 sensor mapping, device spec overrides, and `CONFIG_SCHEMA` / config flow URL placeholders.
+
 ## v0.4.14 (Mod)
 ### Fixed
 - Abort in-flight requests immediately on MIPS socket disconnection in `MipsLocalClient._on_mips_disconnect` and cancel pending timers, preventing hanging requests from cascading into 10-second timeout error logs.

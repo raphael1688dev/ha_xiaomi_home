@@ -147,7 +147,14 @@ MIoT Specification Version 2 defines device capabilities using Services, Propert
 
 ## 📝 Release History & Changelog
 
-### Version 20261011r33 (v0.5.0 Mod) — Latest
+### Version 20261016r34 (v0.5.1 Mod) — Latest
+- **Home Assistant 2026.10 Compliance**: Fixed entity IDs with mismatched domains (deprecated, rejected from 2027.5), migrated off the deprecated `DeviceRegistry.async_get_device`, and register devices via `DeviceInfo.as_dict()` when available.
+- **HA 2026.11 Readiness**: Climate and water heater entities implement `native_*` temperature properties on cores that provide them, keeping the legacy names on older cores.
+- **Device Tracker**: Battery level moved to a dedicated battery sensor; dropped the deprecated `location_name` (removed in 2027.7) and fixed latitude/longitude lagging one update.
+- **Humidifier Modes**: Chinese mode names now match, duplicate standard modes no longer hide device values, and legacy mode names still work in automations.
+- **Housekeeping**: `async_schedule_reload` in the options flow, quieter MQTT/cloud error logs, corrected manifest metadata, and hardened upstream tracker / quality audit CI.
+
+### Version 20261011r33 (v0.5.0 Mod)
 - **Cloud Batch Resilience**: Added safe future draining with `None` upon batch request exceptions in `__get_prop_handler` (upstream PR #1723).
 - **MIoT Spec Value Precision**: Corrected integer step alignment for non-zero `min_` value ranges: `(value - min_) / step * step + min_` (upstream PR #1623). Added test in `tests/test_miot_spec.py`.
 - **MIPS TLS & Unicode Guard**: Enabled public cloud broker hostname verification (`tls_insecure_set(False)`) while maintaining insecure TLS for local hubs, and dropped non-UTF-8 cloud MQTT messages (upstream PR #1750, #1774).
