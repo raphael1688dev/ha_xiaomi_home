@@ -147,7 +147,12 @@ MIoT Specification Version 2 defines device capabilities using Services, Propert
 
 ## 📝 Release History & Changelog
 
-### Version 20261016r34 (v0.5.1 Mod) — Latest
+### Version 20261016r35 (v0.5.2 Mod) — Latest
+- **Setup Crash Fix**: Robot vacuums, speakers, TVs, air conditioners and other whole-device entities no longer make the integration fail to load (`TypeError` on `frozenset` action sets, `AttributeError` on `MIoTSpecInstance`). Contributed by @theodorx7.
+- **MQTT Loop Guard**: Event loop handlers no longer touch a closed socket after a disconnect. Contributed by @theodorx7.
+- **Quieter Gateway Logs**: Known unsupported models are skipped before device info validation. Contributed by @theodorx7.
+
+### Version 20261016r34 (v0.5.1 Mod)
 - **Home Assistant 2026.10 Compliance**: Fixed entity IDs with mismatched domains (deprecated, rejected from 2027.5), migrated off the deprecated `DeviceRegistry.async_get_device`, and register devices via `DeviceInfo.as_dict()` when available.
 - **HA 2026.11 Readiness**: Climate and water heater entities implement `native_*` temperature properties on cores that provide them, keeping the legacy names on older cores.
 - **Device Tracker**: Battery level moved to a dedicated battery sensor; dropped the deprecated `location_name` (removed in 2027.7) and fixed latitude/longitude lagging one update.

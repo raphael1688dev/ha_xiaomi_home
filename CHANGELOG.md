@@ -1,4 +1,10 @@
 # CHANGELOG
+## v0.5.2 (Mod)
+### Fixed
+- Fix integration setup failing for devices converted as a whole-device entity (robot vacuums, speakers, TVs, TV boxes, air conditioners, and others): `set.union()` raised `TypeError` on the `frozenset` action sets of `SPEC_DEVICE_TRANS_MAP`, and the entity filter and entity ID migration accessed `need_filter` / `iid` on `MIoTSpecInstance`, raising `AttributeError`. Contributed by @theodorx7.
+- Guard the MQTT event loop handlers against a closed socket (`fd == -1`) after a disconnect inside the read handler, which could raise in `add_writer` and keep a timer polling a disconnected client. Contributed by @theodorx7.
+- Check `UNSUPPORTED_MODELS` before validating central gateway device info, so known unsupported devices without a `urn` no longer log an "invalid device info" error. Contributed by @theodorx7.
+
 ## v0.5.1 (Mod)
 ### Changed
 - The integration is English only: the `zh-Hans` / `zh-Hant` translations and i18n files are removed, `bool_trans.yaml` and `multi_lang.json` keep English only, and existing entries using another language are migrated to English (device and entity names switch to English; entity IDs are unchanged).
