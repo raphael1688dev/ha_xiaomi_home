@@ -1,5 +1,8 @@
 # CHANGELOG
 ## v0.5.1 (Mod)
+### Changed
+- The integration is English only: the `zh-Hans` / `zh-Hant` translations and i18n files are removed, `bool_trans.yaml` and `multi_lang.json` keep English only, and existing entries using another language are migrated to English (device and entity names switch to English; entity IDs are unchanged).
+
 ### Fixed
 - Home Assistant 2026.10 compliance: entities no longer set an `entity_id` whose domain differs from their platform (dehumidifiers, binary sensors shown as text sensors, debug action text entities), which HA deprecates and rejects from 2027.5.
 - Replace the deprecated `DeviceRegistry.async_get_device` with `async_get_device_by_identifier` (fallback kept for older cores), and register devices with `DeviceInfo.as_dict()` when available (HA 2026.11 dataclass).
@@ -9,6 +12,8 @@
 - Options flow reloads the entry through `async_schedule_reload` instead of an untracked task.
 - Demote non-UTF-8 MQTT payload and cloud batch read failures to WARNING, with a truncated payload dump and the exception type name.
 - Manifest: `iot_class` is `cloud_push`, remove the invalid `loggers` entry, and point `documentation` to this fork.
+- Fix `NameError` crashes hidden in error paths: `MIoTHttp` logged through an undefined `_LOGGER` on network errors, and the OAuth refresh handler caught an un-imported `MIoTOauthError`.
+- Remove `cryptography` from the manifest requirements; it ships with Home Assistant and hassfest rejects it.
 - CI: the upstream tracker only @-mentions GitHub logins, no longer recreates closed tracking issues, and runs with read-only contents permission; the quality audit prunes excluded directories by exact name and also runs the offline `test/` suite.
 
 ## v0.5.0 (Mod)

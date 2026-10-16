@@ -152,6 +152,8 @@ MIoT Specification Version 2 defines device capabilities using Services, Propert
 - **HA 2026.11 Readiness**: Climate and water heater entities implement `native_*` temperature properties on cores that provide them, keeping the legacy names on older cores.
 - **Device Tracker**: Battery level moved to a dedicated battery sensor; dropped the deprecated `location_name` (removed in 2027.7) and fixed latitude/longitude lagging one update.
 - **Humidifier Modes**: Chinese mode names now match, duplicate standard modes no longer hide device values, and legacy mode names still work in automations.
+- **English Only**: Removed the remaining Chinese translations; existing entries using another language are migrated to English on setup (entity IDs are unchanged).
+- **Hidden Crash Fixes**: Fixed `NameError`s in the HTTP helper error path and the OAuth refresh handler, and removed the `cryptography` requirement rejected by hassfest.
 - **Housekeeping**: `async_schedule_reload` in the options flow, quieter MQTT/cloud error logs, corrected manifest metadata, and hardened upstream tracker / quality audit CI.
 
 ### Version 20261011r33 (v0.5.0 Mod)
