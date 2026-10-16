@@ -722,7 +722,9 @@ class MIoTHttpClient:
         try:
             results = await self.get_props_async(props_buffer)
         except Exception as err:  # pylint: disable=broad-exception-caught
-            _LOGGER.error('get prop batch failed, %s', err)
+            # Usually a temporary network error, the futures resolve to None
+            _LOGGER.warning(
+                'get prop batch failed, %s: %s', type(err).__name__, err)
             results = []
 
         for result in results:

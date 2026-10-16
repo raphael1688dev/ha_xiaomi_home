@@ -407,15 +407,8 @@ SPEC_DEVICE_TRANS_MAP = MappingProxyType({
                 }
             }
         },
-        'optional': {
-            'battery': {
-                'required': {
-                    'properties': {
-                        'battery-level': _R
-                    }
-                }
-            }
-        },
+        # battery-level is left to the property conversion, so it becomes a
+        # battery sensor (TrackerEntity.battery_level is removed in HA 2027.7)
         'entity': 'device_tracker'
     }
 })

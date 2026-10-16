@@ -35,7 +35,6 @@ async def async_setup_entry(
 
 class DeviceTracker(MIoTServiceEntity, TrackerEntity):
     """Tracker entities for Xiaomi Home."""
-    _prop_battery_level: Optional[MIoTSpecProperty]
     _prop_latitude: Optional[MIoTSpecProperty]
     _prop_longitude: Optional[MIoTSpecProperty]
     _prop_area_id: Optional[MIoTSpecProperty]
@@ -44,16 +43,13 @@ class DeviceTracker(MIoTServiceEntity, TrackerEntity):
         """Initialize the DeviceTracker."""
         super().__init__(miot_device=miot_device, entity_data=entity_data)
 
-        self._prop_battery_level = None
         self._prop_latitude = None
         self._prop_longitude = None
         self._prop_area_id = None
 
         # properties
         for prop in entity_data.props:
-            if prop.name == 'battery-level':
-                self._prop_battery_level = prop
-            elif prop.name == 'latitude':
+            if prop.name == 'latitude':
                 self._prop_latitude = prop
             elif prop.name == 'longitude':
                 self._prop_longitude = prop
@@ -61,23 +57,29 @@ class DeviceTracker(MIoTServiceEntity, TrackerEntity):
                 self._prop_area_id = prop
 
     @property
+    def latitude(self) -> Optional[float]:
+        """Return latitude value of the device."""
+        if not self._prop_latitude:
+            return None
+        val = self.get_prop_value(prop=self._prop_latitude)
+        return float(val) if val is not None else None
+
+    @property
+    def longitude(self) -> Optional[float]:
+        """Return longitude value of the device."""
+        if not self._prop_longitude:
+            return None
+        val = self.get_prop_value(prop=self._prop_longitude)
+        return float(val) if val is not None else None
+
+    @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return the extra state attributes of the device tracker."""
         attrs = super().extra_state_attributes
-        if self._prop_battery_level:
-            val = self.get_prop_value(prop=self._prop_battery_level)
-            if val is not None:
-                attrs['battery_level'] = int(val)
-        if self._prop_latitude:
-            val = self.get_prop_value(prop=self._prop_latitude)
-            self._attr_latitude = float(val) if val is not None else None
-        if self._prop_longitude:
-            val = self.get_prop_value(prop=self._prop_longitude)
-            self._attr_longitude = float(val) if val is not None else None
         if self._prop_area_id:
             val = self.get_prop_value(prop=self._prop_area_id)
-            loc_str = str(val) if val is not None else None
-            self._attr_location_name = loc_str
-            if loc_str is not None:
-                attrs['location_name'] = loc_str
+            # _attr_location_name is deprecated (removed in HA 2027.7) and
+            # area-id is not a zone, so expose it as an attribute only.
+            if val is not None:
+                attrs['location_name'] = str(val)
         return attrs

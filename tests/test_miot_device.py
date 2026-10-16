@@ -74,14 +74,13 @@ def test_unique_id_generation() -> None:
 
 
 def test_device_tracker_extra_state_attributes() -> None:
-    """Test DeviceTracker extra_state_attributes and dynamic _attr_* updates without property getter overrides."""
+    """Test DeviceTracker without the deprecated battery_level/location_name API."""
     from custom_components.xiaomi_home.device_tracker import DeviceTracker
     from custom_components.xiaomi_home.miot.miot_spec import MIoTSpecService
 
+    # Overriding these logs a deprecation warning (removed in HA 2027.7)
     assert "battery_level" not in DeviceTracker.__dict__
     assert "location_name" not in DeviceTracker.__dict__
-    assert "latitude" not in DeviceTracker.__dict__
-    assert "longitude" not in DeviceTracker.__dict__
     
     mock_miot_device = MagicMock()
     mock_miot_device.miot_client.get_device_control_path.return_value = "LAN"
@@ -125,12 +124,15 @@ def test_device_tracker_extra_state_attributes() -> None:
 
     tracker.get_prop_value = mock_get_prop_value
     
+    # battery-level is no longer consumed by the tracker (it is a sensor now)
+    assert "battery_level" not in tracker.extra_state_attributes
     attrs = tracker.extra_state_attributes
-    assert attrs.get("battery_level") == 85
     assert attrs.get("location_name") == "Home"
     assert attrs.get("control_path") == "LAN"
-    
+
+    # Location is read live, not cached from a previous attributes call
     assert tracker.latitude == 31.2304
     assert tracker.longitude == 121.4737
-    assert tracker.location_name == "Home"
+    # area-id is not a zone, so it must not drive the deprecated location_name
+    assert tracker.location_name is None
 

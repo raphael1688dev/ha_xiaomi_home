@@ -6,6 +6,7 @@ import logging
 from typing import Any, Optional
 
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.components.water_heater import (STATE_ON, STATE_OFF,
@@ -18,6 +19,12 @@ from .miot.miot_device import MIoTDevice, MIoTEntityData, MIoTServiceEntity
 from .miot.miot_spec import MIoTSpecProperty
 
 _LOGGER = logging.getLogger(__name__)
+
+# HA 2026.11 renamed the water heater temperature properties to native_* (the
+# old names log a warning and are removed in 2027.11). Implement whichever API
+# the running core provides, so older cores keep working.
+_NATIVE_TEMP_API: bool = hasattr(
+    WaterHeaterEntity, 'native_current_temperature')
 
 
 async def async_setup_entry(
@@ -54,7 +61,7 @@ class WaterHeater(MIoTServiceEntity, WaterHeaterEntity):
                  entity_data: MIoTEntityData) -> None:
         """Initialize the Water heater."""
         super().__init__(miot_device=miot_device, entity_data=entity_data)
-        self._attr_temperature_unit = None
+        temperature_unit = None
         self._attr_supported_features = WaterHeaterEntityFeature(0)
         self._prop_on = None
         self._prop_temp = None
@@ -76,7 +83,7 @@ class WaterHeater(MIoTServiceEntity, WaterHeaterEntity):
                                   self.entity_id)
                     continue
                 if prop.external_unit:
-                    self._attr_temperature_unit = prop.external_unit
+                    temperature_unit = prop.external_unit
                 self._prop_temp = prop
             # target-temperature
             if prop.name == 'target-temperature':
@@ -88,8 +95,8 @@ class WaterHeater(MIoTServiceEntity, WaterHeaterEntity):
                 self._attr_min_temp = prop.value_range.min_
                 self._attr_max_temp = prop.value_range.max_
                 self._attr_target_temperature_step = prop.value_range.step
-                if self._attr_temperature_unit is None and prop.external_unit:
-                    self._attr_temperature_unit = prop.external_unit
+                if temperature_unit is None and prop.external_unit:
+                    temperature_unit = prop.external_unit
                 self._attr_supported_features |= (
                     WaterHeaterEntityFeature.TARGET_TEMPERATURE)
                 self._prop_target_temp = prop
@@ -104,6 +111,14 @@ class WaterHeater(MIoTServiceEntity, WaterHeaterEntity):
                 self._attr_operation_list = list(self._mode_map.values())
                 self._prop_mode = prop
                 
+        # temperature_unit is required by the water heater entity
+        if _NATIVE_TEMP_API:
+            self._attr_native_temperature_unit = (
+                temperature_unit or UnitOfTemperature.CELSIUS)
+        else:
+            self._attr_temperature_unit = (
+                temperature_unit or UnitOfTemperature.CELSIUS)
+
         if not self._attr_operation_list:
             self._attr_operation_list = [STATE_ON]
         self._attr_operation_list.append(STATE_OFF)
@@ -142,8 +157,7 @@ class WaterHeater(MIoTServiceEntity, WaterHeaterEntity):
                                               write_ha_state=False)
             await self.set_property_async(prop=self._prop_mode, value=mode_val)
 
-    @property
-    def current_temperature(self) -> Optional[float]:
+    def _get_current_temperature(self) -> Optional[float]:
         """The current temperature."""
         if not self._prop_temp:
             return None
@@ -151,14 +165,20 @@ class WaterHeater(MIoTServiceEntity, WaterHeaterEntity):
         # Optimization: strictly convert to float
         return float(val) if val is not None else None
 
-    @property
-    def target_temperature(self) -> Optional[float]:
+    def _get_target_temperature(self) -> Optional[float]:
         """The target temperature."""
         if not self._prop_target_temp:
             return None
         val = self.get_prop_value(prop=self._prop_target_temp)
         # Optimization: strictly convert to float
         return float(val) if val is not None else None
+
+    if _NATIVE_TEMP_API:
+        native_current_temperature = property(_get_current_temperature)
+        native_target_temperature = property(_get_target_temperature)
+    else:
+        current_temperature = property(_get_current_temperature)
+        target_temperature = property(_get_target_temperature)
 
     @property
     def current_operation(self) -> Optional[str]:

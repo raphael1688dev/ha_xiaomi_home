@@ -1257,7 +1257,12 @@ class MIoTPropertyEntity(Entity):
 
     _pending_write_ha_state_timer: Optional[asyncio.TimerHandle]
 
-    def __init__(self, miot_device: MIoTDevice, spec: MIoTSpecProperty) -> None:
+    def __init__(
+        self,
+        miot_device: MIoTDevice,
+        spec: MIoTSpecProperty,
+        ha_domain: str | None = None,
+    ) -> None:
         if miot_device is None or spec is None or spec.service is None:
             raise MIoTDeviceError('init error, invalid params')
         self.miot_device = miot_device
@@ -1289,7 +1294,7 @@ class MIoTPropertyEntity(Entity):
         # Override entity_id explicitly to bypass HA's slugification of device name
         from .common import slugify_name
         clean_name = self._attr_name.replace("* ", "")
-        self.entity_id = f"{spec.platform}.{miot_device.entity_id_prefix}_{slugify_name(clean_name)}"
+        self.entity_id = f"{ha_domain or spec.platform}.{miot_device.entity_id_prefix}_{slugify_name(clean_name)}"
 
         _LOGGER.info(
             'new miot property entity, %s, %s, %s, %s, %s, entity_id: %s',
@@ -1551,7 +1556,12 @@ class MIoTActionEntity(Entity):
     _out_map: dict[int, MIoTSpecProperty]
     _state_sub_id: int
 
-    def __init__(self, miot_device: MIoTDevice, spec: MIoTSpecAction) -> None:
+    def __init__(
+        self,
+        miot_device: MIoTDevice,
+        spec: MIoTSpecAction,
+        ha_domain: str | None = None,
+    ) -> None:
         if miot_device is None or spec is None or spec.service is None:
             raise MIoTDeviceError('init error, invalid params')
         self.miot_device = miot_device
@@ -1575,7 +1585,7 @@ class MIoTActionEntity(Entity):
         # Override entity_id explicitly to bypass HA's slugification of device name
         from .common import slugify_name
         clean_name = self._attr_name.replace("* ", "")
-        self.entity_id = f"{spec.platform}.{miot_device.entity_id_prefix}_{slugify_name(clean_name)}"
+        self.entity_id = f"{ha_domain or spec.platform}.{miot_device.entity_id_prefix}_{slugify_name(clean_name)}"
 
         self._in_map = {}
         for prop in spec.in_:

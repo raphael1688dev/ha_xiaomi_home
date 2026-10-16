@@ -138,6 +138,7 @@ def _async_cleanup_entity_registry(hass: HomeAssistant, entry_id: str) -> None:
 
 async def _async_remove_deleted_devices(
     hass: HomeAssistant,
+    entry_id: str,
     entry_data: dict,
     miot_client: MIoTClient,
 ) -> None:
@@ -150,13 +151,16 @@ async def _async_remove_deleted_devices(
     if isinstance(devices_remove, list) and devices_remove:
         dr = device_registry.async_get(hass)
         for did in devices_remove:
-            device_entry = dr.async_get_device(
-                identifiers={(
-                    DOMAIN,
-                    slugify_did(
-                        cloud_server=entry_data['cloud_server'],
-                        did=did))},
-                connections=None)
+            identifier = (
+                DOMAIN,
+                slugify_did(cloud_server=entry_data['cloud_server'], did=did))
+            # async_get_device is deprecated since HA 2026.8 (removed in
+            # 2027.8); keep it only as a fallback for older cores.
+            if hasattr(dr, 'async_get_device_by_identifier'):
+                device_entry = dr.async_get_device_by_identifier(
+                    identifier, config_entry_id=entry_id)
+            else:
+                device_entry = dr.async_get_device(identifiers={identifier})
             if not device_entry:
                 _LOGGER.error('remove device not found, %s', did)
                 continue
@@ -299,9 +303,13 @@ async def async_setup_entry(
         dr = device_registry.async_get(hass)
         for device in miot_devices:
             if device.device_info:
+                # DeviceInfo is a dataclass since HA 2026.11, use as_dict()
+                device_info = device.device_info
+                if hasattr(device_info, 'as_dict'):
+                    device_info = device_info.as_dict()
                 dr.async_get_or_create(
                     config_entry_id=entry_id,
-                    **device.device_info
+                    **device_info
                 )
                 
         # Register a migration script to fix any existing fallback entity_ids
@@ -312,7 +320,8 @@ async def async_setup_entry(
             config_entry, SUPPORTED_PLATFORMS)
 
         # Remove the deleted devices
-        await _async_remove_deleted_devices(hass, entry_data, miot_client)
+        await _async_remove_deleted_devices(
+            hass, entry_id, entry_data, miot_client)
 
         await spec_parser.deinit_async()
         await manufacturer.deinit_async()

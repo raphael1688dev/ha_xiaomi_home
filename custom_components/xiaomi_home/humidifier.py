@@ -14,12 +14,29 @@ from homeassistant.components.humidifier import (HumidifierEntity,
                                                  HumidifierAction)
 from homeassistant.components.humidifier.const import (
     MODE_NORMAL, MODE_ECO, MODE_BOOST, MODE_COMFORT, MODE_SLEEP, MODE_AUTO)
+from slugify import slugify
 
 from .miot.miot_spec import MIoTSpecProperty
 from .miot.miot_device import MIoTDevice, MIoTEntityData, MIoTServiceEntity
 from .miot.const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
+
+# Value-list names are slugified when the spec is loaded (Chinese names become
+# pinyin, e.g. '\u6807\u51c6' -> 'biao_zhun'), so normalize the keys the same way.
+_MODE_NAME_TRANS: dict[str, str] = {
+    slugify(text=name, separator='_').lower(): mode
+    for mode, names in (
+        (MODE_NORMAL, ('none', 'the_standard_model', 'constant_speed',
+                       '\u6807\u51c6')),
+        (MODE_ECO, ('\u4f4e\u6e7f',)),
+        (MODE_BOOST, ('strong', '\u9ad8\u6e7f')),
+        (MODE_COMFORT, ('skin',)),
+        (MODE_SLEEP, ('sleep', 'sleep_mode', '\u7761\u7720')),
+        (MODE_AUTO, ('constant_humidity', 'const_humidity', '\u81ea\u52a8')),
+    )
+    for name in names
+}
 
 
 async def async_setup_entry(
@@ -61,11 +78,15 @@ class Humidifier(MIoTServiceEntity, HumidifierEntity):
 
     _mode_map: Optional[dict[Any, Any]]
     _mode_reverse_map: dict[Any, Any]
+    _mode_legacy_map: dict[str, Any]
 
     def __init__(self, miot_device: MIoTDevice,
                  entity_data: MIoTEntityData) -> None:
         """Initialize the Humidifier."""
-        super().__init__(miot_device=miot_device, entity_data=entity_data)
+        # Dehumidifiers use platform "dehumidifier", but the domain is humidifier
+        super().__init__(
+            miot_device=miot_device, entity_data=entity_data,
+            ha_domain="humidifier")
         self._attr_device_class = entity_data.device_class
         self._attr_supported_features = HumidifierEntityFeature(0)
 
@@ -75,6 +96,7 @@ class Humidifier(MIoTServiceEntity, HumidifierEntity):
         self._prop_mode = None
         self._mode_map = None
         self._mode_reverse_map = {}
+        self._mode_legacy_map = {}
 
         # properties
         for prop in entity_data.props:
@@ -97,23 +119,18 @@ class Humidifier(MIoTServiceEntity, HumidifierEntity):
                                   self.entity_id)
                     continue
                 self._mode_map = {}
+                used_modes: set[str] = set()
                 for item in prop.value_list.items:
-                    if item.name in {'none', 'the_standard_model',
-                                     'constant_speed', '\u6807\u51c6'}:
-                        self._mode_map[item.value] = MODE_NORMAL
-                    elif item.name in {'\u4f4e\u6e7f'}:
-                        self._mode_map[item.value] = MODE_ECO
-                    elif item.name in {'strong', '\u9ad8\u6e7f'}:
-                        self._mode_map[item.value] = MODE_BOOST
-                    elif item.name in {'skin'}:
-                        self._mode_map[item.value] = MODE_COMFORT
-                    elif item.name in {'sleep', 'sleep_mode', '\u7761\u7720'}:
-                        self._mode_map[item.value] = MODE_SLEEP
-                    elif item.name in {'constant_humidity',
-                                       'const_humidity', '\u81ea\u52a8'}:
-                        self._mode_map[item.value] = MODE_AUTO
-                    else:
-                        self._mode_map[item.value] = item.description
+                    mode = _MODE_NAME_TRANS.get(item.name)
+                    # Only the first item may claim a standard HA mode, so
+                    # every device value stays selectable.
+                    if mode is None or mode in used_modes:
+                        mode = item.description
+                    used_modes.add(mode)
+                    self._mode_map[item.value] = mode
+                    # Description-based names used before the HA standard
+                    # modes were adopted, kept for existing automations
+                    self._mode_legacy_map[item.description] = item.value
                 # Optimized: Pre-build O(1) mode reverse lookup dictionary to prevent runtime performance overhead
                 self._mode_reverse_map = {v: k for k, v in self._mode_map.items()}
 
@@ -138,6 +155,8 @@ class Humidifier(MIoTServiceEntity, HumidifierEntity):
         """Set new target preset mode."""
         # Optimized: Use O(1) dictionary lookup instead of O(N) traversal
         mode_val = self._mode_reverse_map.get(mode)
+        if mode_val is None:
+            mode_val = self._mode_legacy_map.get(mode)
         if mode_val is not None:
             await self.set_property_async(prop=self._prop_mode, value=mode_val)
 

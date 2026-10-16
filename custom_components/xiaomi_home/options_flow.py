@@ -138,7 +138,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
     def __init__(self, config_entry: config_entries.ConfigEntry):
         self._config_entry = config_entry
-        self._main_loop = asyncio.get_event_loop()
+        self._main_loop = asyncio.get_running_loop()
 
         self._entry_data = dict(config_entry.data)
         self._virtual_did = self._entry_data['virtual_did']
@@ -1135,12 +1135,10 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         # Update entry config
         self.hass.config_entries.async_update_entry(
             self._config_entry, title=entry_title, data=self._entry_data)
-        # Reload later
+        # Reload after the flow finishes; HA keeps a reference to the task
         if self._need_reload:
-            self._main_loop.call_later(
-                0, lambda: self._main_loop.create_task(
-                    self.hass.config_entries.async_reload(
-                        entry_id=self._config_entry.entry_id)))
+            self.hass.config_entries.async_schedule_reload(
+                self._config_entry.entry_id)
         return self.async_create_entry(title='', data={})
 
 

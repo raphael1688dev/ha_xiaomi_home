@@ -66,7 +66,8 @@ class Sensor(MIoTPropertyEntity, SensorEntity):
 
     def __init__(self, miot_device: MIoTDevice, spec: MIoTSpecProperty) -> None:
         """Initialize the Sensor."""
-        super().__init__(miot_device=miot_device, spec=spec)
+        # Binary sensor properties can also be shown here, so pin the domain
+        super().__init__(miot_device=miot_device, spec=spec, ha_domain="sensor")
         self._attr_device_class = spec.device_class
         
         # Pre-build O(1) reverse lookup dict, and force str conversion to prevent int/str mismatch

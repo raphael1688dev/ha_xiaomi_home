@@ -1057,9 +1057,10 @@ class MipsCloudClient(_MipsClient):
         try:
             payload_str: str = payload.decode('utf-8')
         except UnicodeDecodeError as err:
-            self.log_error(
+            # Truncate the dump, a misbehaving device may flood the log
+            self.log_warning(
                 f'on message, drop non-utf-8 payload, {err}, {topic}, '
-                f'{payload.hex()}')
+                f'{payload[:64].hex()}')
             return
         # self.log_debug(f"on broadcast, {topic}, {payload}")
         for item in bc_list or []:
