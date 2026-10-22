@@ -16,7 +16,8 @@ from typing import Any, Callable, Optional, final, Coroutine
 from paho.mqtt.client import (
     MQTT_ERR_SUCCESS,
     MQTT_ERR_NO_CONN,
-    MQTT_ERR_UNKNOWN,
+    MQTT_ERR_CONN_LOST,
+    MQTT_ERR_KEEPALIVE,
     Client,
     MQTTv5,
     MQTTMessage)
@@ -197,6 +198,8 @@ class _MipsClient(ABC):
     UINT32_MAX: int = 0xFFFFFFFF
     MIPS_RECONNECT_INTERVAL_MIN: float = 10
     MIPS_RECONNECT_INTERVAL_MAX: float = 600
+    MIPS_FAILURE_WARNING_DELAY: float = 120
+    MIPS_FAILURE_WARNING_INTERVAL: float = 1800
     MIPS_SUB_PATCH: int = 300
     MIPS_SUB_INTERVAL: float = 1
     main_loop: asyncio.AbstractEventLoop
@@ -224,6 +227,8 @@ class _MipsClient(ABC):
     _mips_reconnect_tag: bool
     _mips_reconnect_interval: float
     _mips_reconnect_timer: Optional[asyncio.TimerHandle]
+    _mips_failure_since: Optional[float]
+    _mips_failure_warned_at: Optional[float]
     _mips_state_sub_map: dict[str, _MipsState]
     _mips_state_sub_map_lock: threading.Lock
     _mips_sub_pending_map: dict[str, int]
@@ -266,6 +271,8 @@ class _MipsClient(ABC):
         self._mips_reconnect_tag = False
         self._mips_reconnect_interval = 0
         self._mips_reconnect_timer = None
+        self._mips_failure_since = None
+        self._mips_failure_warned_at = None
         self._mips_state_sub_map = {}
         self._mips_state_sub_map_lock = threading.Lock()
         self._mips_sub_pending_map = {}
@@ -635,7 +642,10 @@ class _MipsClient(ABC):
         if not self._mqtt.is_connected():
             _LOGGER.error('__on_connect, but mqtt is disconnected')
             return
-        self.log_info(f'mips connect, {flags}, {rc}, {props}')
+        if self._mips_failure_warned_at is None:
+            log = (self.log_info if self._mips_failure_since is None
+                   else self.log_debug)
+            log(f'mips connect, {flags}, {rc}, {props}')
         self.__reset_reconnect_time()
         self._mqtt_state = True
         self._internal_loop.call_soon(
@@ -654,7 +664,7 @@ class _MipsClient(ABC):
             self._event_disconnect.clear)
 
     def __on_connect_failed(self, client: Client, user_data: Any) -> None:
-        self.log_info('mips connect failed')
+        self.log_debug('mips connect failed')
         # Try to reconnect
         self.__mips_try_reconnect()
 
@@ -664,8 +674,14 @@ class _MipsClient(ABC):
             # (server disconnect), None
             is_auth_error = rc in (4, 5) or str(rc) in (
                 '4', '5', 'Bad username or password', 'Not authorized')
-            (self.log_warning if is_auth_error else self.log_info)(
-                f'mips disconnect, {rc}, {props}')
+            if is_auth_error:
+                log = self.log_warning
+            elif rc in (MQTT_ERR_NO_CONN, MQTT_ERR_CONN_LOST,
+                        MQTT_ERR_KEEPALIVE):
+                log = self.log_debug
+            else:
+                log = self.log_info
+            log(f'mips disconnect, {rc}, {props}')
             self._mqtt_state = False
             if self._mqtt_timer:
                 self._mqtt_timer.cancel()
@@ -746,7 +762,6 @@ class _MipsClient(ABC):
         if not self._mqtt:
             _LOGGER.error('__mips_connect, but mqtt is None')
             return
-        result = MQTT_ERR_UNKNOWN
         if self._mips_reconnect_timer:
             self._mips_reconnect_timer.cancel()
             self._mips_reconnect_timer = None
@@ -762,9 +777,15 @@ class _MipsClient(ABC):
             result = self._mqtt.connect(
                 host=self._host, port=self._port,
                 clean_start=True, keepalive=MIHOME_MQTT_KEEPALIVE)
-            self.log_info(f'__mips_connect success, {result}')
+            self.log_debug(f'__mips_connect submitted, {result}')
+        except ssl.SSLError as error:
+            self.log_error('__mips_connect, TLS error, %s', error)
+            self.__mips_try_reconnect()
+            return
         except (TimeoutError, OSError) as error:
-            self.log_error('__mips_connect, connect error, %s', error)
+            self.log_debug('__mips_connect, connect error, %s', error)
+            self.__mips_try_reconnect()
+            return
 
         if result == MQTT_ERR_SUCCESS:
             socket = self._mqtt.socket()
@@ -788,6 +809,8 @@ class _MipsClient(ABC):
 
     def __mips_try_reconnect(self, immediately: bool = False) -> None:
         if self._mips_reconnect_timer:
+            if not immediately:
+                return
             self._mips_reconnect_timer.cancel()
             self._mips_reconnect_timer = None
         if not self._mips_reconnect_tag:
@@ -795,8 +818,17 @@ class _MipsClient(ABC):
         interval: float = 0
         if not immediately:
             interval = self.__get_next_reconnect_time()
-            self.log_info(
-                'mips try reconnect after %ss', interval)
+            self.log_debug('mips try reconnect after %ss', interval)
+            now = self._internal_loop.time()
+            if self._mips_failure_since is None:
+                self._mips_failure_since = now
+            if (now-self._mips_failure_since >= self.MIPS_FAILURE_WARNING_DELAY
+                    and (self._mips_failure_warned_at is None
+                         or now-self._mips_failure_warned_at
+                         >= self.MIPS_FAILURE_WARNING_INTERVAL)):
+                self.log_warning('mips connection remains unavailable; '
+                                 'retrying in the background')
+                self._mips_failure_warned_at = now
         self._mips_reconnect_timer = self._internal_loop.call_later(
             interval, self.__mips_connect)
 
@@ -806,6 +838,7 @@ class _MipsClient(ABC):
 
     def __mips_disconnect(self) -> None:
         self._mips_reconnect_tag = False
+        self._mips_failure_since = self._mips_failure_warned_at = None
         if self._mips_reconnect_timer:
             self._mips_reconnect_timer.cancel()
             self._mips_reconnect_timer = None
@@ -836,6 +869,9 @@ class _MipsClient(ABC):
         return self._mips_reconnect_interval
 
     def __reset_reconnect_time(self) -> None:
+        if self._mips_failure_warned_at is not None:
+            self.log_info('mips connection recovered')
+        self._mips_failure_since = self._mips_failure_warned_at = None
         self._mips_reconnect_interval = 0
 
 
@@ -1159,6 +1195,10 @@ class MipsLocalClient(_MipsClient):
     def log_error(self, msg, *args, **kwargs) -> None:
         if self._logger:
             self._logger.error(f'{self._home_name}, '+msg, *args, **kwargs)
+
+    def log_warning(self, msg, *args, **kwargs) -> None:
+        if self._logger:
+            self._logger.warning(f'{self._home_name}, '+msg, *args, **kwargs)
 
     @final
     def connect(self, thread_name: Optional[str] = None) -> None:
