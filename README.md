@@ -147,7 +147,14 @@ MIoT Specification Version 2 defines device capabilities using Services, Propert
 
 ## 📝 Release History & Changelog
 
-### Version 20261016r35 (v0.5.2 Mod) — Latest
+### Version 20261024r36 (v0.5.3 Mod) — Latest
+- **Security**: OAuth token refresh no longer logs credentials, and token and user profile errors no longer embed raw responses that could reach logs and diagnostics. Contributed by @Wuty-zju, extended in this fork.
+- **Doorbell Events**: Doorbell event entities declare and fire the standard `ring` event type required from Home Assistant 2027.4. Automations matching the old event type name need to use `ring`. Contributed by @reginaldalfret.
+- **Device Fixes**: `uwize.plug.yzs01` power consumption is no longer 100 times too high (contributed by @xuilen), and `miaomiaoce.airm.co2` CO2 readings are no longer rounded to 100 ppm (contributed by @Wuty-zju).
+- **Setup Text**: The device filter instructions describe the subtraction in the right order. Contributed by @0xSixtos.
+- **Code Quality**: CI is fully green; pylint reports no findings.
+
+### Version 20261016r35 (v0.5.2 Mod)
 - **Setup Crash Fix**: Robot vacuums, speakers, TVs, air conditioners and other whole-device entities no longer make the integration fail to load (`TypeError` on `frozenset` action sets, `AttributeError` on `MIoTSpecInstance`). Contributed by @theodorx7.
 - **MQTT Loop Guard**: Event loop handlers no longer touch a closed socket after a disconnect. Contributed by @theodorx7.
 - **Quieter Gateway Logs**: Known unsupported models are skipped before device info validation. Contributed by @theodorx7.

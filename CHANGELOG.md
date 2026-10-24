@@ -1,5 +1,5 @@
 # CHANGELOG
-## Unreleased
+## v0.5.3 (Mod)
 ### Fixed
 - Security: OAuth token refresh no longer logs the new credentials, and token endpoint and user profile errors no longer embed the raw response body (tokens, personal data) that could reach logs and diagnostics. Contributed by @Wuty-zju (XiaoMi/ha_xiaomi_home#1835), extended to the remaining error paths of this fork.
 - Doorbell event entities declare and fire the standard `ring` event type, which Home Assistant requires from 2027.4. Automations matching the old event type name (e.g. `Doorbell Ring`) need to use `ring`. Contributed by @reginaldalfret (XiaoMi/ha_xiaomi_home#1815).
