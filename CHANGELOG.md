@@ -56,13 +56,12 @@
 
 ## v0.4.12 (Mod)
 ### Fixed
-- Resolve Home Assistant Core 2026.8+ deprecation warnings regarding legacy concentration constants (`CONCENTRATION_MICROGRAMS_PER_CUBIC_METER`, `CONCENTRATION_MILLIGRAMS_PER_CUBIC_METER`, `CONCENTRATION_PARTS_PER_BILLION`, `CONCENTRATION_PARTS_PER_MILLION`) by using dynamic fallback imports for `UnitOfDensity` and `UnitOfRatio`.
-- Fix `DeviceTracker` deprecation warnings in HA Core 2026.8+ by removing overridden `battery_level`, `location_name`, `latitude`, and `longitude` property getters and dynamically updating `_attr_*` and `extra_state_attributes`.
+- Fix the `DeviceTracker` `location_name` deprecation warning in HA Core 2026.8+ by updating the `_attr_*` instance attributes dynamically instead of overriding the property getters.
 
 ## v0.4.11 (Mod)
 ### Fixed
 - Resolve Home Assistant Core 2026.8+ deprecation warnings regarding legacy concentration constants (`CONCENTRATION_MICROGRAMS_PER_CUBIC_METER`, `CONCENTRATION_MILLIGRAMS_PER_CUBIC_METER`, `CONCENTRATION_PARTS_PER_BILLION`, `CONCENTRATION_PARTS_PER_MILLION`) by using dynamic fallback imports for `UnitOfDensity` and `UnitOfRatio`.
-- Fix `DeviceTracker` deprecation warnings in HA Core 2026.8+ by removing overridden `battery_level`, `location_name`, `latitude`, and `longitude` property getters and dynamically updating `_attr_*` and `extra_state_attributes`.
+- Fix `DeviceTracker` deprecation warning in HA Core 2026.8+ by removing the overridden `battery_level` property getter and exposing battery status cleanly via `extra_state_attributes`.
 
 ## v0.4.10 (Mod)
 ### Added
