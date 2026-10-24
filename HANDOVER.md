@@ -54,6 +54,7 @@ Maintenance of the fork was handed over to Claude Code on 2026-10-16. Decisions 
 - Quality gate: `python3 scripts/quality_audit.py` (Chinese character policy, compilation, `tests/`, the offline `test/` suite and `test/check_rule_format.py`).
 - Branch, commit, fast-forward merge into `main`, push. Contributor PRs are cherry-picked with their authorship kept, then closed with a comment.
 - Releases: tag `YYYYMMDDrNN`, title `<tag> (vX.Y.Z Mod)`, notes taken from `CHANGELOG.md`. Publishing a release triggers `release.yaml`, which uploads `xiaomi_home.zip`.
+- Repository layout: `tests/` holds this fork's unit tests (run against Home Assistant), `test/` is upstream's suite and stays as is so upstream changes cherry-pick cleanly. Finished plans and analyses from earlier work live in `docs/history/`.
 - CI is fully green since 2026-10-24 and must stay that way: pylint reports zero findings (deliberate catch-all handlers carry an inline `# pylint: disable=broad-exception-caught`, as upstream does), and the HACS license check is skipped with `ignore: license` because `LICENSE.md` is Xiaomi's custom license without an SPDX identifier.
 
 ---

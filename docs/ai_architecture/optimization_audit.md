@@ -35,7 +35,7 @@ async def get_async(url, params=None, headers=None, loop=None, session=None):
                 ...
 ```
 
-No keep-alive, no connection pooling on the fallback path. Contradicts `ha_compliance_analysis.md` §1 ("Resolved" — replace manual instantiation with `async_get_clientsession(hass)`).
+No keep-alive, no connection pooling on the fallback path. Contradicts `docs/history/ha_compliance_analysis.md` §1 ("Resolved" — replace manual instantiation with `async_get_clientsession(hass)`).
 
 **Improvement:** Make the `session` argument mandatory (callers already have HA's managed session), or hold a module-level singleton seeded from `async_setup`. Remove the synchronous `urlopen` siblings while you're there (see O-021).
 

@@ -3,3 +3,5 @@ __pycache__
 .vscode
 .idea
 requirements.txt
+.DS_Store
+test_env/

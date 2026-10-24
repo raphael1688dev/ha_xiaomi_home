@@ -2,7 +2,7 @@
 
 **Audit date:** 2026-05-30
 **Codebase version:** `20260530r13`
-**Scope:** Post-`logic_flaws_audit.md` follow-up — verifies prior findings + surfaces new defects introduced by `implementation_plan.md` features (CtrlMode.LOCAL / poll_priority / control_path) and hotfixes r10–r13.
+**Scope:** Post-`logic_flaws_audit.md` follow-up — verifies prior findings + surfaces new defects introduced by `docs/history/implementation_plan.md` features (CtrlMode.LOCAL / poll_priority / control_path) and hotfixes r10–r13.
 **Method:** Static reading of changed regions in `miot_client.py`, `miot_device.py`, `miot_lan.py`, `miot_lan_manager.py`, `miot_cloud_manager.py`, `__init__.py`, and entity platforms (`fan.py`, `light.py`, `sensor.py`).
 
 This document catalogues **new logical defects** not covered by the v1 audit. Each finding is reproducible by reading the cited file/line.
@@ -58,7 +58,7 @@ def get_device_control_path(self, did: str) -> str:
 
 **Why it's wrong:** `set_prop_async` (`miot_client.py:651`) applies the same gateway check but then verifies `mips = self._mips_local.get(device_gw['group_id'], None)`. If `mips is None`, it logs an error and falls through to LAN. The control-path display ignores this extra condition, so it can report "Gateway" while the actual write goes via LAN or Cloud.
 
-**Impact:** Breaks the contract of `implementation_plan.md` item 3: "which connection route an issued command takes". Users see a misleading attribute.
+**Impact:** Breaks the contract of `docs/history/implementation_plan.md` item 3: "which connection route an issued command takes". Users see a misleading attribute.
 
 **Fix:**
 ```python
@@ -113,7 +113,7 @@ _LOGGER.error('client action failed, %s.%d.%d', did, siid, aiid)
 return []
 ```
 
-**Why it's wrong:** `implementation_plan.md` item 1 explicitly states LOCAL mode must "directly raise an exception and refuse to fall back to Cloud Control". `action_async` violates this contract.
+**Why it's wrong:** `docs/history/implementation_plan.md` item 1 explicitly states LOCAL mode must "directly raise an exception and refuse to fall back to Cloud Control". `action_async` violates this contract.
 
 **Impact:** When a user in LOCAL mode pushes a ButtonEntity action while the device is unreachable locally, HA sees a successful empty return — no error notification, no automation failure signal.
 
@@ -276,7 +276,7 @@ def available(self) -> bool:
 
 `get_device_control_path` already returns the string `'Offline'` when no path is reachable. But the entity itself is marked unavailable when the device is offline, so HA hides the value and shows the generic "unavailable" label — defeating the diagnostic sensor's purpose.
 
-This contradicts `implementation_plan.md` verification step: "whether the attribute changes dynamically after unplugging network cable".
+This contradicts `docs/history/implementation_plan.md` verification step: "whether the attribute changes dynamically after unplugging network cable".
 
 **Fix:**
 ```python
