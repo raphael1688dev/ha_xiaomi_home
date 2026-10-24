@@ -53,7 +53,7 @@ Maintenance of the fork was handed over to Claude Code on 2026-10-16. Decisions 
 8. **Do not override `TrackerEntity.location_name` or `battery_level`**: both are removed in HA 2027.7; battery level is a separate sensor.
 9. **Never log or embed raw OAuth or profile responses**: token responses carry credentials and reach logs and diagnostics through error messages; report only the response code or the server error description.
 10. **Large, frequently changing attributes stay out of the recorder**: list them in `_unrecorded_attributes` (for example the untruncated `value` of long strings).
-11. **MQTT disconnect codes**: `rc` is either a paho client error code or a broker `ReasonCode` with overlapping values (4 is "no connection" as a client code). Check `isinstance(rc, ReasonCode)` before comparing values. `_MipsCloudMQTTClient` overrides paho's protected `_filter_wildcard_len_check` (paho is pinned to 2.1.0 by Home Assistant); re-check it when Home Assistant bumps paho.
+11. **MQTT disconnect codes**: `rc` is either a paho client error code or a broker `ReasonCode` with overlapping values (4 is "no connection" as a client code). Check `isinstance(rc, ReasonCode)` before comparing values. `_MipsCloudMQTTClient` overrides paho's protected `_filter_wildcard_len_check` and `_create_socket` (the latter tries every broker address, because a node that drops the TLS handshake would otherwise keep the connection down). paho is pinned to 2.1.0 by Home Assistant; when it is bumped, re-check both overrides (`tests/test_mips_failover.py` asserts the paho internals they use).
 
 ### Workflow
 - Quality gate: `python3 scripts/quality_audit.py` (Chinese character policy, compilation, `tests/`, the offline `test/` suite and `test/check_rule_format.py`).

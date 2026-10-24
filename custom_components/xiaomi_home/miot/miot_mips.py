@@ -5,9 +5,11 @@ import json
 import logging
 import random
 import re
+import socket
 import ssl
 import struct
 import threading
+import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum, auto
@@ -176,7 +178,16 @@ class MipsDeviceState:
 
 
 class _MipsCloudMQTTClient(Client):
-    """Allow literal hashes in Xiaomi cloud device identifiers only."""
+    """paho client adapted to the Xiaomi cloud broker.
+
+    Allows literal hashes in device identifiers, and tries every broker
+    address when one of them fails the TLS handshake.
+    """
+    _mips_failed_addrs: dict[str, float]
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self._mips_failed_addrs = {}
 
     @staticmethod
     def _filter_wildcard_len_check(sub: bytes) -> int:
@@ -193,6 +204,36 @@ class _MipsCloudMQTTClient(Client):
             parts[1] = parts[1].replace(b'#', b'_')
             return Client._filter_wildcard_len_check(b'/'.join(parts))
         return Client._filter_wildcard_len_check(sub)
+
+    def _create_socket(self):
+        # The broker name resolves to several nodes. paho only moves on when
+        # the TCP connect fails, so a node that accepts TCP but drops the TLS
+        # handshake would keep the connection down. Try every address, least
+        # recently failed first, keeping SNI and certificate checks on the
+        # broker name.
+        if self._transport != 'tcp' or not self._ssl or self._get_proxy():
+            return super()._create_socket()
+        addrs: list[str] = list(dict.fromkeys(
+            info[4][0] for info in socket.getaddrinfo(
+                self._host, self._port, type=socket.SOCK_STREAM)))
+        addrs.sort(key=lambda addr: self._mips_failed_addrs.get(addr, 0))
+        last_error: OSError = OSError(f'no address for {self._host}')
+        for addr in addrs:
+            sock: Optional[socket.socket] = None
+            try:
+                sock = socket.create_connection(
+                    (addr, self._port), timeout=self._connect_timeout,
+                    source_address=(self._bind_address, self._bind_port))
+                ssl_sock = self._ssl_wrap_socket(sock)
+            except OSError as error:  # ssl.SSLError is an OSError
+                if sock:
+                    sock.close()
+                self._mips_failed_addrs[addr] = time.monotonic()
+                last_error = error
+                continue
+            self._mips_failed_addrs.pop(addr, None)
+            return ssl_sock
+        raise last_error
 
 
 class _MipsClient(ABC):
@@ -234,6 +275,7 @@ class _MipsClient(ABC):
     _mips_reconnect_timer: Optional[asyncio.TimerHandle]
     _mips_failure_since: Optional[float]
     _mips_failure_warned_at: Optional[float]
+    _mips_failure_reason: Optional[str]
     _mips_state_sub_map: dict[str, _MipsState]
     _mips_state_sub_map_lock: threading.Lock
     _mips_sub_pending_map: dict[str, int]
@@ -278,6 +320,7 @@ class _MipsClient(ABC):
         self._mips_reconnect_timer = None
         self._mips_failure_since = None
         self._mips_failure_warned_at = None
+        self._mips_failure_reason = None
         self._mips_state_sub_map = {}
         self._mips_state_sub_map_lock = threading.Lock()
         self._mips_sub_pending_map = {}
@@ -509,7 +552,8 @@ class _MipsClient(ABC):
         """
         self.__thread_check()
         if not self._mqtt or not self._mqtt.is_connected():
-            self.log_error(f'mips sub when not connected, {topic}')
+            # The topic is subscribed again by _on_mips_connect
+            self.log_debug(f'mips sub when not connected, {topic}')
             return
 
         if topic not in self._mips_sub_pending_map:
@@ -785,23 +829,22 @@ class _MipsClient(ABC):
                 host=self._host, port=self._port,
                 clean_start=True, keepalive=MIHOME_MQTT_KEEPALIVE)
             self.log_debug(f'__mips_connect submitted, {result}')
-        except ssl.SSLError as error:
-            self.log_error('__mips_connect, TLS error, %s', error)
-            self.__mips_try_reconnect()
-            return
-        except (TimeoutError, OSError) as error:
+            self._mips_failure_reason = None
+        except OSError as error:  # Includes TLS errors and timeouts
+            # Reported by __mips_try_reconnect if the outage lasts
             self.log_debug('__mips_connect, connect error, %s', error)
+            self._mips_failure_reason = str(error)
             self.__mips_try_reconnect()
             return
 
         if result == MQTT_ERR_SUCCESS:
-            socket = self._mqtt.socket()
-            if socket is None:
+            mqtt_sock = self._mqtt.socket()
+            if mqtt_sock is None:
                 self.log_error(
                     '__mips_connect, connect success, but socket is None')
                 self.__mips_try_reconnect()
                 return
-            self._mqtt_fd = socket.fileno()
+            self._mqtt_fd = mqtt_sock.fileno()
             self.log_debug(f'__mips_connect, _mqtt_fd, {self._mqtt_fd}')
             self._internal_loop.add_reader(
                 self._mqtt_fd, self.__mqtt_read_handler)
@@ -833,8 +876,10 @@ class _MipsClient(ABC):
                     and (self._mips_failure_warned_at is None
                          or now-self._mips_failure_warned_at
                          >= self.MIPS_FAILURE_WARNING_INTERVAL)):
-                self.log_warning('mips connection remains unavailable; '
-                                 'retrying in the background')
+                reason = (f' ({self._mips_failure_reason})'
+                          if self._mips_failure_reason else '')
+                self.log_warning('mips connection remains unavailable%s; '
+                                 'retrying in the background', reason)
                 self._mips_failure_warned_at = now
         self._mips_reconnect_timer = self._internal_loop.call_later(
             interval, self.__mips_connect)
@@ -846,6 +891,7 @@ class _MipsClient(ABC):
     def __mips_disconnect(self) -> None:
         self._mips_reconnect_tag = False
         self._mips_failure_since = self._mips_failure_warned_at = None
+        self._mips_failure_reason = None
         if self._mips_reconnect_timer:
             self._mips_reconnect_timer.cancel()
             self._mips_reconnect_timer = None
@@ -879,6 +925,7 @@ class _MipsClient(ABC):
         if self._mips_failure_warned_at is not None:
             self.log_info('mips connection recovered')
         self._mips_failure_since = self._mips_failure_warned_at = None
+        self._mips_failure_reason = None
         self._mips_reconnect_interval = 0
 
 

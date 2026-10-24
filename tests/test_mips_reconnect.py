@@ -36,6 +36,7 @@ def _client() -> tuple[MipsCloudClient, _Clock, MagicMock]:
     client._mips_reconnect_timer = None
     client._mips_failure_since = None
     client._mips_failure_warned_at = None
+    client._mips_failure_reason = None
     return client, clock, client._logger
 
 
