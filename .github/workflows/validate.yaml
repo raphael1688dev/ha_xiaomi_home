@@ -29,6 +29,8 @@ jobs:
         uses: hacs/action@main
         with:
           category: integration
+          # LICENSE.md is Xiaomi's own license, which GitHub cannot map to SPDX
+          ignore: license
 
   validate-lint:
     runs-on: ubuntu-latest
