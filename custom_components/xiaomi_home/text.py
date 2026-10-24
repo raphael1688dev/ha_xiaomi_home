@@ -93,10 +93,10 @@ class ActionText(MIoTActionEntity, TextEntity):
             raise ValueError(
                 f'action exec failed, {self.name}({self.entity_id}), '
                 f'invalid action params format, {value}') from e
-                
+
         if len(self.spec.in_) == 1 and not isinstance(in_list, list):
             in_list = [in_list]
-            
+
         if not isinstance(in_list, list) or len(in_list) != len(self.spec.in_):
             _LOGGER.error(
                 'action exec failed, %s(%s), invalid action params, %s',
@@ -104,7 +104,7 @@ class ActionText(MIoTActionEntity, TextEntity):
             raise ValueError(
                 f'action exec failed, {self.name}({self.entity_id}), '
                 f'invalid action params, {value}')
-                
+
         in_value: list[dict] = []
         for index, prop in enumerate(self.spec.in_):
             raw_val = in_list[index]
@@ -137,7 +137,7 @@ class ActionText(MIoTActionEntity, TextEntity):
                     f'invalid params item, which item({prop.description_trans}) '
                     f'in the list must be {prop.format_.__name__}, {raw_val} type '
                     f'was {type(raw_val).__name__}, {value}')
-                    
+
             in_value.append({'piid': prop.iid, 'value': parsed_val})
 
         self._attr_native_value = value

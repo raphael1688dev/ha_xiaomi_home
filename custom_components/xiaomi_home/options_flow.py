@@ -329,7 +329,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                         next_step_id='oauth_error')
                 return self.async_show_progress_done(
                     next_step_id='config_options')
-        except Exception as err:  
+        except Exception as err:
             _LOGGER.error(
                 'async_step_oauth error, %s, %s',
                 err, traceback.format_exc())
@@ -996,7 +996,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     port=8883) != 0:
                     raise RuntimeError('mqtt connect error')
                 mqtt_client.disconnect()
-            except Exception as err:  
+            except Exception as err:
                 _LOGGER.error('try connect mqtt broker error, %s', traceback.format_exc())
                 return await self.__show_network_detect_config_form(
                     reason='unreachable_mqtt_broker')
@@ -1142,5 +1142,3 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             self.hass.config_entries.async_schedule_reload(
                 self._config_entry.entry_id)
         return self.async_create_entry(title='', data={})
-
-

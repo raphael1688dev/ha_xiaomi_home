@@ -267,7 +267,7 @@ class FeatureSoundMode(_FeatureBase):
         self._prop_sound_mode = None
         self._sound_mode_map = None
         self._sound_mode_reverse_map = {}
-        
+
         for prop in entity_data.props:
             if prop.name != 'mode':
                 continue
@@ -308,7 +308,7 @@ class FeatureSource(_FeatureBase):
         self._prop_source = None
         self._source_map = None
         self._source_reverse_map = {}
-        
+
         for prop in entity_data.props:
             if prop.name != 'input-control':
                 continue

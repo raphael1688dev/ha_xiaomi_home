@@ -57,11 +57,11 @@ class MipsServiceData:
         properties: dict = service_info.decoded_properties
         if not properties:
             raise MipsServiceError('invalid service properties')
-        
+
         self.profile = properties.get('profile', None)
         if self.profile is None:
             raise MipsServiceError('invalid service profile')
-            
+
         self.profile_bin = base64.b64decode(self.profile)
         self.name = service_info.name
         self.addresses = service_info.parsed_addresses(version=IPVersion.V4Only)
@@ -69,11 +69,11 @@ class MipsServiceData:
             raise MipsServiceError('invalid addresses')
         if not service_info.port:
             raise MipsServiceError('invalid port')
-            
+
         self.port = service_info.port
         self.type = service_info.type
         self.server = service_info.server or ''
-        
+
         # Parse profile
         self.did = str(int.from_bytes(self.profile_bin[1:9], byteorder='big'))
         # Optimized: Use built-in bytes .hex() instead of binascii module
@@ -172,7 +172,7 @@ class MipsService:
         if state_change is ServiceStateChange.Removed:
             _LOGGER.debug('Ignore mdns REMOVED package for: %s', name)
             return
-            
+
         self._main_loop.create_task(
             self.__request_service_info_async(zeroconf, service_type, name))
 
@@ -189,7 +189,7 @@ class MipsService:
             if not service_data.valid_service():
                 raise MipsServiceError(
                     'no primary role, no support mqtt connection')
-                    
+
             if service_data.group_id in self._services:
                 # Update mips service
                 buffer_data = self._services[service_data.group_id]
@@ -218,7 +218,7 @@ class MipsService:
     ) -> None:
         _LOGGER.info('call service change, %s, %s', state, data)
         target_group = data.get('group_id')
-        
+
         # Optimized: Clarify matching logic via tuple unpacking
         for (k_key, k_group), handler in list(self._sub_list.items()):
             if k_group in (target_group, '*'):

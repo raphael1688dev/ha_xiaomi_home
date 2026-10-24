@@ -342,7 +342,7 @@ async def test_miot_cloud_get_cert(
     test_name_rd_did: str
 ):
     """
-    NOTICE: Currently, only certificate acquisition in the CN region is 
+    NOTICE: Currently, only certificate acquisition in the CN region is
     supported.
     """
     from miot.const import OAUTH2_CLIENT_ID

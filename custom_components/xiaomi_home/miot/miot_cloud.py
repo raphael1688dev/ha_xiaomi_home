@@ -131,7 +131,7 @@ class MIoTOauthClient:
                 err_desc = res_obj['result'].get(
                     'error_description', err_desc)
             raise MIoTOauthError(f'oauth API error: {err_desc}')
-            
+
         if (
             'result' not in res_obj
             or not all(
@@ -265,13 +265,13 @@ class MIoTHttpClient:
             raise MIoTHttpError(
                 f'mihome api get failed, {http_res.status}, '
                 f'{url_path}, {params}')
-                
+
         res_str = await http_res.text()
         try:
             res_obj: dict = json.loads(res_str)
         except json.JSONDecodeError:
             raise MIoTHttpError(f'mihome api get failed, invalid JSON response: {res_str[:100]}')
-            
+
         if res_obj.get('code', None) != 0:
             raise MIoTHttpError(
                 f'invalid response code, {res_obj.get("code",None)}, '
@@ -298,13 +298,13 @@ class MIoTHttpClient:
             raise MIoTHttpError(
                 f'mihome api post failed, {http_res.status}, '
                 f'{url_path}, {data}')
-                
+
         res_str = await http_res.text()
         try:
             res_obj: dict = json.loads(res_str)
         except json.JSONDecodeError:
              raise MIoTHttpError(f'mihome api post failed, invalid JSON response: {res_str[:100]}')
-             
+
         if res_obj.get('code', None) != 0:
             raise MIoTHttpError(
                 f'invalid response code, {res_obj.get("code",None)}, '
@@ -328,7 +328,7 @@ class MIoTHttpClient:
             res_obj = json.loads(res_str)
         except json.JSONDecodeError:
             raise MIoTOauthError(f'invalid http response, {res_str[:100]}')
-            
+
         if (
             not res_obj
             or res_obj.get('code', None) != 0
@@ -365,7 +365,7 @@ class MIoTHttpClient:
         home_list: dict = {}
         max_id: Optional[str] = None
         has_more = True
-        
+
         while has_more:
             res_obj = await self.__mihome_api_post_async(
                 url_path='/app/v2/homeroom/get_dev_room_page',
@@ -376,7 +376,7 @@ class MIoTHttpClient:
             )
             if 'result' not in res_obj and 'info' not in res_obj['result']:
                 raise MIoTHttpError('invalid response result')
-                
+
             for home in res_obj['result']['info']:
                 if 'id' not in home:
                     _LOGGER.error('get dev room page error, invalid home, %s', home)
@@ -384,7 +384,7 @@ class MIoTHttpClient:
                 home_id_str = str(home['id'])
                 home_list.setdefault(home_id_str, {'dids': [], 'room_info': {}})
                 home_list[home_id_str]['dids'].extend(home.get('dids', None) or [])
-                
+
                 for room in home.get('roomlist', []):
                     if 'id' not in room:
                         _LOGGER.error('get dev room page error, invalid room, %s', room)
@@ -392,15 +392,15 @@ class MIoTHttpClient:
                     room_id_str = str(room['id'])
                     home_list[home_id_str]['room_info'].setdefault(room_id_str, {'dids': []})
                     home_list[home_id_str]['room_info'][room_id_str]['dids'].extend(room.get('dids', None) or [])
-            
+
             has_more_flag = res_obj['result'].get('has_more', False)
             next_max_id = res_obj['result'].get('max_id', None)
-            
+
             if has_more_flag and isinstance(next_max_id, str):
                 max_id = next_max_id
             else:
                 has_more = False
-                
+
         return home_list
 
     async def get_separated_shared_devices_async(self) -> dict[str, dict]:
@@ -462,7 +462,7 @@ class MIoTHttpClient:
                     'uid': str(home['uid'])
                 }
             home_infos['uid'] = uid
-            
+
         if (
             res_obj['result'].get('has_more', False)
             and isinstance(res_obj['result'].get('max_id', None), str)
@@ -502,7 +502,7 @@ class MIoTHttpClient:
         device_infos: dict = {}
         start_did: Optional[str] = None
         has_more = True
-        
+
         while has_more:
             req_data: dict = {
                 'limit': 200,
@@ -512,7 +512,7 @@ class MIoTHttpClient:
             }
             if start_did:
                 req_data['start_did'] = start_did
-                
+
             res_obj = await self.__mihome_api_post_async(
                 url_path='/app/v2/home/device_list_page',
                 data=req_data
@@ -526,7 +526,7 @@ class MIoTHttpClient:
                 name = device.get('name', None)
                 urn = device.get('spec_type', None)
                 model = device.get('model', None)
-                
+
                 if did is None or name is None:
                     _LOGGER.info('invalid device, cloud, %s', device)
                     continue
@@ -539,7 +539,7 @@ class MIoTHttpClient:
                 if model in UNSUPPORTED_MODELS:
                     _LOGGER.info('ignore unsupported model %s, cloud, %s', model, did)
                     continue
-                    
+
                 device_infos[did] = {
                     'did': did,
                     'uid': device.get('uid', None),
@@ -590,7 +590,7 @@ class MIoTHttpClient:
         homeinfos = await self.get_homeinfos_async()
         homes: dict[str, dict[str, Any]] = {}
         devices: dict[str, dict] = {}
-        
+
         for device_type in ['home_list', 'share_home_list']:
             homes.setdefault(device_type, {})
             for home_id, home_info in (homeinfos.get(device_type, None) or {}).items():
@@ -624,7 +624,7 @@ class MIoTHttpClient:
                             'room_name': room_name,
                             'group_id': group_id
                         } for did in room_info.get('dids', [])})
-                        
+
         separated_shared_devices: dict = (
             await self.get_separated_shared_devices_async())
         if separated_shared_devices:
@@ -644,12 +644,12 @@ class MIoTHttpClient:
                     'room_name': 'shared_device',
                     'group_id': 'NotSupport'
                 }})
-                
+
         dids = sorted(list(devices.keys()))
         results = await self.get_devices_with_dids_async(dids=dids)
         if results is None:
             raise MIoTHttpError('get devices failed')
-            
+
         for did in dids:
             if did not in results:
                 devices.pop(did, None)
@@ -669,7 +669,7 @@ class MIoTHttpClient:
             else:
                 _LOGGER.error(
                     'unknown sub devices, %s, %s', did, parent_did)
-                    
+
         return {
             'uid': homeinfos['uid'],
             'homes': homes,

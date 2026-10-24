@@ -69,12 +69,12 @@ class Sensor(MIoTPropertyEntity, SensorEntity):
         # Binary sensor properties can also be shown here, so pin the domain
         super().__init__(miot_device=miot_device, spec=spec, ha_domain="sensor")
         self._attr_device_class = spec.device_class
-        
+
         # Pre-build O(1) reverse lookup dict, and force str conversion to prevent int/str mismatch
         self._val_desc_map = {}
         if spec.value_list:
             self._val_desc_map = {
-                str(item.value): item.description 
+                str(item.value): item.description
                 for item in spec.value_list.items
             }
 
@@ -94,14 +94,14 @@ class Sensor(MIoTPropertyEntity, SensorEntity):
                     self._attr_device_class, None)  # type: ignore
                 self._attr_native_unit_of_measurement = list(
                     unit_sets)[0] if unit_sets else None
-                    
+
             # Set suggested precision
             if spec.format_ == float:
                 self._attr_suggested_display_precision = spec.precision
             # Set state_class
             if spec.state_class:
                 self._attr_state_class = spec.state_class
-                
+
         # Set icon
         if spec.icon and not self.device_class:
             self._attr_icon = spec.icon
@@ -122,13 +122,13 @@ class Sensor(MIoTPropertyEntity, SensorEntity):
                     '%s, data exception, out of range, %s, %s',
                     self.entity_id, self._value, self._value_range)
                 return None
-                    
+
         if self._value_list:
             str_val = str(self._value)
             # O(1) dictionary lookup
             if str_val in self._val_desc_map:
                 return self._val_desc_map[str_val]
-                
+
             # Fix Enum error caused by undefined options:
             # If device reports an undocumented value (e.g. 0), dynamically add it to _attr_options
             _opts = self._attr_options or []
@@ -141,15 +141,15 @@ class Sensor(MIoTPropertyEntity, SensorEntity):
                 else:
                     self._attr_options = list(_opts) + [str_val]
                     _LOGGER.debug(
-                        "Device returned undocumented value '%s' for %s. Dynamically added to Enum options.", 
+                        "Device returned undocumented value '%s' for %s. Dynamically added to Enum options.",
                         str_val, self.entity_id
                     )
-                
+
             return str_val
-            
+
         if isinstance(self._value, str):
             return self._value[:255]
-            
+
         return self._value
 
 class MIoTControlPathSensor(SensorEntity):

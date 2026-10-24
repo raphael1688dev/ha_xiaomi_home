@@ -102,7 +102,7 @@ class MIoTStorage:
                 if not r_data:
                     _LOGGER.error('load error, empty file, %s', full_path)
                     return None
-                    
+
                 data_bytes: bytes
                 # Hash check
                 if with_hash_check:
@@ -116,7 +116,7 @@ class MIoTStorage:
                         return None
                 else:
                     data_bytes = r_data
-                    
+
                 if type_ == bytes:
                     return data_bytes
                 if type_ == str:
@@ -185,7 +185,7 @@ class MIoTStorage:
                     'save error, unsupported data type, %s',
                     type(data).__name__)
                 return False
-                
+
             with open(full_path, 'wb') as w_file:
                 w_file.write(w_bytes)
                 if with_hash:
@@ -539,7 +539,7 @@ class MIoTCert:
             if ca_data is None:
                 raise MIoTStorageError('ca cert load failed')
             _LOGGER.debug('ca cert save success')
-            
+
         # Optimization: use built-in .hex() to remove binascii dependency
         hash_str = hashlib.sha256(ca_data).digest().hex()
         if hash_str != MIHOME_CA_CERT_SHA256:

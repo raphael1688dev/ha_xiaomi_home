@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Unit test for miot_mips.py.
-NOTICE: When running this test case, you need to run test_cloud.py first to 
-obtain the token and certificate information, and at the same time avoid data 
+NOTICE: When running this test case, you need to run test_cloud.py first to
+obtain the token and certificate information, and at the same time avoid data
 deletion.
 """
 import ipaddress
@@ -28,11 +28,11 @@ async def test_mips_local_async(
 ):
     """
     NOTICE:
-    - Mips local is used to connect to the central gateway and is only 
+    - Mips local is used to connect to the central gateway and is only
     supported in the Chinese mainland region.
-    - Before running this test case, you need to run test_mdns.py first to 
-    obtain the group_id, did, ip, and port of the hub, and then fill in this 
-    information in the parametrize. you can enter multiple central connection 
+    - Before running this test case, you need to run test_mdns.py first to
+    obtain the group_id, did, ip, and port of the hub, and then fill in this
+    information in the parametrize. you can enter multiple central connection
     information items for separate tests.
     - This test case requires running test_cloud.py first to obtain the
     central connection certificate.

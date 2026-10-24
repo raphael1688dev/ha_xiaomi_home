@@ -156,4 +156,3 @@ async def test_clear_prop_queue_cancels_timer_and_resolves_futures(mock_mips_loc
     assert await fut1 is None
     assert await fut2 is None
     assert len(mock_mips_local._get_prop_queue) == 0
-

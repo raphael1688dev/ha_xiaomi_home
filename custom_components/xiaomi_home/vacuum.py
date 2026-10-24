@@ -53,14 +53,14 @@ async def async_setup_entry(
 ) -> None:
     device_list: list[MIoTDevice] = hass.data[DOMAIN]['devices'][
         config_entry.entry_id]
-        
+
     # Optimization: flatten nested loop with list comprehension for initialization performance
     new_entities = [
         Vacuum(miot_device=miot_device, entity_data=data)
         for miot_device in device_list
         for data in miot_device.entity_list.get('vacuum', [])
     ]
-    
+
     if new_entities:
         async_add_entities(new_entities)
 
@@ -70,7 +70,7 @@ class Vacuum(MIoTServiceEntity, StateVacuumEntity):
     # pylint: disable=unused-argument
     _prop_status: Optional[MIoTSpecProperty]
     _prop_fan_level: Optional[MIoTSpecProperty]
-    
+
     # Optimization: change list to set for faster 'in' operation during state polling (O(N) -> O(1))
     _prop_status_cleaning: set[int]
     _prop_status_docked: set[int]
@@ -105,7 +105,7 @@ class Vacuum(MIoTServiceEntity, StateVacuumEntity):
         self._prop_status_paused = set()
         self._prop_status_returning = set()
         self._prop_status_error = set()
-        
+
         self._action_start_sweep = None
         self._action_stop_sweeping = None
         self._action_pause_sweeping = None
@@ -151,7 +151,7 @@ class Vacuum(MIoTServiceEntity, StateVacuumEntity):
                 self._attr_fan_speed_list = list(self._fan_level_map.values())
                 self._attr_supported_features |= VacuumEntityFeature.FAN_SPEED
                 self._prop_fan_level = prop
-                
+
         # action
         for action in entity_data.actions:
             if action.name == 'start-sweep':

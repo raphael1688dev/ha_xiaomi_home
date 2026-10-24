@@ -103,4 +103,3 @@ class MIoTCloudManager:
                 err, traceback.format_exc())
             self.client.refresh_props_list.update(clean_request_list)
             return False
-

@@ -354,7 +354,7 @@ class XiaomiMihomeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     port=8883) != 0:
                     raise RuntimeError('mqtt connect error')
                 mqtt_client.disconnect()
-            except Exception as err:  
+            except Exception as err:
                 _LOGGER.error('try connect mqtt broker error, %s', traceback.format_exc())
                 return await self.__show_network_detect_config_form(
                     reason='unreachable_mqtt_broker')
@@ -440,7 +440,7 @@ class XiaomiMihomeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     'async_step_oauth, webhook.async_register: %s',
                     self._virtual_did)
                 self._miot_oauth = miot_oauth
-        except Exception as err:  
+        except Exception as err:
             _LOGGER.error(
                 'async_step_oauth, %s, %s', err, traceback.format_exc())
             return self.async_show_progress_done(next_step_id='oauth_error')
@@ -981,5 +981,3 @@ class XiaomiMihomeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             config_entry: config_entries.ConfigEntry,
     ) -> config_entries.OptionsFlow:
         return OptionsFlowHandler(config_entry)
-
-

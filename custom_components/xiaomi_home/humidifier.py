@@ -56,7 +56,7 @@ async def async_setup_entry(
             data.device_class = HumidifierDeviceClass.HUMIDIFIER
             new_entities.append(
                 Humidifier(miot_device=miot_device, entity_data=data))
-                
+
         # Handle dehumidifier entities
         for data in miot_device.entity_list.get('dehumidifier', []):
             data.platform = 'dehumidifier'

@@ -145,7 +145,7 @@ class MIoTClient:
     # Display devices changed notify
     _display_devs_notify: list[str]
     _display_notify_content_hash: Optional[int]
-    
+
     _cloud_manager: MIoTCloudManager
     _lan_manager: MIoTLanManager
     # Display binary mode
@@ -822,7 +822,7 @@ class MIoTClient:
             if result is not None:
                 return result
             return await _get_from_cloud()
-        
+
         # Default: cloud_first
         result = await _get_from_cloud()
         if result is not None:
@@ -1128,13 +1128,13 @@ class MIoTClient:
             ):
                 return
             mips.disconnect()
-            
+
             # MEMORY LEAK FIX: Explicitly unsubscribe and deinitialize
             mips.unsub_mips_state(key=group_id)
             mips.deinit()
-            
+
             self._mips_local.pop(group_id, None)
-            
+
         home_name: str = ''
         for info in list(self._entry_data['home_selected'].values()):
             if info.get('group_id', None) == group_id:
@@ -1748,9 +1748,9 @@ class MIoTClient:
     async def __refresh_props_handler(self) -> None:
         if not self._refresh_props_list:
             return
-            
+
         handled = False
-        
+
         # Determine execution order based on ctrl_mode and poll_priority
         if self._ctrl_mode == CtrlMode.LOCAL:
             handlers = [self._lan_manager.refresh_props_from_gw, self._lan_manager.refresh_props_from_lan]
@@ -1761,12 +1761,12 @@ class MIoTClient:
                 handlers = [self._lan_manager.refresh_props_from_gw, self._lan_manager.refresh_props_from_lan, self._cloud_manager.refresh_props]
             else: # cloud_first
                 handlers = [self._cloud_manager.refresh_props, self._lan_manager.refresh_props_from_gw, self._lan_manager.refresh_props_from_lan]
-                
+
         for handler in handlers:
             handled = await handler()
             if handled:
                 break
-                
+
         if handled:
             self._refresh_props_retry_count = 0
             if self._refresh_props_list:

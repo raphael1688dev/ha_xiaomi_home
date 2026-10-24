@@ -52,7 +52,7 @@ class MIoTNetwork:
 
     _ip_addr_map: dict[str, float]
     _http_addr_map: dict[str, float]
-    
+
     # Deferred initialization to ensure creation inside the correct asyncio event loop
     _http_session: Optional[aiohttp.ClientSession]
 
@@ -83,7 +83,7 @@ class MIoTNetwork:
         self._http_addr_map = {
             url: self._DETECT_TIMEOUT for url in
             (url_addr_list or self._URL_ADDRESS_LIST)}
-            
+
         self._own_session = session is None
         self._http_session = session
         self._refresh_interval = refresh_interval or self._REFRESH_INTERVAL
@@ -103,7 +103,7 @@ class MIoTNetwork:
         # Initialize ClientSession inside coroutine following aiohttp best practices
         if self._http_session is None and self._own_session:
             self._http_session = aiohttp.ClientSession()
-            
+
         self.__refresh_timer_handler()
         # MUST get network info before starting
         return await self._done_event.wait()
@@ -115,7 +115,7 @@ class MIoTNetwork:
         if self._refresh_timer:
             self._refresh_timer.cancel()
             self._refresh_timer = None
-            
+
         if self._own_session and self._http_session:
             await self._http_session.close()
             self._http_session = None
@@ -146,7 +146,7 @@ class MIoTNetwork:
             else:
                 new_ip_map[ip] = self._DETECT_TIMEOUT
         self._ip_addr_map = new_ip_map
-        
+
         new_url_map: dict = {}
         for url in (url_addr_list or self._URL_ADDRESS_LIST):
             if url in self._http_addr_map:
@@ -188,7 +188,7 @@ class MIoTNetwork:
                 and await self.ping_multi_async(ip_list=[ip_addr])
             ):
                 return True
-                
+
             url_addr: str = ''
             url_ts: float = self._DETECT_TIMEOUT
             for http, ts in self._http_addr_map.items():
@@ -200,10 +200,10 @@ class MIoTNetwork:
                 and await self.http_multi_async(url_list=[url_addr])
             ):
                 return True
-                
+
             # Remove unnecessary list unpacking
             results = await asyncio.gather(
-                self.ping_multi_async(), 
+                self.ping_multi_async(),
                 self.http_multi_async()
             )
             return any(results)
@@ -221,11 +221,11 @@ class MIoTNetwork:
         addr_list = ip_list or list(self._ip_addr_map.keys())
         tasks = [self.__ping_async(addr) for addr in addr_list]
         results = await asyncio.gather(*tasks)
-        
+
         for addr, ts in zip(addr_list, results):
             if addr in self._ip_addr_map:
                 self._ip_addr_map[addr] = ts
-                
+
         # Use generator expression to improve performance with short-circuit evaluation
         return any(ts < self._DETECT_TIMEOUT for ts in results)
 
@@ -235,11 +235,11 @@ class MIoTNetwork:
         addr_list = url_list or list(self._http_addr_map.keys())
         tasks = [self.__http_async(url=addr) for addr in addr_list]
         results = await asyncio.gather(*tasks)
-        
+
         for addr, ts in zip(addr_list, results):
             if addr in self._http_addr_map:
                 self._http_addr_map[addr] = ts
-                
+
         # Use generator expression to improve performance
         return any(ts < self._DETECT_TIMEOUT for ts in results)
 
@@ -264,7 +264,7 @@ class MIoTNetwork:
             )
             # Add asyncio.wait_for to prevent subprocess from hanging indefinitely on system issues
             await asyncio.wait_for(process.communicate(), timeout=self._DETECT_TIMEOUT + 1)
-            
+
             if process.returncode == 0:
                 return self._main_loop.time() - start_ts
             return self._DETECT_TIMEOUT
@@ -276,7 +276,7 @@ class MIoTNetwork:
         start_ts: float = self._main_loop.time()
         if not self._http_session:
             return self._DETECT_TIMEOUT
-            
+
         try:
             async with self._http_session.get(
                     url, timeout=self._DETECT_TIMEOUT):
@@ -350,7 +350,7 @@ class MIoTNetwork:
 
             if not self._done_event.is_set():
                 self._done_event.set()
-                
+
         except asyncio.CancelledError:
             _LOGGER.error('update_status_and_info task was cancelled')
 

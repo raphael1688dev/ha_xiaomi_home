@@ -21,7 +21,7 @@ def test_miot_spec_instance_loading():
             }
         ]
     }
-    
+
     instance = MIoTSpecInstance.load(raw_spec)
     assert instance.name == "humidifier"
     assert len(instance.services) == 1
@@ -85,5 +85,3 @@ def test_value_precision():
     assert prop.value_precision(15) == 15
     assert prop.value_precision(16.1) == 17
     assert prop.value_precision(None) is None
-
-

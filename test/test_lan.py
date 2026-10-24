@@ -44,10 +44,10 @@ _LOGGER = logging.getLogger(__name__)
 @pytest.mark.asyncio
 async def test_lan_async(test_devices: dict):
     """
-    Use the central hub gateway as a test equipment, and through the local area 
-    network control central hub gateway indicator light switch. Please replace 
+    Use the central hub gateway as a test equipment, and through the local area
+    network control central hub gateway indicator light switch. Please replace
     it for your own device information (did, token) during testing.
-    xiaomi.gateway.hub1 spec define: 
+    xiaomi.gateway.hub1 spec define:
     http://poc.miot-spec.srv/miot-spec-v2/instance?type=urn:miot-spec-v2:device:gateway:0000A019:xiaomi-hub1:3
     """
     from miot.miot_network import MIoTNetwork

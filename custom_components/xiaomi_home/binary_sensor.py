@@ -53,6 +53,6 @@ class BinarySensor(MIoTPropertyEntity, BinarySensorEntity):
         # Invert logic specifically for door/window sensors (contact-state)
         if self.spec.name == 'contact-state':
             return not bool(self._value)
-            
+
         # Optimized: Ensure strict boolean return type, complying with HA standards
         return bool(self._value)

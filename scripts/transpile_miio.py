@@ -17,9 +17,9 @@ except Exception as e:
 # --- 1. Define the 19 Hyper-Focused Whitelist Models ---
 WHITELIST = []
 for model in MIIO_TO_MIOT_SPECS.keys():
-    if (model.startswith('yeelink.light.lamp') or 
-        model.startswith('yeelink.light.bslamp') or 
-        model.startswith('zhimi.fan.') or 
+    if (model.startswith('yeelink.light.lamp') or
+        model.startswith('yeelink.light.bslamp') or
+        model.startswith('zhimi.fan.') or
         model.startswith('dmaker.fan.')):
         WHITELIST.append(model)
 
@@ -30,12 +30,12 @@ def resolve_model(model_name, spec_dict):
         return {}
     if isinstance(spec, str):
         return resolve_model(spec, spec_dict)
-    
+
     resolved = deepcopy(spec)
     if 'extend_model' in resolved:
         parent_model = resolved['extend_model']
         parent_spec = resolve_model(parent_model, spec_dict)
-        
+
         # Merge parent into child (child overrides parent)
         merged = deepcopy(parent_spec)
         if 'miio_specs' in resolved:
@@ -47,17 +47,17 @@ def resolve_model(model_name, spec_dict):
                     merged['miio_specs'][k].update(v)
                 else:
                     merged['miio_specs'][k] = v
-                    
+
         # Merge other top level keys
         for k, v in resolved.items():
             if k not in ['miio_specs', 'extend_model']:
                 merged[k] = v
-                
+
         # Remove extend_model as it is now flattened
         if 'extend_model' in merged:
             del merged['extend_model']
         return merged
-        
+
     return resolved
 
 flattened_specs = {}
@@ -98,21 +98,21 @@ output_lines = [
 for model in sorted(flattened_specs.keys()):
     spec = flattened_specs[model]
     output_lines.append(f'    "{model}": {{')
-    
+
     if 'chunk_properties' in spec:
         output_lines.append(f'        "chunk_properties": {spec["chunk_properties"]},')
-        
+
     if 'miio_commands' in spec:
         # Keep miio_commands as is but use valid python types
         output_lines.append(f'        "miio_commands": {repr(spec["miio_commands"])},')
-        
+
     if 'miio_specs' in spec:
         output_lines.append(f'        "miio_specs": {{')
         for prop_id, prop_cfg in spec['miio_specs'].items():
             # If the prop is null, it means it's explicitly deleted by a child
             if not prop_cfg or prop_cfg.get('prop') is None:
                 continue
-                
+
             output_lines.append(f'            "{prop_id}": {{')
             for k, v in prop_cfg.items():
                 if k in ['template', 'set_template']:
@@ -133,7 +133,7 @@ for model in sorted(flattened_specs.keys()):
                         output_lines.append(f'                "{k}": {v},')
             output_lines.append(f'            }},')
         output_lines.append(f'        }}')
-        
+
     output_lines.append(f'    }},')
 
 output_lines.append('}')

@@ -102,7 +102,7 @@ class Notify(MIoTActionEntity, NotifyEntity):
                     self.name, self.entity_id, prop.description_trans,
                     prop.format_.__name__, raw_val, type(raw_val).__name__, message)
                 return
-                
+
             in_value.append({'piid': prop.iid, 'value': parsed_val})
 
         await self.action_async(in_list=in_value)

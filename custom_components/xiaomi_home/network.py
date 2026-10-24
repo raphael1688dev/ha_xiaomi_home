@@ -75,7 +75,7 @@ def _handle_network_detect_addr(
             addr = addr.strip()
             if not addr:
                 continue
-            
+
             try:
                 ipaddress.ip_address(addr)
                 ip_list.append(addr)

@@ -524,7 +524,7 @@ class MIoTDevice:
         """Generate a mapping of unique_id -> expected target entity_id for all entities of this device."""
         mapping = {}
         seen_target_ids = set()
-        
+
         # Helper to process entities
         def _add_mapping(platform_dict: dict, item_type: str, uid_gen_func, has_description=False):
             for platform, items in platform_dict.items():
@@ -532,7 +532,7 @@ class MIoTDevice:
                     spec_item = item.spec if item_type == 'service' else item
                     if item_type == 'service' and not isinstance(spec_item, MIoTSpecService):
                         continue
-                    
+
                     # Generate unique_id
                     if has_description:
                         uid = uid_gen_func(siid=spec_item.iid, description=spec_item.description)
@@ -544,7 +544,7 @@ class MIoTDevice:
                         uid = uid_gen_func(spec_name=spec_item.name, siid=spec_item.service.iid, aiid=spec_item.iid)
                     else:
                         continue
-                        
+
                     # Generate expected entity_id
                     if item_type == 'service':
                         if spec_item.description.lower() == platform:
@@ -553,14 +553,14 @@ class MIoTDevice:
                             attr_name = f'{"* "if spec_item.proprietary else ""}{spec_item.description_trans}'
                     else:
                         attr_name = f'{"* "if spec_item.proprietary else ""}{spec_item.service.description_trans} {spec_item.description_trans}'
-                    
+
                     domain = platform
                     if attr_name:
                         clean_name = attr_name.replace("* ", "")
                         target_eid = f"{domain}.{self.entity_id_prefix}_{slugify_name(clean_name)}"
                     else:
                         target_eid = f"{domain}.{self.entity_id_prefix}"
-                        
+
                     # Handle collisions gracefully to maintain stability
                     original_target_eid = target_eid
                     counter = 2
@@ -569,18 +569,18 @@ class MIoTDevice:
                         if target_eid in seen_target_ids:
                             target_eid = f"{original_target_eid}_{spec_item.iid}_{counter}"
                             counter += 1
-                    
+
                     seen_target_ids.add(target_eid)
                     mapping[uid] = target_eid
-                    
+
         # Device main entity
         mapping[self.gen_device_unique_id()] = "unknown" # Device main entity doesn't have a fixed domain here, handled specially if needed
-        
+
         _add_mapping(self.entity_list, 'service', self.gen_service_unique_id, True)
         _add_mapping(self.prop_list, 'property', self.gen_prop_unique_id, False)
         _add_mapping(self.event_list, 'event', self.gen_event_unique_id, False)
         _add_mapping(self.action_list, 'action', self.gen_action_unique_id, False)
-        
+
         return mapping
 
     @property
@@ -929,7 +929,7 @@ class MIoTServiceEntity(Entity):
         self._prop_value_map = {}
         self._state_sub_id = 0
         self._value_sub_ids = {}
-        
+
         # Unique ID assignment (pure stable identifier, no entity_id hardcoding)
         if isinstance(self.entity_data.spec, MIoTSpecInstance):
             self._attr_unique_id = miot_device.gen_device_unique_id()
@@ -948,16 +948,16 @@ class MIoTServiceEntity(Entity):
                     f'{self.entity_data.spec.description_trans}')
             self._attr_entity_category = entity_data.spec.entity_category
 
-            
+
         # Set entity attr
         if miot_device.is_lan_capable:
             self._attr_should_poll = True
         else:
             self._attr_should_poll = False
-            
+
         self._attr_has_entity_name = True
         self._attr_available = miot_device.online
-        
+
         # Override entity_id explicitly to bypass HA's slugification of device name
         from .common import slugify_name
         domain = ha_domain or self.entity_data.platform
@@ -1112,11 +1112,11 @@ class MIoTServiceEntity(Entity):
                 k: v for k, v in self.miot_device.props_cache.items()
                 if v is not None
             }
-            
+
             max_val = 100
             if prop.value_range:
                 max_val = prop.value_range.max_
-                
+
             await self.miot_device.miot_client.set_prop_async(
                 did=self.miot_device.did, siid=prop.service.iid,
                 piid=prop.iid, value=value, props=props_dict, max_val=max_val)
@@ -1276,11 +1276,11 @@ class MIoTPropertyEntity(Entity):
         self._state_sub_id = 0
         self._value_sub_id = 0
         self._pending_write_ha_state_timer = None
-        
+
         # Unique ID assignment
         self._attr_unique_id = self.miot_device.gen_prop_unique_id(
             spec_name=spec.name, siid=spec.service.iid, piid=spec.iid)
-            
+
         # Set entity attr
         if miot_device.is_lan_capable:
             self._attr_should_poll = True
@@ -1291,7 +1291,7 @@ class MIoTPropertyEntity(Entity):
             f'{"* "if self.spec.proprietary else ""}'
             f'{self.service.description_trans} {spec.description_trans}')
         self._attr_available = miot_device.online
-        
+
         # Override entity_id explicitly to bypass HA's slugification of device name
         from .common import slugify_name
         clean_name = self._attr_name.replace("* ", "")
@@ -1357,11 +1357,11 @@ class MIoTPropertyEntity(Entity):
                 k: v for k, v in self.miot_device.props_cache.items()
                 if v is not None
             }
-                            
+
             max_val = 100
             if self.spec.value_range:
                 max_val = self.spec.value_range.max_
-                
+
             await self.miot_device.miot_client.set_prop_async(
                 did=self.miot_device.did, siid=self.spec.service.iid,
                 piid=self.spec.iid, value=value, props=props_dict, max_val=max_val)
@@ -1445,11 +1445,11 @@ class MIoTEventEntity(Entity):
         self.spec = spec
         self.service = spec.service
         self._main_loop = miot_device.miot_client.main_loop
-        
+
         # Unique ID assignment
         self._attr_unique_id = self.miot_device.gen_event_unique_id(
             spec_name=spec.name, siid=spec.service.iid, eiid=spec.iid)
-            
+
         # Set entity attr
         self._attr_should_poll = False
         self._attr_has_entity_name = True
@@ -1458,7 +1458,7 @@ class MIoTEventEntity(Entity):
             f'{self.service.description_trans} {spec.description_trans}')
         self._attr_available = miot_device.online
         self._attr_event_types = [spec.description_trans]
-        
+
         # Override entity_id explicitly to bypass HA's slugification of device name
         from .common import slugify_name
         clean_name = self._attr_name.replace("* ", "")
@@ -1570,11 +1570,11 @@ class MIoTActionEntity(Entity):
         self.service = spec.service
         self._main_loop = miot_device.miot_client.main_loop
         self._state_sub_id = 0
-        
+
         # Unique ID assignment
         self._attr_unique_id = self.miot_device.gen_action_unique_id(
             spec_name=spec.name, siid=spec.service.iid, aiid=spec.iid)
-            
+
         # Set entity attr
         self._attr_should_poll = False
         self._attr_has_entity_name = True
@@ -1582,7 +1582,7 @@ class MIoTActionEntity(Entity):
             f'{"* "if self.spec.proprietary else ""}'
             f'{self.service.description_trans} {spec.description_trans}')
         self._attr_available = miot_device.online
-        
+
         # Override entity_id explicitly to bypass HA's slugification of device name
         from .common import slugify_name
         clean_name = self._attr_name.replace("* ", "")

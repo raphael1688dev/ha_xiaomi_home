@@ -280,7 +280,7 @@ class _SpecStdLib:
                             'https://cdn.cnbj1.fds.api.mi-img.com/res-conf/'
                             f'xiaomi-home/std_ex_{name}.json'))
                 results = await asyncio.gather(*tasks)
-                
+
                 # Helper function for merging results
                 def merge_results(res_idx: int, target_key: str):
                     if results[res_idx]:
@@ -298,7 +298,7 @@ class _SpecStdLib:
                 merge_results(3, 'events')
                 merge_results(4, 'actions')
                 merge_results(5, 'values')
-                
+
                 return std_libs
             except Exception as err:
                 _LOGGER.error('update spec std lib error, retry, %d, %s, %s', index,
@@ -768,7 +768,7 @@ class MIoTSpecInstance:
                                                  'precision', None),
                                              expr=prop.get('expr', None))
                 spec_service.properties.append(spec_prop)
-                
+
             # Optimized: Build O(1) property lookup cache instead of O(N^2) search
             prop_map = {prop.iid: prop for prop in spec_service.properties}
 
@@ -776,14 +776,14 @@ class MIoTSpecInstance:
                 spec_event = MIoTSpecEvent(spec=event, service=spec_service)
                 spec_event.argument = [prop_map[piid] for piid in event['argument'] if piid in prop_map]
                 spec_service.events.append(spec_event)
-                
+
             for action in service['actions']:
                 spec_action = MIoTSpecAction(spec=action,
                                              service=spec_service)
                 spec_action.in_ = [prop_map[piid] for piid in action['in'] if piid in prop_map]
                 spec_action.out = [prop_map[piid] for piid in action['out'] if piid in prop_map]
                 spec_service.actions.append(spec_action)
-                
+
             instance.services.append(spec_service)
         return instance
 
@@ -912,7 +912,7 @@ class _SpecFilter:
         if not isinstance(filter_data, dict):
             _LOGGER.error('spec filter, invalid spec filter content')
             return
-            
+
         # Optimized: Remove unnecessary list() wrapping to reduce memory copy
         for values in filter_data.values():
             if not isinstance(values, dict):
@@ -1147,7 +1147,7 @@ class MIoTSpecParser:
     async def init_async(self) -> None:
         if self._init_done is True:
             return
-            
+
         _, _, _, _, std_lib_cache = await asyncio.gather(
             self._bool_trans.init_async(),
             self._spec_filter.init_async(),
@@ -1290,9 +1290,9 @@ class MIoTSpecParser:
                 continue
             if p_type_strs[1] != 'miot-spec-v2':
                 spec_prop.proprietary = spec_service.proprietary or True
-                
+
             p_type_strs_prefix_5 = ':'.join(p_type_strs[:5])
-                
+
             spec_prop.description_trans = (
                 self._multi_lang.translate(
                     f'p:{service["iid"]}:{property_["iid"]}') or
@@ -1381,7 +1381,7 @@ class MIoTSpecParser:
                     f'e:{service["iid"]}:{event["iid"]}') or
                 self._std_lib.event_translate(key=':'.join(e_type_strs[:5]))
                 or event['description'] or spec_event.name)
-                
+
             # Optimized: Associate directly using lookup table
             spec_event.argument = [prop_map[piid] for piid in event['arguments'] if piid in prop_map]
             spec_service.events.append(spec_event)
@@ -1417,7 +1417,7 @@ class MIoTSpecParser:
                 self._std_lib.action_translate(
                     key=':'.join(a_type_strs[:5])) or
                 action['description'] or spec_action.name)
-                
+
             # Optimized: Associate directly using lookup table
             spec_action.in_ = [prop_map[piid] for piid in action['in'] if piid in prop_map]
             spec_action.out = [prop_map[piid] for piid in action['out'] if piid in prop_map]
@@ -1484,25 +1484,25 @@ class MIoTSpecParser:
                 continue
             if type_strs[1] != 'miot-spec-v2':
                 spec_service.proprietary = True
-            
+
             # Optimized: Pre-compose string to avoid duplicate joins
             type_strs_prefix_5 = ':'.join(type_strs[:5])
-                
+
             spec_service.description_trans = (
                 self._multi_lang.translate(f's:{service["iid"]}') or
                 self._std_lib.service_translate(key=type_strs_prefix_5) or
                 service['description'] or spec_service.name)
-                
+
             # Parse service properties
             await self._parse_service_properties(service, spec_service, type_strs)
-                
+
             # Build property lookup cache
             prop_map = {prop.iid: prop for prop in spec_service.properties}
-            
+
             # Parse service events and actions
             self._parse_service_events(service, spec_service, prop_map)
             self._parse_service_actions(service, spec_service, prop_map)
-                
+
             spec_instance.services.append(spec_service)
 
         await self.__cache_set(urn=urn, data=spec_instance.dump())

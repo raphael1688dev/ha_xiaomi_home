@@ -87,7 +87,7 @@ class Light(MIoTServiceEntity, LightEntity):
         # properties
         if prop := entity_data.get_prop('on'):
             self._prop_on = prop
-            
+
         if prop := entity_data.get_prop('brightness'):
             if prop.value_range:
                 self._brightness_scale = (
@@ -105,7 +105,7 @@ class Light(MIoTServiceEntity, LightEntity):
             else:
                 _LOGGER.info(
                     'invalid brightness format, %s', self.entity_id)
-                    
+
         if prop := entity_data.get_prop('color-temperature'):
             if not prop.value_range:
                 _LOGGER.info(
@@ -117,12 +117,12 @@ class Light(MIoTServiceEntity, LightEntity):
                 self._attr_supported_color_modes.add(ColorMode.COLOR_TEMP)
                 self._attr_color_mode = ColorMode.COLOR_TEMP
                 self._prop_color_temp = prop
-                
+
         if prop := entity_data.get_prop('color'):
             self._attr_supported_color_modes.add(ColorMode.RGB)
             self._attr_color_mode = ColorMode.RGB
             self._prop_color = prop
-            
+
         if prop := entity_data.get_prop('mode'):
             mode_list = None
             if prop.value_list:
@@ -238,7 +238,7 @@ class Light(MIoTServiceEntity, LightEntity):
             tasks.append(self.set_property_async(
                 prop=self._prop_brightness, value=brightness,
                 write_ha_state=False))
-                
+
         # color-temperature
         if ATTR_COLOR_TEMP_KELVIN in kwargs and self._prop_color_temp:
             tasks.append(self.set_property_async(
@@ -246,7 +246,7 @@ class Light(MIoTServiceEntity, LightEntity):
                 value=kwargs[ATTR_COLOR_TEMP_KELVIN],
                 write_ha_state=False))
             self._attr_color_mode = ColorMode.COLOR_TEMP
-            
+
         # rgb color
         if ATTR_RGB_COLOR in kwargs and self._prop_color:
             r, g, b = kwargs[ATTR_RGB_COLOR]  # Optimized: Unpack tuple directly
@@ -255,7 +255,7 @@ class Light(MIoTServiceEntity, LightEntity):
                 prop=self._prop_color, value=rgb,
                 write_ha_state=False))
             self._attr_color_mode = ColorMode.RGB
-            
+
         # effect
         if ATTR_EFFECT in kwargs and self._effect_map:
             effect_val = self._effect_map.get(kwargs[ATTR_EFFECT])

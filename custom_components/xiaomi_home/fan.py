@@ -37,7 +37,7 @@ async def async_setup_entry(
     """Set up a config entry."""
     device_list: list[MIoTDevice] = hass.data[DOMAIN]['devices'][
         config_entry.entry_id]
-        
+
     # Optimized: Flatten nested loops with list comprehension
     new_entities = [
         Fan(miot_device=miot_device, entity_data=data)
@@ -66,7 +66,7 @@ class Fan(MIoTServiceEntity, FanEntity):
     _speed_names: Optional[list]
     _speed_name_map: Optional[dict[int, str]]
     _speed_name_reverse_map: dict[str, int]
-    
+
     _mode_map: Optional[dict[Any, Any]]
     _mode_reverse_map: dict[Any, Any]
 
@@ -87,7 +87,7 @@ class Fan(MIoTServiceEntity, FanEntity):
         self._prop_wind_reverse = None
         self._prop_wind_reverse_forward = None
         self._prop_wind_reverse_reverse = None
-        
+
         self._speed_min = 65535
         self._speed_max = 0
         self._speed_step = 1
@@ -103,7 +103,7 @@ class Fan(MIoTServiceEntity, FanEntity):
             self._attr_supported_features |= FanEntityFeature.TURN_ON
             self._attr_supported_features |= FanEntityFeature.TURN_OFF
             self._prop_on = prop
-            
+
         if prop := entity_data.get_prop('fan-level'):
             if prop.value_range:
                 # Fan level with value-range
@@ -126,7 +126,7 @@ class Fan(MIoTServiceEntity, FanEntity):
                 self._attr_speed_count = len(self._speed_names)
                 self._attr_supported_features |= FanEntityFeature.SET_SPEED
                 self._prop_fan_level = prop
-                
+
         if prop := entity_data.get_prop('mode'):
             if not prop.value_list:
                 _LOGGER.error(
@@ -138,11 +138,11 @@ class Fan(MIoTServiceEntity, FanEntity):
                 self._attr_preset_modes = list(self._mode_map.values())
                 self._attr_supported_features |= FanEntityFeature.PRESET_MODE
                 self._prop_mode = prop
-                
+
         if prop := entity_data.get_prop('horizontal-swing'):
             self._attr_supported_features |= FanEntityFeature.OSCILLATE
             self._prop_horizontal_swing = prop
-            
+
         if prop := entity_data.get_prop('wind-reverse'):
             if prop.format_ == bool:
                 self._prop_wind_reverse_forward = False
@@ -189,7 +189,7 @@ class Fan(MIoTServiceEntity, FanEntity):
                 tasks.append(self.async_set_percentage(percentage))
             if preset_mode is not None:
                 tasks.append(self.async_set_preset_mode(preset_mode))
-                
+
             if tasks:
                 await asyncio.gather(*tasks)
         finally:
@@ -216,7 +216,7 @@ class Fan(MIoTServiceEntity, FanEntity):
                         self.miot_device.props_cache[self._prop_on.name] = True
                 finally:
                     self._is_turning_on = False
-                
+
             if self._speed_names:
                 # Optimized: Use O(1) reverse lookup map to replace O(N) get_map_key scan
                 speed_str = percentage_to_ordered_list_item(self._speed_names, percentage)
@@ -290,7 +290,7 @@ class Fan(MIoTServiceEntity, FanEntity):
         fan_level = self.get_prop_value(prop=self._prop_fan_level)
         if fan_level is None:
             return None
-            
+
         if self._speed_names and self._speed_name_map:
             speed_str = self._speed_name_map.get(fan_level)
             if speed_str is not None:

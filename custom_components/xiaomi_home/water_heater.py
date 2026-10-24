@@ -110,7 +110,7 @@ class WaterHeater(MIoTServiceEntity, WaterHeaterEntity):
                 self._mode_reverse_map = {v: k for k, v in self._mode_map.items()}
                 self._attr_operation_list = list(self._mode_map.values())
                 self._prop_mode = prop
-                
+
         # temperature_unit is required by the water heater entity
         if _NATIVE_TEMP_API:
             self._attr_native_temperature_unit = (
@@ -145,7 +145,7 @@ class WaterHeater(MIoTServiceEntity, WaterHeaterEntity):
         if operation_mode == STATE_ON:
             await self.set_property_async(prop=self._prop_on, value=True)
             return
-            
+
         # Optimized: Use O(1) dictionary lookup for mode mapping
         mode_val = self._mode_reverse_map.get(operation_mode)
         if mode_val is not None:
@@ -185,17 +185,17 @@ class WaterHeater(MIoTServiceEntity, WaterHeaterEntity):
         """The current mode."""
         if not self._prop_on:
             return None
-            
+
         val_on = self.get_prop_value(prop=self._prop_on)
         if val_on is None:
             return None
-            
+
         # Optimization: safely use bool to check power status to avoid 'is False' type trap
         if not bool(val_on):
             return STATE_OFF
-            
+
         if not self._prop_mode or not self._mode_map:
             return STATE_ON
-            
+
         val_mode = self.get_prop_value(prop=self._prop_mode)
         return self._mode_map.get(val_mode) if val_mode is not None else STATE_ON

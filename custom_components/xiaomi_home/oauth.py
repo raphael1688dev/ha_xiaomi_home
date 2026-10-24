@@ -106,7 +106,7 @@ async def _handle_oauth_webhook(hass, webhook_id, request):
             ), content_type='text/html')
 
     except Exception as err:
-        _LOGGER.error("oauth webhook error: %s", traceback.format_exc())  
+        _LOGGER.error("oauth webhook error: %s", traceback.format_exc())
         fail_trans: dict = {}
         err_msg: str = str(err)
         if i18n:
@@ -127,4 +127,3 @@ async def _handle_oauth_webhook(hass, webhook_id, request):
                 button=fail_trans.get('button', 'Close Page'),
                 success=False),
             content_type='text/html')
-

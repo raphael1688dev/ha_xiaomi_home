@@ -40,11 +40,11 @@ class Select(MIoTPropertyEntity, SelectEntity):
     def __init__(self, miot_device: MIoTDevice, spec: MIoTSpecProperty) -> None:
         """Initialize the Select."""
         super().__init__(miot_device=miot_device, spec=spec)
-        
+
         # Optimized: Pre-build O(1) bidirectional lookup dictionaries instead of inefficient O(N) array scans
         self._val_to_desc = {}
         self._desc_to_val = {}
-        
+
         if self._value_list:
             self._attr_options = self._value_list.descriptions
             for item in self._value_list.items:
@@ -64,6 +64,6 @@ class Select(MIoTPropertyEntity, SelectEntity):
         # Optimization: protect against None value during startup
         if self._value is None:
             return None
-            
+
         # Optimized: Use O(1) dictionary forward lookup
         return self._val_to_desc.get(self._value)

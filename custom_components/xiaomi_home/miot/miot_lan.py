@@ -790,11 +790,11 @@ class MIoTLan:
         self, did: str, siid: int, piid: int, timeout_ms: int = 10000
     ) -> Any:
         self.__assert_service_ready()
-        
+
         device = self._lan_devices.get(did)
         if device and device.model and device.model in MIIO_SPECS:
             return await self.__get_prop_miio_async(device, siid, piid, timeout_ms)
-            
+
         result_obj = await self.__call_api_async(
             did=did, msg={
                 'method': 'get_properties',
@@ -816,11 +816,11 @@ class MIoTLan:
         timeout_ms: int = 10000, props: dict = None, max_val: int = 100
     ) -> dict:
         self.__assert_service_ready()
-        
+
         device = self._lan_devices.get(did)
         if device and device.model and device.model in MIIO_SPECS:
             return await self.__set_prop_miio_async(device, siid, piid, value, timeout_ms, props, max_val)
-            
+
         result_obj = await self.__call_api_async(
             did=did, msg={
                 'method': 'set_properties',
@@ -845,24 +845,24 @@ class MIoTLan:
         prop_key = f"prop.{siid}.{piid}"
         if "miio_specs" not in spec or prop_key not in spec["miio_specs"]:
             return None
-        
+
         prop_cfg = spec["miio_specs"][prop_key]
         prop_name = prop_cfg.get("prop")
         if not prop_name:
             return None
-            
+
         # Call get_prop
         result_obj = await self.__call_api_async(
             did=device.did, msg={
                 'method': 'get_prop',
                 'params': [prop_name]
             }, timeout_ms=timeout_ms)
-            
+
         if result_obj and 'result' in result_obj and len(result_obj['result']) > 0:
             val = result_obj['result'][0]
-            
+
             # Inverse translate the value using dict mapping if exists
-            # (In practice, Jinja templates in MIIO_TO_MIOT_SPECS mostly translate in one direction for set_prop, 
+            # (In practice, Jinja templates in MIIO_TO_MIOT_SPECS mostly translate in one direction for set_prop,
             #  for get_prop we check if 'dict' has a reverse mapping or we just return it)
             if 'dict' in prop_cfg:
                 for k, v in prop_cfg['dict'].items():
@@ -873,15 +873,15 @@ class MIoTLan:
                         else:
                             val = k
                         break
-            
+
             # Apply format cast if needed
             if prop_cfg.get('format') == 'onoff':
                 return val == 'on' or val == True
-                
+
             return val
-            
+
         return None
-        
+
     async def __set_prop_miio_async(
         self, device: _MIoTLanDevice, siid: int, piid: int, value: Any,
         timeout_ms: int, props: dict = None, max_val: int = 100
@@ -890,19 +890,19 @@ class MIoTLan:
         prop_key = f"prop.{siid}.{piid}"
         if "miio_specs" not in spec or prop_key not in spec["miio_specs"]:
             raise MIoTError('Unsupported property', MIoTErrorCode.CODE_INVALID_PROPERTY)
-            
+
         prop_cfg = spec["miio_specs"][prop_key]
         setter = prop_cfg.get("setter")
         if not setter:
             raise MIoTError('Property not writable', MIoTErrorCode.CODE_PROPERTY_NOT_WRITABLE)
-            
+
         method = setter if isinstance(setter, str) else f"set_{prop_cfg.get('prop')}"
         params = [value]
-        
+
         # Apply forward mapping
         if 'dict' in prop_cfg and str(value) in prop_cfg['dict']:
             params = [prop_cfg['dict'][str(value)]]
-            
+
         if 'set_template' in prop_cfg and callable(prop_cfg['set_template']):
             try:
                 # set_template is our Python lambda!
@@ -919,19 +919,19 @@ class MIoTLan:
                 _LOGGER.exception("Failed to execute set_template lambda for %s %s: %s", device.did, prop_key, err)
         elif prop_cfg.get('format') == 'onoff':
             params = ["on" if value else "off"]
-            
+
         result_obj = await self.__call_api_async(
             did=device.did, msg={
                 'method': method,
                 'params': params
             }, timeout_ms=timeout_ms)
-            
+
         if result_obj and 'result' in result_obj:
             return {'did': device.did, 'siid': siid, 'piid': piid, 'code': 0}
-            
+
         if result_obj and 'code' in result_obj:
             return result_obj
-            
+
         raise MIoTError('Invalid result', MIoTErrorCode.CODE_INTERNAL_ERROR)
 
     @final
@@ -1175,9 +1175,9 @@ class MIoTLan:
             if not did.isdigit():
                 _LOGGER.info('invalid did, %s', did)
                 continue
-                
+
             model = info.get('model')
-            
+
             if model in MIIO_SPECS:
                 _LOGGER.info('model supports miio native transpilation, %s, %s', did, model)
             elif (
@@ -1189,7 +1189,7 @@ class MIoTLan:
                     'model not support local ctrl, %s, %s',
                     did, model)
                 continue
-                
+
             if did not in self._lan_devices:
                 if 'token' not in info:
                     _LOGGER.error(
@@ -1362,10 +1362,10 @@ class MIoTLan:
             except Exception as err:
                 _LOGGER.exception('decrypt packet error, %s, %s', did, err)
                 return
-            
+
             # Since decryption succeeded, the packet is authentic. Update IP and if_name.
             device.keep_alive(ip=ip, if_name=if_name)
-            
+
             try:
                 self.__message_handler(did, decrypted_data)
             except Exception as err:
@@ -1432,7 +1432,7 @@ class MIoTLan:
         filter_id = f'{did}.{msg_id}'
         if filter_id in self._reply_msg_buffer:
             return True
-            
+
         # Optimized: Remove redundant lambda, passing pop directly to call_later
         self._reply_msg_buffer[filter_id] = self._internal_loop.call_later(
             5, self._reply_msg_buffer.pop, filter_id, None
@@ -1471,7 +1471,7 @@ class MIoTLan:
         except Exception as err:
             # Optimized: Removed redundant pass statement
             _LOGGER.error('ping device error, %s', err)
-            
+
         scan_time = self.__get_next_scan_time()
         self._scan_timer = self._internal_loop.call_later(
             scan_time, self.__scan_devices)

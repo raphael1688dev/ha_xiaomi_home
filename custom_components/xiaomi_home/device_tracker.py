@@ -21,14 +21,14 @@ async def async_setup_entry(
 ) -> None:
     device_list: list[MIoTDevice] = hass.data[DOMAIN]['devices'][
         config_entry.entry_id]
-        
+
     # Optimization: flatten nested loop with list comprehension for initialization performance
     new_entities = [
         DeviceTracker(miot_device=miot_device, entity_data=data)
         for miot_device in device_list
         for data in miot_device.entity_list.get('device_tracker', [])
     ]
-    
+
     if new_entities:
         async_add_entities(new_entities)
 

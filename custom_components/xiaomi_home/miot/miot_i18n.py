@@ -124,8 +124,8 @@ class _MIoTSpecMultiLang:
 
 class MIoTI18n:
     """MIoT Internationalization Translation.
-    Translate by Copilot, which does not guarantee the accuracy of the 
-    translation. If there is a problem with the translation, please submit 
+    Translate by Copilot, which does not guarantee the accuracy of the
+    translation. If there is a problem with the translation, please submit
     the ISSUE feedback. After the review, we will modify it as soon as possible.
     """
     _main_loop: asyncio.AbstractEventLoop
@@ -154,13 +154,13 @@ class MIoTI18n:
             _LOGGER.error('load i18n file error, %s\n%s', err, traceback.format_exc())
 
             return
-            
+
         # Check if the file is a valid JSON file
         if not isinstance(data, dict):
             # Optimized: Fix typo in error log (previously said valid file)
             _LOGGER.error('invalid i18n json file format, %s', data)
             return
-            
+
         self._data = data
 
     async def deinit_async(self) -> None:
@@ -171,18 +171,18 @@ class MIoTI18n:
         self, key: str, replace: Optional[dict[str, Any]] = None
     ) -> Union[str, dict, None]:
         result: Any = self._data
-        
+
         # Optimized: Strictly check if result is a dict to prevent TypeError crash if intermediate node is str
         for item in key.split('.'):
             if not isinstance(result, dict) or item not in result:
                 return None
             result = result[item]
-            
+
         if isinstance(result, str) and replace:
             for k, v in replace.items():
                 # Optimized: Use f-string to improve string interpolation performance and readability
                 result = result.replace(f'{{{k}}}', str(v))
-                
+
         return result or None
 
     def translate_str(
@@ -193,4 +193,3 @@ class MIoTI18n:
         if isinstance(result, str):
             return result
         return None
-

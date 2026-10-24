@@ -951,7 +951,7 @@ class MipsCloudClient(_MipsClient):
             except json.JSONDecodeError:
                 self.log_error(f'on_state_msg, invalid json msg, {payload}')
                 return
-                
+
             # {"device_id":"xxxx","device_name":"Xiaomi Smart Plug 3   ","event":"online",
             # "model": "cuco.plug.v3","timestamp":1709001070828,"uid":xxxx}
             if msg is None or 'device_id' not in msg or 'event' not in msg:
@@ -1574,7 +1574,7 @@ class MipsLocalClient(_MipsClient):
             except json.JSONDecodeError:
                 self.log_error(f'devListChange msg is not valid JSON: {mips_msg.payload}')
                 return
-                
+
             if not isinstance(dev_list, list) or not dev_list:
                 _LOGGER.error(
                     'unknown devListChange msg, %s', mips_msg.payload)

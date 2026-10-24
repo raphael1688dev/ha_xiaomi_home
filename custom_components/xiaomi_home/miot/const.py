@@ -123,4 +123,3 @@ LAN_CAPABLE_CONNECT_TYPES: frozenset[int] = frozenset({0, 8, 12, 23})
 # -704042011: Device offline — the device is not reachable via cloud
 MIHOME_ERR_DEVICE_REMOVED: int = -704010000
 MIHOME_ERR_DEVICE_OFFLINE: int = -704042011
-

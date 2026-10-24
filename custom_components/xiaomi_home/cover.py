@@ -54,12 +54,12 @@ class Cover(MIoTServiceEntity, CoverEntity):
     _prop_motor_value_close: Optional[int]
     _prop_motor_value_pause: Optional[int]
     _prop_status: Optional[MIoTSpecProperty]
-    
+
     # Optimized: Use set instead of list for O(1) membership check performance
     _prop_status_opening: set[int]
     _prop_status_closing: set[int]
     _prop_status_closed: set[int]
-    
+
     _prop_current_position: Optional[MIoTSpecProperty]
     _prop_target_position: Optional[MIoTSpecProperty]
     _prop_position_value_min: Optional[int]
@@ -160,7 +160,7 @@ class Cover(MIoTServiceEntity, CoverEntity):
                                                    prop.value_range.min_)
                 self._attr_supported_features |= CoverEntityFeature.SET_POSITION
                 self._prop_target_position = prop
-                
+
         if (self._prop_status is None) and (self._prop_current_position
                                             is not None):
             self.sub_prop_changed(self._prop_current_position,
@@ -210,7 +210,7 @@ class Cover(MIoTServiceEntity, CoverEntity):
         if current is not None:
             self._prop_pos_opening = pos > current
             self._prop_pos_closing = pos < current
-        
+
         # Optimized: Protect against ZeroDivisionError and handle min offset calculation
         if self._prop_position_value_range and self._prop_position_value_range > 0:
             pos_val = (pos * self._prop_position_value_range / 100) + (self._prop_position_value_min or 0)
@@ -235,16 +235,16 @@ class Cover(MIoTServiceEntity, CoverEntity):
             pos_val = self.get_prop_value(prop=self._prop_target_position)
         else:
             pos_val = self.get_prop_value(prop=self._prop_current_position)
-            
+
         if pos_val is None:
             return None
-            
+
         # Optimized: Protect against ZeroDivisionError and calculate position using min offset
         if self._prop_position_value_range and self._prop_position_value_range > 0:
             pos = round((pos_val - (self._prop_position_value_min or 0)) * 100 / self._prop_position_value_range)
         else:
             pos = round(pos_val)
-            
+
         if pos <= self._cover_dead_zone_width:
             pos = 0
         elif pos >= (100 - self._cover_dead_zone_width):

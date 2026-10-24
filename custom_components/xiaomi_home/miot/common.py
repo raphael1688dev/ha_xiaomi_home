@@ -90,7 +90,7 @@ class MIoTHttp:
     @classmethod
     def set_shared_session(cls, session: aiohttp.ClientSession) -> None:
         cls._shared_session = session
-    
+
     @staticmethod
     async def get_async(
         url: str, params: Optional[dict] = None, headers: Optional[dict] = None,
@@ -140,7 +140,7 @@ class MIoTHttp:
         req_headers = headers or {}
         if data and 'Content-Type' not in req_headers:
             req_headers['Content-Type'] = 'application/json'
-            
+
         try:
             if session_to_use:
                 async with session_to_use.post(url, json=data, headers=req_headers, timeout=10) as response:
