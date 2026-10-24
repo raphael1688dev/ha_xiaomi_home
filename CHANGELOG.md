@@ -7,6 +7,9 @@
 - `uwize.plug.yzs01`: power consumption was reported 100 times too high. Contributed by @xuilen (XiaoMi/ha_xiaomi_home#1825).
 - `miaomiaoce.airm.co2`: CO2 readings were rounded to 100 ppm steps. Contributed by @Wuty-zju (XiaoMi/ha_xiaomi_home#1812).
 
+### Changed
+- CI is fully green: pylint reports no findings (trailing whitespace, unused imports, long lines, quote style, docstrings and a few real issues such as a never-called private method and a closure over a loop variable), and the HACS license check is skipped because Xiaomi's custom license has no SPDX identifier.
+
 ## v0.5.2 (Mod)
 ### Fixed
 - Fix integration setup failing for devices converted as a whole-device entity (robot vacuums, speakers, TVs, TV boxes, air conditioners, and others): `set.union()` raised `TypeError` on the `frozenset` action sets of `SPEC_DEVICE_TRANS_MAP`, and the entity filter and entity ID migration accessed `need_filter` / `iid` on `MIoTSpecInstance`, raising `AttributeError`. Contributed by @theodorx7.
