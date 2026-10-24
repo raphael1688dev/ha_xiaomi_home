@@ -28,7 +28,8 @@ async def async_setup_entry(
     device_list: list[MIoTDevice] = hass.data[DOMAIN]['devices'][
         config_entry.entry_id]
 
-    # Optimization: flatten nested loop with list comprehension for initialization performance
+    # Optimization: flatten nested loop with list comprehension for
+    # initialization performance
     new_entities = [
         Text(miot_device=miot_device, spec=prop)
         for miot_device in device_list
@@ -57,7 +58,8 @@ class Text(MIoTPropertyEntity, TextEntity):
     @property
     def native_value(self) -> Optional[str]:
         """Return the current text value."""
-        # Optimization: ensure None is returned if no data at startup, force other types to string and truncate
+        # Optimization: ensure None is returned if no data at startup, force
+        # other types to string and truncate
         if self._value is None:
             return None
         return str(self._value)[:255]
@@ -111,7 +113,8 @@ class ActionText(MIoTActionEntity, TextEntity):
             parsed_val = None
             is_valid = False
 
-            # Optimization: simplify type checking logic to improve readability and performance
+            # Optimization: simplify type checking logic to improve readability
+            # and performance
             if prop.format_ is str and isinstance(raw_val, (bool, int, float, str)):
                 parsed_val = str(raw_val)
                 is_valid = True

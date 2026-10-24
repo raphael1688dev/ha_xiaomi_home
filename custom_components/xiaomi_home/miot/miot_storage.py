@@ -80,7 +80,8 @@ class MIoTStorage:
         self, key: str, op_type: MIoTStorageType, fut: asyncio.Future
     ) -> None:
         def fut_done_callback(f: asyncio.Future):
-            # Optimized: Prevent race conditions, ensuring the removed Future is self
+            # Optimized: Prevent race conditions, ensuring the removed Future is
+            # self
             if self._file_future.get(key, (None, None))[1] is f:
                 self._file_future.pop(key, None)
 

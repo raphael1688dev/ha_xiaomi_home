@@ -769,7 +769,8 @@ class MIoTSpecInstance:
                                              expr=prop.get('expr', None))
                 spec_service.properties.append(spec_prop)
 
-            # Optimized: Build O(1) property lookup cache instead of O(N^2) search
+            # Optimized: Build O(1) property lookup cache instead of O(N^2)
+            # search
             prop_map = {prop.iid: prop for prop in spec_service.properties}
 
             for event in service['events']:

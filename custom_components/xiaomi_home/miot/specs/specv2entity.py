@@ -32,7 +32,8 @@ except (ImportError, AttributeError):
     except (ImportError, AttributeError):
         CONCENTRATION_PARTS_PER_MILLION = 'ppm'
 
-# Optimized: Define shared immutable permission constants to reduce memory re-allocation
+# Optimized: Define shared immutable permission constants to reduce memory
+# re-allocation
 _R = frozenset({'read'})
 _W = frozenset({'write'})
 _RW = frozenset({'read', 'write'})

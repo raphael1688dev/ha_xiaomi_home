@@ -638,7 +638,8 @@ class _MipsClient(ABC):
 
     def __on_disconnect(self,  client, user_data, rc, props) -> None:
         if self._mqtt_state:
-            # Common disconnect codes: 0 (clean), 7 (connection lost), 16 (server disconnect), None
+            # Common disconnect codes: 0 (clean), 7 (connection lost), 16
+            # (server disconnect), None
             is_auth_error = rc in (4, 5) or str(rc) in (
                 '4', '5', 'Bad username or password', 'Not authorized')
             (self.log_warning if is_auth_error else self.log_info)(
@@ -952,7 +953,8 @@ class MipsCloudClient(_MipsClient):
                 self.log_error(f'on_state_msg, invalid json msg, {payload}')
                 return
 
-            # {"device_id":"xxxx","device_name":"Xiaomi Smart Plug 3   ","event":"online",
+            # {"device_id":"xxxx","device_name":"Xiaomi Smart Plug 3
+            # ","event":"online",
             # "model": "cuco.plug.v3","timestamp":1709001070828,"uid":xxxx}
             if msg is None or 'device_id' not in msg or 'event' not in msg:
                 self.log_error(f'on_state_msg, recv unknown msg, {payload}')
@@ -1664,7 +1666,8 @@ class MipsLocalClient(_MipsClient):
                 'code': MIoTErrorCode.CODE_MIPS_INVALID_RESULT.value,
                 'message': f'Error: {result}'}
 
-    # Optimized: Resolve serial blocking using concurrent processing to improve performance
+    # Optimized: Resolve serial blocking using concurrent processing to improve
+    # performance
     async def __get_prop_timer_handle(self) -> None:
         async def _fetch_and_set(did_key: str, req_item: dict) -> None:
             _LOGGER.debug('get prop, %s, %s', did_key, req_item)

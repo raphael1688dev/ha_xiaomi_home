@@ -54,7 +54,8 @@ async def async_setup_entry(
     device_list: list[MIoTDevice] = hass.data[DOMAIN]['devices'][
         config_entry.entry_id]
 
-    # Optimization: flatten nested loop with list comprehension for initialization performance
+    # Optimization: flatten nested loop with list comprehension for
+    # initialization performance
     new_entities = [
         Vacuum(miot_device=miot_device, entity_data=data)
         for miot_device in device_list
@@ -71,7 +72,8 @@ class Vacuum(MIoTServiceEntity, StateVacuumEntity):
     _prop_status: Optional[MIoTSpecProperty]
     _prop_fan_level: Optional[MIoTSpecProperty]
 
-    # Optimization: change list to set for faster 'in' operation during state polling (O(N) -> O(1))
+    # Optimization: change list to set for faster 'in' operation during state
+    # polling (O(N) -> O(1))
     _prop_status_cleaning: set[int]
     _prop_status_docked: set[int]
     _prop_status_paused: set[int]
@@ -146,7 +148,8 @@ class Vacuum(MIoTServiceEntity, StateVacuumEntity):
                                   self.entity_id)
                     continue
                 self._fan_level_map = prop.value_list.to_map()
-                # Optimized: Pre-build O(1) fan speed reverse lookup dictionary instead of O(N) scanning
+                # Optimized: Pre-build O(1) fan speed reverse lookup dictionary
+                # instead of O(N) scanning
                 self._fan_level_reverse_map = {v: k for k, v in self._fan_level_map.items()}
                 self._attr_fan_speed_list = list(self._fan_level_map.values())
                 self._attr_supported_features |= VacuumEntityFeature.FAN_SPEED
@@ -186,7 +189,8 @@ class Vacuum(MIoTServiceEntity, StateVacuumEntity):
         """Start or resume the cleaning task."""
         if self._prop_status is not None:
             status = self.get_prop_value(prop=self._prop_status)
-            # Optimization: protect against None status to avoid potential exception
+            # Optimization: protect against None status to avoid potential
+            # exception
             if (status is not None and status in self._prop_status_paused
                ) and self._action_continue_sweep:
                 await self.action_async(action=self._action_continue_sweep)

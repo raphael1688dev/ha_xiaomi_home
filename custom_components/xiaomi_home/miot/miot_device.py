@@ -938,7 +938,8 @@ class MIoTServiceEntity(Entity):
             self._attr_unique_id = miot_device.gen_service_unique_id(
                 siid=self.entity_data.spec.iid,
                 description=self.entity_data.spec.description)
-            # If the service description is the same as the platform, we can make it None to just use the device name
+            # If the service description is the same as the platform, we can
+            # make it None to just use the device name
             # Otherwise we use the description as the entity name.
             if self.entity_data.spec.description.lower() == self.entity_data.platform:
                 self._attr_name = None
@@ -958,7 +959,8 @@ class MIoTServiceEntity(Entity):
         self._attr_has_entity_name = True
         self._attr_available = miot_device.online
 
-        # Override entity_id explicitly to bypass HA's slugification of device name
+        # Override entity_id explicitly to bypass HA's slugification of device
+        # name
         from .common import slugify_name
         domain = ha_domain or self.entity_data.platform
         if self._attr_name:
@@ -1292,7 +1294,8 @@ class MIoTPropertyEntity(Entity):
             f'{self.service.description_trans} {spec.description_trans}')
         self._attr_available = miot_device.online
 
-        # Override entity_id explicitly to bypass HA's slugification of device name
+        # Override entity_id explicitly to bypass HA's slugification of device
+        # name
         from .common import slugify_name
         clean_name = self._attr_name.replace("* ", "")
         self.entity_id = f"{ha_domain or spec.platform}.{miot_device.entity_id_prefix}_{slugify_name(clean_name)}"
@@ -1459,7 +1462,8 @@ class MIoTEventEntity(Entity):
         self._attr_available = miot_device.online
         self._attr_event_types = [spec.description_trans]
 
-        # Override entity_id explicitly to bypass HA's slugification of device name
+        # Override entity_id explicitly to bypass HA's slugification of device
+        # name
         from .common import slugify_name
         clean_name = self._attr_name.replace("* ", "")
         self.entity_id = f"{spec.platform}.{miot_device.entity_id_prefix}_{slugify_name(clean_name)}"
@@ -1583,7 +1587,8 @@ class MIoTActionEntity(Entity):
             f'{self.service.description_trans} {spec.description_trans}')
         self._attr_available = miot_device.online
 
-        # Override entity_id explicitly to bypass HA's slugification of device name
+        # Override entity_id explicitly to bypass HA's slugification of device
+        # name
         from .common import slugify_name
         clean_name = self._attr_name.replace("* ", "")
         self.entity_id = f"{ha_domain or spec.platform}.{miot_device.entity_id_prefix}_{slugify_name(clean_name)}"

@@ -155,7 +155,8 @@ class MipsService:
     def unsub_service_change(self, key: str) -> None:
         if not key:
             return
-        # Optimized: Collect target keys and remove them directly, avoiding redundant tuple index access in loop
+        # Optimized: Collect target keys and remove them directly, avoiding
+        # redundant tuple index access in loop
         keys_to_remove = [k for k in self._sub_list if k[0] == key]
         for k in keys_to_remove:
             self._sub_list.pop(k, None)
@@ -168,7 +169,8 @@ class MipsService:
             'mdns discovery changed, %s, %s, %s',
             state_change, name, service_type)
 
-        # Optimized: Prevent sending async_request to offline devices causing 5-second timeout delays
+        # Optimized: Prevent sending async_request to offline devices causing
+        # 5-second timeout delays
         if state_change is ServiceStateChange.Removed:
             _LOGGER.debug('Ignore mdns REMOVED package for: %s', name)
             return

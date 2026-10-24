@@ -22,7 +22,8 @@ async def test_lan_manager_coroutine_safety() -> None:
     success = await manager.refresh_props_from_lan()
 
     assert success is False
-    # Check that failed request was re-queued cleanly without 'fut' coroutine object
+    # Check that failed request was re-queued cleanly without 'fut' coroutine
+    # object
     assert "dev1|2|1" in client.refresh_props_list
     requeued = client.refresh_props_list["dev1|2|1"]
     assert "fut" not in requeued
@@ -35,7 +36,8 @@ async def test_cloud_manager_sanitization_and_coroutine_resilience() -> None:
     client = MagicMock()
     client.miot_network.network_status = True
 
-    # Simulate refresh_props_list having a contaminated item with extra non-serializable fields
+    # Simulate refresh_props_list having a contaminated item with extra
+    # non-serializable fields
     dummy_coro = asyncio.sleep(0.01)
     client.refresh_props_list = {
         "dev1|2|1": {

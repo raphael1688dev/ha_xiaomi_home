@@ -135,7 +135,8 @@ class MIoTI18n:
     def __init__(
         self, lang: str, loop: Optional[asyncio.AbstractEventLoop] = None
     ) -> None:
-        # Optimized: Use modern get_running_loop() to avoid Python 3.10+ DeprecationWarning
+        # Optimized: Use modern get_running_loop() to avoid Python 3.10+
+        # DeprecationWarning
         self._main_loop = loop or asyncio.get_running_loop()
         self._lang = lang
         self._data = {}
@@ -164,7 +165,8 @@ class MIoTI18n:
         self._data = data
 
     async def deinit_async(self) -> None:
-        # Optimized: Use clear() to empty dictionary and improve garbage collection efficiency
+        # Optimized: Use clear() to empty dictionary and improve garbage
+        # collection efficiency
         self._data.clear()
 
     def translate(
@@ -172,7 +174,8 @@ class MIoTI18n:
     ) -> Union[str, dict, None]:
         result: Any = self._data
 
-        # Optimized: Strictly check if result is a dict to prevent TypeError crash if intermediate node is str
+        # Optimized: Strictly check if result is a dict to prevent TypeError
+        # crash if intermediate node is str
         for item in key.split('.'):
             if not isinstance(result, dict) or item not in result:
                 return None
@@ -180,7 +183,8 @@ class MIoTI18n:
 
         if isinstance(result, str) and replace:
             for k, v in replace.items():
-                # Optimized: Use f-string to improve string interpolation performance and readability
+                # Optimized: Use f-string to improve string interpolation
+                # performance and readability
                 result = result.replace(f'{{{k}}}', str(v))
 
         return result or None

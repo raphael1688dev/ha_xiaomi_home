@@ -211,7 +211,8 @@ class Cover(MIoTServiceEntity, CoverEntity):
             self._prop_pos_opening = pos > current
             self._prop_pos_closing = pos < current
 
-        # Optimized: Protect against ZeroDivisionError and handle min offset calculation
+        # Optimized: Protect against ZeroDivisionError and handle min offset
+        # calculation
         if self._prop_position_value_range and self._prop_position_value_range > 0:
             pos_val = (pos * self._prop_position_value_range / 100) + (self._prop_position_value_min or 0)
             pos = round(pos_val)
@@ -239,7 +240,8 @@ class Cover(MIoTServiceEntity, CoverEntity):
         if pos_val is None:
             return None
 
-        # Optimized: Protect against ZeroDivisionError and calculate position using min offset
+        # Optimized: Protect against ZeroDivisionError and calculate position
+        # using min offset
         if self._prop_position_value_range and self._prop_position_value_range > 0:
             pos = round((pos_val - (self._prop_position_value_min or 0)) * 100 / self._prop_position_value_range)
         else:

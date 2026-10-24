@@ -36,7 +36,8 @@ async def async_setup_entry(
     device_list: list[MIoTDevice] = hass.data[DOMAIN]['devices'][
         config_entry.entry_id]
 
-    # Optimization: flatten nested loop with list comprehension for initialization performance
+    # Optimization: flatten nested loop with list comprehension for
+    # initialization performance
     new_entities = [
         WaterHeater(miot_device=miot_device, entity_data=data)
         for miot_device in device_list
@@ -106,7 +107,8 @@ class WaterHeater(MIoTServiceEntity, WaterHeaterEntity):
                     _LOGGER.error('mode value_list is None, %s', self.entity_id)
                     continue
                 self._mode_map = prop.value_list.to_map()
-                # Optimized: Pre-build O(1) mode reverse lookup dictionary instead of O(N) scanning
+                # Optimized: Pre-build O(1) mode reverse lookup dictionary
+                # instead of O(N) scanning
                 self._mode_reverse_map = {v: k for k, v in self._mode_map.items()}
                 self._attr_operation_list = list(self._mode_map.values())
                 self._prop_mode = prop
@@ -190,7 +192,8 @@ class WaterHeater(MIoTServiceEntity, WaterHeaterEntity):
         if val_on is None:
             return None
 
-        # Optimization: safely use bool to check power status to avoid 'is False' type trap
+        # Optimization: safely use bool to check power status to avoid 'is
+        # False' type trap
         if not bool(val_on):
             return STATE_OFF
 

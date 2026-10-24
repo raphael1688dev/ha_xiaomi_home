@@ -169,7 +169,8 @@ class Fan(MIoTServiceEntity, FanEntity):
     ) -> None:
         """Turn the fan on."""
         turned_on_by_us = False
-        # Ensure device is turned on first to prevent rejecting subsequent commands while off
+        # Ensure device is turned on first to prevent rejecting subsequent
+        # commands while off
         if not self.is_on and not self._is_turning_on:
             self._is_turning_on = True
             turned_on_by_us = True
@@ -183,7 +184,8 @@ class Fan(MIoTServiceEntity, FanEntity):
                 raise
 
         try:
-            # Optimized: Use asyncio.gather to concurrently execute commands and reduce latency
+            # Optimized: Use asyncio.gather to concurrently execute commands and
+            # reduce latency
             tasks = []
             if percentage is not None:
                 tasks.append(self.async_set_percentage(percentage))
@@ -218,7 +220,8 @@ class Fan(MIoTServiceEntity, FanEntity):
                     self._is_turning_on = False
 
             if self._speed_names:
-                # Optimized: Use O(1) reverse lookup map to replace O(N) get_map_key scan
+                # Optimized: Use O(1) reverse lookup map to replace O(N)
+                # get_map_key scan
                 speed_str = percentage_to_ordered_list_item(self._speed_names, percentage)
                 speed_val = self._speed_name_reverse_map.get(speed_str)
                 if speed_val is not None:

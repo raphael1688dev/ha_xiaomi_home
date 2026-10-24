@@ -33,7 +33,8 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry,
 
     new_entities = []
 
-    # Optimized: Flatten repeated loop structures using mapping table, enhancing readability and extensibility
+    # Optimized: Flatten repeated loop structures using mapping table, enhancing
+    # readability and extensibility
     mapping = [
         ('air-conditioner', AirConditioner),
         ('heater', Heater),
@@ -447,7 +448,8 @@ class Heater(FeatureOnOff, FeatureTargetTemperature, FeatureTemperature,
     def hvac_mode(self) -> Optional[HVACMode]:
         """The current hvac mode."""
         is_on = self.get_prop_value(prop=self._prop_on)
-        # Optimized: Guard unprepared devices to prevent returning incorrect OFF state
+        # Optimized: Guard unprepared devices to prevent returning incorrect OFF
+        # state
         if is_on is None:
             return None
         return HVACMode.HEAT if is_on else HVACMode.OFF

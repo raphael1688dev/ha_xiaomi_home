@@ -70,7 +70,8 @@ class Sensor(MIoTPropertyEntity, SensorEntity):
         super().__init__(miot_device=miot_device, spec=spec, ha_domain="sensor")
         self._attr_device_class = spec.device_class
 
-        # Pre-build O(1) reverse lookup dict, and force str conversion to prevent int/str mismatch
+        # Pre-build O(1) reverse lookup dict, and force str conversion to
+        # prevent int/str mismatch
         self._val_desc_map = {}
         if spec.value_list:
             self._val_desc_map = {
@@ -130,7 +131,8 @@ class Sensor(MIoTPropertyEntity, SensorEntity):
                 return self._val_desc_map[str_val]
 
             # Fix Enum error caused by undefined options:
-            # If device reports an undocumented value (e.g. 0), dynamically add it to _attr_options
+            # If device reports an undocumented value (e.g. 0), dynamically add
+            # it to _attr_options
             _opts = self._attr_options or []
             if str_val not in _opts:
                 if len(_opts) > 64:

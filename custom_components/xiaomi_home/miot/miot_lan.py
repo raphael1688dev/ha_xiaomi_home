@@ -393,7 +393,8 @@ class _MIoTLanDevice:
         self.online = True
 
     def __md5(self, data: bytes) -> bytes:
-        # Optimized: Use hashlib.md5 (C-level implementation) for higher efficiency
+        # Optimized: Use hashlib.md5 (C-level implementation) for higher
+        # efficiency
         return hashlib.md5(data).digest()
 
 
@@ -861,12 +862,15 @@ class MIoTLan:
             val = result_obj['result'][0]
 
             # Inverse translate the value using dict mapping if exists
-            # (In practice, Jinja templates in MIIO_TO_MIOT_SPECS mostly translate in one direction for set_prop,
-            #  for get_prop we check if 'dict' has a reverse mapping or we just return it)
+            # (In practice, Jinja templates in MIIO_TO_MIOT_SPECS mostly
+            # translate in one direction for set_prop,
+            #  for get_prop we check if 'dict' has a reverse mapping or we just
+            # return it)
             if 'dict' in prop_cfg:
                 for k, v in prop_cfg['dict'].items():
                     if str(v) == str(val):
-                        # Some values might be bools or ints in python but returned as string
+                        # Some values might be bools or ints in python but
+                        # returned as string
                         if k.isdigit():
                             val = int(k)
                         else:
@@ -1105,7 +1109,8 @@ class MIoTLan:
         self.__sendto(if_name=if_name, data=msg, address=ip, port=self.OT_PORT)
 
     def broadcast_device_state(self, did: str, state: dict) -> None:
-        # Optimized: Use native run_coroutine_threadsafe to schedule tasks safely in main loop
+        # Optimized: Use native run_coroutine_threadsafe to schedule tasks
+        # safely in main loop
         for handler in self._device_state_sub_map.values():
             asyncio.run_coroutine_threadsafe(
                 handler.handler(did, state, handler.handler_ctx),
@@ -1362,7 +1367,8 @@ class MIoTLan:
                 _LOGGER.exception('decrypt packet error, %s, %s', did, err)
                 return
 
-            # Since decryption succeeded, the packet is authentic. Update IP and if_name.
+            # Since decryption succeeded, the packet is authentic. Update IP and
+            # if_name.
             device.keep_alive(ip=ip, if_name=if_name)
 
             try:
@@ -1464,7 +1470,8 @@ class MIoTLan:
             # Unicast probe to known IPs
             for device in self._lan_devices.values():
                 if device.ip:
-                    # Send unicast probe out of all broadcast sockets to ensure routing handles it
+                    # Send unicast probe out of all broadcast sockets to ensure
+                    # routing handles it
                     for if_name in self._broadcast_socks:
                         self.ping(if_name=if_name, target_ip=device.ip)
         except Exception as err:

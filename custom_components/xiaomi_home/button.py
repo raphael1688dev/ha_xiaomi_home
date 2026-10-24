@@ -22,7 +22,8 @@ async def async_setup_entry(
     device_list: list[MIoTDevice] = hass.data[DOMAIN]['devices'][
         config_entry.entry_id]
 
-    # Optimization: flatten nested loop with list comprehension for initialization performance
+    # Optimization: flatten nested loop with list comprehension for
+    # initialization performance
     new_entities = [
         Button(miot_device=miot_device, spec=action)
         for miot_device in device_list
@@ -43,5 +44,6 @@ class Button(MIoTActionEntity, ButtonEntity):
 
     async def async_press(self) -> None:
         """Press the button."""
-        # Optimized: Remove redundant return to conform with async_press -> None type specification
+        # Optimized: Remove redundant return to conform with async_press -> None
+        # type specification
         await self.action_async()

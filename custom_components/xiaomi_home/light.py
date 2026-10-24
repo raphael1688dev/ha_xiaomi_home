@@ -39,7 +39,8 @@ async def async_setup_entry(
     device_list: list[MIoTDevice] = hass.data[DOMAIN]['devices'][
         config_entry.entry_id]
 
-    # Optimized: Flatten nested loops with list comprehension for faster entity loading
+    # Optimized: Flatten nested loops with list comprehension for faster entity
+    # loading
     new_entities = [
         Light(miot_device=miot_device, entity_data=data)
         for miot_device in device_list
@@ -173,7 +174,8 @@ class Light(MIoTServiceEntity, LightEntity):
         value_on = self.get_prop_value(prop=self._prop_on)
         if value_on is None:
             return None
-        # Optimized: Safely cast to bool, compatible with both int(1/0) and bool(True/False)
+        # Optimized: Safely cast to bool, compatible with both int(1/0) and
+        # bool(True/False)
         return bool(value_on)
 
     @property
@@ -222,13 +224,15 @@ class Light(MIoTServiceEntity, LightEntity):
 
         Shall set attributes in kwargs if applicable.
         """
-        # 1. Ensure light is on (prevents device from ignoring property commands when off)
+        # 1. Ensure light is on (prevents device from ignoring property commands
+        # when off)
         if self._prop_on and not self.is_on:
             value_on = True if self._prop_on.format_ == bool else 1
             await self.set_property_async(
                 prop=self._prop_on, value=value_on, write_ha_state=False)
 
-        # Optimized: 2. Bundle all property updates and send concurrently to eliminate waterfall delays
+        # Optimized: 2. Bundle all property updates and send concurrently to
+        # eliminate waterfall delays
         tasks = []
 
         # brightness

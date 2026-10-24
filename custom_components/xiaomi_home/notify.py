@@ -28,7 +28,8 @@ async def async_setup_entry(
     device_list: list[MIoTDevice] = hass.data[DOMAIN]['devices'][
         config_entry.entry_id]
 
-    # Optimization: flatten nested loop with list comprehension for initialization performance
+    # Optimization: flatten nested loop with list comprehension for
+    # initialization performance
     new_entities = [
         Notify(miot_device=miot_device, spec=action)
         for miot_device in device_list
@@ -80,7 +81,8 @@ class Notify(MIoTActionEntity, NotifyEntity):
             parsed_val = None
             is_valid = False
 
-            # Optimization: simplify type checking logic to improve readability and performance
+            # Optimization: simplify type checking logic to improve readability
+            # and performance
             if prop.format_ is str and isinstance(raw_val, (bool, int, float, str)):
                 parsed_val = str(raw_val)
                 is_valid = True

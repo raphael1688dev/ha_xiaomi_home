@@ -46,7 +46,8 @@ SUPPORTED_PLATFORMS: tuple[str, ...] = (
     'water_heater',
 )
 
-# Use set to optimize 'in' operator lookups to O(1) while maintaining immutability
+# Use set to optimize 'in' operator lookups to O(1) while maintaining
+# immutability
 UNSUPPORTED_MODELS: frozenset[str] = frozenset({
     'chuangmi.ir.v2',
     'era.airp.cwb03',
@@ -56,7 +57,8 @@ UNSUPPORTED_MODELS: frozenset[str] = frozenset({
 
 DEFAULT_CLOUD_SERVER: str = 'cn'
 
-# Use MappingProxyType to enforce read-only dictionary, preventing runtime modifications
+# Use MappingProxyType to enforce read-only dictionary, preventing runtime
+# modifications
 CLOUD_SERVERS = MappingProxyType({
     'cn': 'China Mainland',
     'de': 'Europe',

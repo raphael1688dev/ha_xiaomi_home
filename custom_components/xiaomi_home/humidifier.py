@@ -23,7 +23,8 @@ from .miot.const import DOMAIN
 _LOGGER = logging.getLogger(__name__)
 
 # Value-list names are slugified when the spec is loaded (Chinese names become
-# pinyin, e.g. '\u6807\u51c6' -> 'biao_zhun'), so normalize the keys the same way.
+# pinyin, e.g. '\u6807\u51c6' -> 'biao_zhun'), so normalize the keys the same
+# way.
 _MODE_NAME_TRANS: dict[str, str] = {
     slugify(text=name, separator='_').lower(): mode
     for mode, names in (
@@ -83,7 +84,8 @@ class Humidifier(MIoTServiceEntity, HumidifierEntity):
     def __init__(self, miot_device: MIoTDevice,
                  entity_data: MIoTEntityData) -> None:
         """Initialize the Humidifier."""
-        # Dehumidifiers use platform "dehumidifier", but the domain is humidifier
+        # Dehumidifiers use platform "dehumidifier", but the domain is
+        # humidifier
         super().__init__(
             miot_device=miot_device, entity_data=entity_data,
             ha_domain="humidifier")
@@ -131,7 +133,8 @@ class Humidifier(MIoTServiceEntity, HumidifierEntity):
                     # Description-based names used before the HA standard
                     # modes were adopted, kept for existing automations
                     self._mode_legacy_map[item.description] = item.value
-                # Optimized: Pre-build O(1) mode reverse lookup dictionary to prevent runtime performance overhead
+                # Optimized: Pre-build O(1) mode reverse lookup dictionary to
+                # prevent runtime performance overhead
                 self._mode_reverse_map = {v: k for k, v in self._mode_map.items()}
 
                 self._attr_available_modes = list(self._mode_map.values())
@@ -166,7 +169,8 @@ class Humidifier(MIoTServiceEntity, HumidifierEntity):
         if not self._prop_on:
             return None
         val = self.get_prop_value(prop=self._prop_on)
-        # Optimized: Strictly cast to bool and safely filter None, complying with HA standards
+        # Optimized: Strictly cast to bool and safely filter None, complying
+        # with HA standards
         return bool(val) if val is not None else None
 
     @property

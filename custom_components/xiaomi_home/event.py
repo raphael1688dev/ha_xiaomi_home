@@ -27,7 +27,8 @@ async def async_setup_entry(
     device_list: list[MIoTDevice] = hass.data[DOMAIN]['devices'][
         config_entry.entry_id]
 
-    # Optimization: flatten nested loop with list comprehension for initialization performance
+    # Optimization: flatten nested loop with list comprehension for
+    # initialization performance
     new_entities = [
         Event(miot_device=miot_device, spec=event)
         for miot_device in device_list
@@ -56,7 +57,8 @@ class Event(MIoTEventEntity, EventEntity):
         """Trigger event."""
         if self._attr_device_class == EventDeviceClass.DOORBELL:
             name = DoorbellEventType.RING
-        # Optimized: Safely fallback to empty dict when arguments is None to avoid HA attribute errors
+        # Optimized: Safely fallback to empty dict when arguments is None to
+        # avoid HA attribute errors
         self._trigger_event(
             event_type=name,
             event_attributes=arguments or {}

@@ -22,7 +22,8 @@ async def async_setup_entry(
     device_list: list[MIoTDevice] = hass.data[DOMAIN]['devices'][
         config_entry.entry_id]
 
-    # Optimized: Flatten nested loops using list comprehension, improving loading performance with large device counts
+    # Optimized: Flatten nested loops using list comprehension, improving
+    # loading performance with large device counts
     new_entities = [
         BinarySensor(miot_device=miot_device, spec=prop)
         for miot_device in device_list
@@ -46,7 +47,8 @@ class BinarySensor(MIoTPropertyEntity, BinarySensorEntity):
     @property
     def is_on(self) -> bool | None:
         """On/Off state. True if the binary sensor is on, False otherwise."""
-        # Optimized: Block 'Ghost Triggers' caused by _value being None during initial startup
+        # Optimized: Block 'Ghost Triggers' caused by _value being None during
+        # initial startup
         if self._value is None:
             return None
 
@@ -54,5 +56,6 @@ class BinarySensor(MIoTPropertyEntity, BinarySensorEntity):
         if self.spec.name == 'contact-state':
             return not bool(self._value)
 
-        # Optimized: Ensure strict boolean return type, complying with HA standards
+        # Optimized: Ensure strict boolean return type, complying with HA
+        # standards
         return bool(self._value)

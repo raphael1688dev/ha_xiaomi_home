@@ -62,7 +62,8 @@ def test_humidifier_modes_match_slugified_chinese_names() -> None:
         entity_data=_mock_service_entity_data("dehumidifier", [prop]))
 
     assert entity._mode_map == {0: MODE_NORMAL, 1: MODE_SLEEP, 2: MODE_AUTO}
-    # Dehumidifiers use platform "dehumidifier" but live in the humidifier domain
+    # Dehumidifiers use platform "dehumidifier" but live in the humidifier
+    # domain
     assert entity.entity_id.startswith("humidifier.")
 
 

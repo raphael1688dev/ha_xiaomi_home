@@ -53,7 +53,8 @@ class MIoTNetwork:
     _ip_addr_map: dict[str, float]
     _http_addr_map: dict[str, float]
 
-    # Deferred initialization to ensure creation inside the correct asyncio event loop
+    # Deferred initialization to ensure creation inside the correct asyncio
+    # event loop
     _http_session: Optional[aiohttp.ClientSession]
 
     _refresh_interval: int
@@ -100,7 +101,8 @@ class MIoTNetwork:
         self._done_event = asyncio.Event()
 
     async def init_async(self) -> bool:
-        # Initialize ClientSession inside coroutine following aiohttp best practices
+        # Initialize ClientSession inside coroutine following aiohttp best
+        # practices
         if self._http_session is None and self._own_session:
             self._http_session = aiohttp.ClientSession()
 
@@ -226,7 +228,8 @@ class MIoTNetwork:
             if addr in self._ip_addr_map:
                 self._ip_addr_map[addr] = ts
 
-        # Use generator expression to improve performance with short-circuit evaluation
+        # Use generator expression to improve performance with short-circuit
+        # evaluation
         return any(ts < self._DETECT_TIMEOUT for ts in results)
 
     async def http_multi_async(
@@ -262,7 +265,8 @@ class MIoTNetwork:
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL
             )
-            # Add asyncio.wait_for to prevent subprocess from hanging indefinitely on system issues
+            # Add asyncio.wait_for to prevent subprocess from hanging
+            # indefinitely on system issues
             await asyncio.wait_for(process.communicate(), timeout=self._DETECT_TIMEOUT + 1)
 
             if process.returncode == 0:
@@ -326,11 +330,13 @@ class MIoTNetwork:
                     self._main_loop.create_task(handler(status))
                 self._network_status = status
 
-            # Optimized: Use set operations to handle interface additions/removals without mutating dict during iteration
+            # Optimized: Use set operations to handle interface
+            # additions/removals without mutating dict during iteration
             current_names = set(self._network_info.keys())
             new_names = set(infos.keys())
 
-            # Handle removed interfaces (present in current_names but not in new_names)
+            # Handle removed interfaces (present in current_names but not in
+            # new_names)
             for name in (current_names - new_names):
                 removed_info = self._network_info.pop(name)
                 self.__call_network_info_change(InterfaceStatus.REMOVE, removed_info)
