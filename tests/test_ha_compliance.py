@@ -20,6 +20,7 @@ from custom_components.xiaomi_home.miot.miot_error import MIoTOauthError
 from custom_components.xiaomi_home.miot.miot_spec import (
     MIoTSpecInstance, MIoTSpecService, MIoTSpecValueListItem)
 from custom_components.xiaomi_home.sensor import Sensor
+from custom_components.xiaomi_home.text import Text
 
 
 def _mock_miot_device() -> MagicMock:
@@ -235,3 +236,16 @@ async def test_oauth_token_errors_hide_response(body: str) -> None:
     with pytest.raises(MIoTOauthError) as err:
         await client._MIoTOauthClient__get_token_async(data={})
     assert "SECRET" not in str(err.value)
+
+
+@pytest.mark.parametrize("entity_cls", [Sensor, Text])
+def test_long_string_value_kept_in_unrecorded_attribute(entity_cls) -> None:
+    """The state is cut at 255 characters, the attribute keeps it all."""
+    entity = entity_cls.__new__(entity_cls)
+    long_value = "{" + "x" * 400 + "}"
+    entity._value = long_value
+    assert entity.extra_state_attributes == {"value": long_value}
+    entity._value = "short"
+    assert entity.extra_state_attributes is None
+    # Large and frequently changing, keep it out of the recorder database
+    assert "value" in entity_cls._Entity__combined_unrecorded_attributes
