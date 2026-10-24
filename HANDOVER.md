@@ -37,18 +37,23 @@ To prevent the codebase from regressing into a buggy, laggy state, observe these
 ---
 *Signed, Raphael & Antigravity (May 2026)*
 
-## October 2026 Update (v0.5.1 / v0.5.2)
+## October 2026 Update (v0.5.1 to v0.5.4)
 
 Maintenance of the fork was handed over to Claude Code on 2026-10-16. Decisions and conventions since then:
 
 ### Decisions
 - **English only**: `INTEGRATION_LANGUAGES` contains only `en`; the Chinese translation and i18n files are gone and `bool_trans.yaml` / `multi_lang.json` keep English only. Config entries created with another language are migrated to English in `async_setup_entry` (entity IDs are kept). Do not re-add languages without updating `test/check_rule_format.py::test_miot_lang_integrity`.
+- **Upstream PRs**: open upstream pull requests are ported once reviewed here, with the author kept and credited in the changelog and release notes. Upstream has no release after v0.5.0 (2026-09-28); its open fixes up to #1838 are in v0.5.3 and v0.5.4.
+- **Entity init loops stay**: the `for prop in entity_data.props` dispatch loops in cover, humidifier, media_player, vacuum, water_heater and device_tracker run once per entity. Replacing them with `get_prop()` would change last-match to first-match for duplicate property names, so they are kept on purpose.
 - **Supported cores**: `hacs.json` declares Home Assistant 2026.5.0+. APIs introduced later (for example `async_get_device_by_identifier`, the HA 2026.11 `native_*` temperature properties, the `DeviceInfo` dataclass) are used through feature detection with a fallback, never unconditionally.
 
 ### Additional red lines
 6. **Never build an `entity_id` from `spec.platform` alone**: entities created on a different platform (dehumidifiers, binary sensors shown as sensors, debug action text entities) must pass `ha_domain`, because HA rejects mismatched domains from 2027.5.
 7. **Never use `set.union()` on spec mapping sets**: `SPEC_DEVICE_TRANS_MAP` uses `frozenset`; use the `|` operator. `MIoTSpecInstance` (whole-device entities) has no `iid` / `need_filter` / `proprietary`, so check `isinstance(..., MIoTSpecService)` before touching them.
 8. **Do not override `TrackerEntity.location_name` or `battery_level`**: both are removed in HA 2027.7; battery level is a separate sensor.
+9. **Never log or embed raw OAuth or profile responses**: token responses carry credentials and reach logs and diagnostics through error messages; report only the response code or the server error description.
+10. **Large, frequently changing attributes stay out of the recorder**: list them in `_unrecorded_attributes` (for example the untruncated `value` of long strings).
+11. **MQTT disconnect codes**: `rc` is either a paho client error code or a broker `ReasonCode` with overlapping values (4 is "no connection" as a client code). Check `isinstance(rc, ReasonCode)` before comparing values. `_MipsCloudMQTTClient` overrides paho's protected `_filter_wildcard_len_check` (paho is pinned to 2.1.0 by Home Assistant); re-check it when Home Assistant bumps paho.
 
 ### Workflow
 - Quality gate: `python3 scripts/quality_audit.py` (Chinese character policy, compilation, `tests/`, the offline `test/` suite and `test/check_rule_format.py`).
