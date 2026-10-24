@@ -127,14 +127,14 @@ def main():
 
     print(
         f"[!] NEW UPSTREAM RELEASE DETECTED: {tracked_version} -> {latest_tag}")
-    compare_url = f"https://github.com/{UPSTREAM_REPO}/compare/{tracked_version}...{latest_tag}"
+    compare_range = f"{tracked_version}...{latest_tag}"
+    compare_url = f"https://github.com/{UPSTREAM_REPO}/compare/{compare_range}"
     print(f"[*] Comparison link: {compare_url}")
     print("-" * 70)
 
     # Fetch comparison details
     compare_data = github_api_get(
-        f"https://api.github.com/repos/{UPSTREAM_REPO}/compare/{tracked_version}...{latest_tag}"
-    )
+        f"https://api.github.com/repos/{UPSTREAM_REPO}/compare/{compare_range}")
     commits = compare_data.get("commits", [])
     files = compare_data.get("files", [])
 
@@ -205,11 +205,12 @@ def main():
             if login:
                 author = f"@{login}"
             else:
-                author = f"`{commit.get('commit', {}).get('author', {}).get('name', 'Unknown')}`"
-            rf.write(
-                "- "
-                f"[`{sha}`](https://github.com/{UPSTREAM_REPO}/commit/{commit.get('sha', '')}) {msg} (by {author})\n"
-            )
+                name = commit.get("commit", {}).get("author", {}).get(
+                    "name", "Unknown")
+                author = f"`{name}`"
+            commit_url = (f"https://github.com/{UPSTREAM_REPO}/commit/"
+                          f"{commit.get('sha', '')}")
+            rf.write(f"- [`{sha}`]({commit_url}) {msg} (by {author})\n")
         if len(commits) > 25:
             rf.write(f"- ... and {len(commits) - 25} more commits.\n")
         rf.write(f"\n### 📁 Modified Files ({len(files)})\n\n")

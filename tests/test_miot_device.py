@@ -80,7 +80,7 @@ def test_unique_id_generation() -> None:
 
 
 def test_device_tracker_extra_state_attributes() -> None:
-    """Test DeviceTracker without the deprecated battery_level/location_name API."""
+    """Test DeviceTracker without battery_level/location_name (deprecated)."""
     from custom_components.xiaomi_home.device_tracker import DeviceTracker
     from custom_components.xiaomi_home.miot.miot_spec import MIoTSpecService
 

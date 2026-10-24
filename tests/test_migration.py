@@ -3,6 +3,8 @@ import pytest
 from unittest.mock import MagicMock, patch
 from custom_components.xiaomi_home import _async_migrate_legacy_entity_ids
 
+_ER = "custom_components.xiaomi_home.entity_registry"
+
 
 @pytest.mark.asyncio
 async def test_migration_legacy_action_orphans() -> None:
@@ -29,8 +31,9 @@ async def test_migration_legacy_action_orphans() -> None:
     # Set up entries return for config entry
     entries_list: list[MagicMock] = [orphan_entry, normal_entry]
 
-    with patch("custom_components.xiaomi_home.entity_registry.async_get", return_value=er_mock), \
-         patch("custom_components.xiaomi_home.entity_registry.async_entries_for_config_entry", return_value=entries_list):
+    with patch(f"{_ER}.async_get", return_value=er_mock), \
+         patch(f"{_ER}.async_entries_for_config_entry",
+               return_value=entries_list):
 
         await _async_migrate_legacy_entity_ids(hass_mock, entry_id, [])
 
@@ -43,7 +46,7 @@ async def test_migration_legacy_action_orphans() -> None:
 
 @pytest.mark.asyncio
 async def test_migration_stable_format() -> None:
-    """Test that Phase 2 migrates entities to stable formats based on expected map."""
+    """Test that Phase 2 migrates entities to the expected stable IDs."""
     hass_mock: MagicMock = MagicMock()
     entry_id: str = "test_entry"
 
@@ -68,8 +71,9 @@ async def test_migration_stable_format() -> None:
 
     entries_list: list[MagicMock] = [entity_to_migrate]
 
-    with patch("custom_components.xiaomi_home.entity_registry.async_get", return_value=er_mock), \
-         patch("custom_components.xiaomi_home.entity_registry.async_entries_for_config_entry", return_value=entries_list):
+    with patch(f"{_ER}.async_get", return_value=er_mock), \
+         patch(f"{_ER}.async_entries_for_config_entry",
+               return_value=entries_list):
 
         await _async_migrate_legacy_entity_ids(hass_mock, entry_id,
                                                [device_mock])

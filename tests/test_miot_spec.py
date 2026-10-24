@@ -53,7 +53,7 @@ def test_safe_eval():
 
 
 def test_value_precision():
-    """Test MIoTSpecProperty value_precision calculation with non-zero min offset."""
+    """Test MIoTSpecProperty value_precision with a non-zero min offset."""
     raw_spec = {
         "urn":
             "urn:miot-spec-v2:device:heater:0000A01A:test-h1:1",

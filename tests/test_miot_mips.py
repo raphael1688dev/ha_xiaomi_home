@@ -9,7 +9,7 @@ from custom_components.xiaomi_home.miot.miot_mips import MipsLocalClient
 
 @pytest.fixture
 def mock_mips_local() -> MipsLocalClient:
-    """Create a mock MipsLocalClient instance with internal components stubbed."""
+    """Create a MipsLocalClient with its internal components stubbed."""
     with patch.object(MipsLocalClient, "__init__",
                       lambda self, *args, **kwargs: None):
         mips = MipsLocalClient()
@@ -34,7 +34,7 @@ async def test_get_dev_list_async_timeout(
 @pytest.mark.asyncio
 async def test_get_dev_list_async_gateway_error(
         mock_mips_local: MipsLocalClient) -> None:
-    """Test get_dev_list_async reports specific gateway error code and message."""
+    """Test get_dev_list_async reports the gateway error code and message."""
     mock_mips_local._MipsLocalClient__request_async = AsyncMock(return_value={
         "error": {
             "code": -10001,
@@ -62,7 +62,7 @@ async def test_get_dev_list_async_empty_response(
 @pytest.mark.asyncio
 async def test_get_dev_list_async_nested_devlist(
         mock_mips_local: MipsLocalClient) -> None:
-    """Test get_dev_list_async handles nested result.devList structure gracefully."""
+    """Test get_dev_list_async handles a nested result.devList structure."""
     mock_mips_local._MipsLocalClient__request_async = AsyncMock(
         return_value={
             "result": {
@@ -121,7 +121,7 @@ async def test_get_dev_list_async_standard_devlist(
 
 def test_on_mips_disconnect_cleans_in_flight_requests(
         mock_mips_local: MipsLocalClient) -> None:
-    """Test _on_mips_disconnect immediately aborts all in-flight requests with error callback."""
+    """Test _on_mips_disconnect aborts all in-flight requests with an error."""
     from custom_components.xiaomi_home.miot.miot_mips import _MipsRequest
 
     mock_mips_local.log_debug = MagicMock()
@@ -156,7 +156,7 @@ def test_on_mips_disconnect_cleans_in_flight_requests(
 @pytest.mark.asyncio
 async def test_clear_prop_queue_cancels_timer_and_resolves_futures(
         mock_mips_local: MipsLocalClient) -> None:
-    """Test __clear_prop_queue cancels timer and resolves pending futures to None."""
+    """Test __clear_prop_queue cancels the timer and resolves futures."""
     import asyncio
 
     mock_timer = MagicMock()

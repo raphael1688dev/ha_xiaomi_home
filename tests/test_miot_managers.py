@@ -8,7 +8,7 @@ from custom_components.xiaomi_home.miot.miot_cloud_manager import MIoTCloudManag
 
 @pytest.mark.asyncio
 async def test_lan_manager_coroutine_safety() -> None:
-    """Test that MIoTLanManager does not leak coroutines into refresh_props_list on failure."""
+    """Test that MIoTLanManager does not leak coroutines on failure."""
     client = MagicMock()
     client.miot_lan.init_done = True
     client.device_list_lan = {"dev1": {"ip": "192.168.1.100"}}
@@ -32,7 +32,7 @@ async def test_lan_manager_coroutine_safety() -> None:
 
 @pytest.mark.asyncio
 async def test_cloud_manager_sanitization_and_coroutine_resilience() -> None:
-    """Test that MIoTCloudManager sanitizes dirty dictionary items and doesn't crash."""
+    """Test that MIoTCloudManager sanitizes dirty items without crashing."""
     client = MagicMock()
     client.miot_network.network_status = True
 
@@ -44,8 +44,8 @@ async def test_cloud_manager_sanitization_and_coroutine_resilience() -> None:
             "did": "dev1",
             "siid": 2,
             "piid": 1,
-            "fut":
-                dummy_coro  # Coroutine object that previously broke JSON serialization
+            # Coroutine object that previously broke JSON serialization
+            "fut": dummy_coro
         }
     }
 
@@ -70,7 +70,7 @@ async def test_cloud_manager_sanitization_and_coroutine_resilience() -> None:
 
 @pytest.mark.asyncio
 async def test_cloud_manager_timeout_handling() -> None:
-    """Test that MIoTCloudManager handles TimeoutError gracefully and re-queues sanitized items."""
+    """Test that MIoTCloudManager re-queues sanitized items on timeout."""
     client = MagicMock()
     client.miot_network.network_status = True
     client.refresh_props_list = {

@@ -84,14 +84,18 @@ JINJA_TO_PYTHON = {
         'int(props.get("bright", 100)), value]',
     '{{ value|int(0) > 0 }}':
         'lambda value, props, max_val: int(value or 0) > 0',
-    '{% set nlv = props.natural_level|default(0)|int(0) %}{{ {"method": "set_natural_level" if nlv else "set_speed_level","params": [value|int(0)],} }}':
+    '{% set nlv = props.natural_level|default(0)|int(0) %}{{ {"method": '
+    '"set_natural_level" if nlv else "set_speed_level","params": '
+    '[value|int(0)],} }}':
         'lambda value, props, max_val: {"method": "set_natural_level" if '
         'int(props.get("natural_level", 0)) else "set_speed_level", "params": '
         '[int(value or 0)]}',
     '{% set nlb = props.nl_br|default(0)|int(0) %}{{ nlb if nlb else value }}':
         'lambda value, props, max_val: int(props.get("nl_br", 0)) if '
         'int(props.get("nl_br", 0)) else value',
-    '{% set lvl = props.natural_level|default(value,true)|int(0) %}{{ lvl if max == 100 else 1 if lvl <= 25 else 2 if lvl <= 50 else 3 if lvl <= 75 else 4 }}':
+    '{% set lvl = props.natural_level|default(value,true)|int(0) %}{{ lvl if '
+    'max == 100 else 1 if lvl <= 25 else 2 if lvl <= 50 else 3 if lvl <= 75 '
+    'else 4 }}':
         'lambda value, props, max_val: (int(props.get("natural_level", value) '
         'or 0) if max_val == 100 else (1 if int(props.get("natural_level", '
         'value) or 0) <= 25 else (2 if int(props.get("natural_level", value) '
@@ -101,7 +105,9 @@ JINJA_TO_PYTHON = {
         'lambda value, props, max_val: 1 if int(value or 0) > 0 else 2',
     '{{ 2 if value == "complete" else 1 }}':
         'lambda value, props, max_val: 2 if value == "complete" else 1',
-    '{% set nlv = props.natural_level|default(0)|int(0) %}{{ {"method": "set_natural_level" if nlv else "set_speed_level","params": [value|int(0) * (1 if max == 100 else 25)],} }}':
+    '{% set nlv = props.natural_level|default(0)|int(0) %}{{ {"method": '
+    '"set_natural_level" if nlv else "set_speed_level","params": '
+    '[value|int(0) * (1 if max == 100 else 25)],} }}':
         'lambda value, props, max_val: {"method": "set_natural_level" if '
         'int(props.get("natural_level", 0)) else "set_speed_level", "params": '
         '[int(value or 0) * (1 if max_val == 100 else 25)]}',
