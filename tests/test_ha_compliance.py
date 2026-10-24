@@ -147,3 +147,70 @@ def test_temperature_api_matches_running_core() -> None:
     name = "native_current_temperature" if native else "current_temperature"
     assert name in climate.FeatureTemperature.__dict__
     assert name in water_heater.WaterHeater.__dict__
+
+
+def test_doorbell_event_offers_and_fires_ring() -> None:
+    """Doorbell event entities must use the standard ring event type."""
+    from homeassistant.components.event import (
+        DoorbellEventType, EventDeviceClass)
+    from custom_components.xiaomi_home.event import Event
+
+    instance = MIoTSpecInstance.load({
+        "urn": "urn:miot-spec-v2:device:doorbell:0000A0A0:test-d1:1",
+        "name": "doorbell",
+        "description": "Doorbell",
+        "description_trans": "Doorbell",
+        "services": [{
+            "iid": 2,
+            "type": "urn:miot-spec-v2:service:doorbell:00007810:test-d1:1",
+            "description": "Doorbell",
+            "description_trans": "Doorbell",
+            "properties": [],
+            "events": [{
+                "iid": 1,
+                "type": "urn:miot-spec-v2:event:doorbell-ring:00005032:test-d1:1",
+                "description": "Doorbell Ring",
+                "description_trans": "Doorbell Ring",
+                "argument": [],
+            }],
+            "actions": [],
+        }],
+    })
+    spec = instance.services[0].events[0]
+    spec.platform = "event"
+    spec.device_class = EventDeviceClass.DOORBELL
+
+    entity = Event(miot_device=_mock_miot_device(), spec=spec)
+    assert entity.event_types == [DoorbellEventType.RING]
+
+    fired: list = []
+    entity._trigger_event = (
+        lambda event_type, event_attributes: fired.append(event_type))
+    entity.on_event_occurred("Doorbell Ring", None)
+    assert fired == [DoorbellEventType.RING]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("body", [
+    "not json access_token=SECRET",
+    '{"code": 1, "access_token": "SECRET"}',
+    '{"code": 0, "result": {"access_token": "SECRET"}}',
+])
+async def test_oauth_token_errors_hide_response(body: str) -> None:
+    """Token responses carry credentials and must not reach error text."""
+    from custom_components.xiaomi_home.miot.miot_cloud import MIoTOauthClient
+    from custom_components.xiaomi_home.miot.miot_error import MIoTOauthError
+
+    async def text() -> str:
+        return body
+
+    async def get(**kwargs):
+        return SimpleNamespace(status=200, text=text)
+
+    client = MIoTOauthClient.__new__(MIoTOauthClient)
+    client._session = SimpleNamespace(get=get)
+    client._oauth_host = "example.invalid"
+
+    with pytest.raises(MIoTOauthError) as err:
+        await client._MIoTOauthClient__get_token_async(data={})
+    assert "SECRET" not in str(err.value)
