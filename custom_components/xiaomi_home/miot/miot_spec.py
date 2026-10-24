@@ -206,7 +206,8 @@ class _SpecStdLib:
     def _translate(self, category: dict, key: str) -> Optional[str]:
         if not category or key not in category:
             return None
-        return category[key].get(self._lang) or category[key].get(DEFAULT_INTEGRATION_LANGUAGE)
+        return category[key].get(
+            self._lang) or category[key].get(DEFAULT_INTEGRATION_LANGUAGE)
 
     def device_translate(self, key: str) -> Optional[str]:
         return self._translate(self._devices, key)
@@ -290,7 +291,8 @@ class _SpecStdLib:
                             else:
                                 std_libs[target_key][k] = v
                     else:
-                        _LOGGER.error('get external std lib failed, %s', target_key)
+                        _LOGGER.error('get external std lib failed, %s',
+                                      target_key)
 
                 merge_results(0, 'devices')
                 merge_results(1, 'services')
@@ -301,8 +303,8 @@ class _SpecStdLib:
 
                 return std_libs
             except Exception as err:
-                _LOGGER.error('update spec std lib error, retry, %d, %s, %s', index,
-                              err, traceback.format_exc())
+                _LOGGER.error('update spec std lib error, retry, %d, %s, %s',
+                              index, err, traceback.format_exc())
         return None
 
     async def __get_property_value(self) -> dict:
@@ -422,7 +424,8 @@ def safe_eval(expr_str: str, src_value: Any) -> Any:
     def _eval(n):
         if isinstance(n, ast.Constant):  # Python >= 3.8
             return n.value
-        elif hasattr(ast, 'Num') and isinstance(n, getattr(ast, 'Num')):  # Python < 3.8
+        elif hasattr(ast, 'Num') and isinstance(n, getattr(
+                ast, 'Num')):  # Python < 3.8
             return n.n
         elif isinstance(n, ast.Name):
             if n.id == 'src_value':
@@ -457,7 +460,8 @@ def safe_eval(expr_str: str, src_value: Any) -> Any:
                         return False
                     left = right
                 else:
-                    raise ValueError(f"Comparison operator not allowed: {op_type}")
+                    raise ValueError(
+                        f"Comparison operator not allowed: {op_type}")
             return True
         elif isinstance(n, ast.Call):
             if isinstance(n.func, ast.Name) and n.func.id == 'round':
@@ -775,14 +779,22 @@ class MIoTSpecInstance:
 
             for event in service['events']:
                 spec_event = MIoTSpecEvent(spec=event, service=spec_service)
-                spec_event.argument = [prop_map[piid] for piid in event['argument'] if piid in prop_map]
+                spec_event.argument = [
+                    prop_map[piid]
+                    for piid in event['argument']
+                    if piid in prop_map
+                ]
                 spec_service.events.append(spec_event)
 
             for action in service['actions']:
                 spec_action = MIoTSpecAction(spec=action,
                                              service=spec_service)
-                spec_action.in_ = [prop_map[piid] for piid in action['in'] if piid in prop_map]
-                spec_action.out = [prop_map[piid] for piid in action['out'] if piid in prop_map]
+                spec_action.in_ = [
+                    prop_map[piid] for piid in action['in'] if piid in prop_map
+                ]
+                spec_action.out = [
+                    prop_map[piid] for piid in action['out'] if piid in prop_map
+                ]
                 spec_service.actions.append(spec_action)
 
             instance.services.append(spec_service)
@@ -828,7 +840,8 @@ class _SpecBoolTranslation:
                 os.path.join(os.path.dirname(os.path.abspath(__file__)),
                              self._BOOL_TRANS_FILE))
         except Exception as err:
-            _LOGGER.error('bool trans, load file error, %s, %s', err, traceback.format_exc())
+            _LOGGER.error('bool trans, load file error, %s, %s', err,
+                          traceback.format_exc())
             return
         # Check if the file is a valid file
         if (not isinstance(data, dict) or 'data' not in data or
@@ -908,7 +921,8 @@ class _SpecFilter:
                 os.path.join(os.path.dirname(os.path.abspath(__file__)),
                              self._SPEC_FILTER_FILE))
         except Exception as err:
-            _LOGGER.error('spec filter, load file error, %s, %s', err, traceback.format_exc())
+            _LOGGER.error('spec filter, load file error, %s, %s', err,
+                          traceback.format_exc())
             return
         if not isinstance(filter_data, dict):
             _LOGGER.error('spec filter, invalid spec filter content')
@@ -936,12 +950,16 @@ class _SpecFilter:
             return
         self._cache = self._data.get(urn_key, None)
 
-    def _filter(self, category: str, siid: int, iid: Optional[int] = None) -> bool:
+    def _filter(self,
+                category: str,
+                siid: int,
+                iid: Optional[int] = None) -> bool:
         if not self._cache or category not in self._cache:
             return False
+        cache = self._cache[category]
         if iid is None:
-            return str(siid) in self._cache[category] or '*' in self._cache[category]
-        return f'{siid}.{iid}' in self._cache[category] or f'{siid}.*' in self._cache[category]
+            return str(siid) in cache or '*' in cache
+        return f'{siid}.{iid}' in cache or f'{siid}.*' in cache
 
     def filter_service(self, siid: int) -> bool:
         """Filter service by siid.
@@ -988,7 +1006,8 @@ class _SpecAdd:
                 os.path.join(os.path.dirname(os.path.abspath(__file__)),
                              self._SPEC_ADD_FILE))
         except Exception as err:
-            _LOGGER.error('spec add, load file error, %s, %s', err, traceback.format_exc())
+            _LOGGER.error('spec add, load file error, %s, %s', err,
+                          traceback.format_exc())
             return
         if not isinstance(add_data, dict):
             _LOGGER.error('spec add, invalid spec add content')
@@ -1039,7 +1058,8 @@ class _SpecModify:
                 os.path.join(os.path.dirname(os.path.abspath(__file__)),
                              self._SPEC_MODIFY_FILE))
         except Exception as err:
-            _LOGGER.error('spec modify, load file error, %s, %s', err, traceback.format_exc())
+            _LOGGER.error('spec modify, load file error, %s, %s', err,
+                          traceback.format_exc())
             return
         if not isinstance(modify_data, dict):
             _LOGGER.error('spec modify, invalid spec modify content')
@@ -1150,12 +1170,11 @@ class MIoTSpecParser:
             return
 
         _, _, _, _, std_lib_cache = await asyncio.gather(
-            self._bool_trans.init_async(),
-            self._spec_filter.init_async(),
-            self._spec_add.init_async(),
-            self._spec_modify.init_async(),
-            self._storage.load_async(domain=self._DOMAIN, name='spec_std_lib', type_=dict)
-        )
+            self._bool_trans.init_async(), self._spec_filter.init_async(),
+            self._spec_add.init_async(), self._spec_modify.init_async(),
+            self._storage.load_async(domain=self._DOMAIN,
+                                     name='spec_std_lib',
+                                     type_=dict))
         if (isinstance(std_lib_cache, dict) and 'data' in std_lib_cache and
                 'ts' in std_lib_cache and
                 isinstance(std_lib_cache['ts'], int) and
@@ -1209,7 +1228,8 @@ class MIoTSpecParser:
             try:
                 return await self.__parse(urn=urn)
             except Exception as err:
-                _LOGGER.error('parse error, retry, %d, %s, %s, %s', index, urn, err, traceback.format_exc())
+                _LOGGER.error('parse error, retry, %d, %s, %s, %s', index, urn,
+                              err, traceback.format_exc())
         return None
 
     async def refresh_async(self, urn_list: list[str]) -> int:
@@ -1384,7 +1404,11 @@ class MIoTSpecParser:
                 or event['description'] or spec_event.name)
 
             # Optimized: Associate directly using lookup table
-            spec_event.argument = [prop_map[piid] for piid in event['arguments'] if piid in prop_map]
+            spec_event.argument = [
+                prop_map[piid]
+                for piid in event['arguments']
+                if piid in prop_map
+            ]
             spec_service.events.append(spec_event)
 
     def _parse_service_actions(
@@ -1420,8 +1444,12 @@ class MIoTSpecParser:
                 action['description'] or spec_action.name)
 
             # Optimized: Associate directly using lookup table
-            spec_action.in_ = [prop_map[piid] for piid in action['in'] if piid in prop_map]
-            spec_action.out = [prop_map[piid] for piid in action['out'] if piid in prop_map]
+            spec_action.in_ = [
+                prop_map[piid] for piid in action['in'] if piid in prop_map
+            ]
+            spec_action.out = [
+                prop_map[piid] for piid in action['out'] if piid in prop_map
+            ]
             spec_service.actions.append(spec_action)
 
     async def __parse(self, urn: str) -> MIoTSpecInstance:
@@ -1495,7 +1523,8 @@ class MIoTSpecParser:
                 service['description'] or spec_service.name)
 
             # Parse service properties
-            await self._parse_service_properties(service, spec_service, type_strs)
+            await self._parse_service_properties(service, spec_service,
+                                                 type_strs)
 
             # Build property lookup cache
             prop_map = {prop.iid: prop for prop in spec_service.properties}

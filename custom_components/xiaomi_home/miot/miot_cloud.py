@@ -269,7 +269,9 @@ class MIoTHttpClient:
         try:
             res_obj: dict = json.loads(res_str)
         except json.JSONDecodeError:
-            raise MIoTHttpError(f'mihome api get failed, invalid JSON response: {res_str[:100]}')
+            raise MIoTHttpError(
+                f'mihome api get failed, invalid JSON response: {res_str[:100]}'
+            )
 
         if res_obj.get('code', None) != 0:
             raise MIoTHttpError(
@@ -302,7 +304,9 @@ class MIoTHttpClient:
         try:
             res_obj: dict = json.loads(res_str)
         except json.JSONDecodeError:
-             raise MIoTHttpError(f'mihome api post failed, invalid JSON response: {res_str[:100]}')
+            raise MIoTHttpError(
+                f'mihome api post failed, invalid JSON response: {res_str[:100]}'
+            )
 
         if res_obj.get('code', None) != 0:
             raise MIoTHttpError(
@@ -378,19 +382,23 @@ class MIoTHttpClient:
 
             for home in res_obj['result']['info']:
                 if 'id' not in home:
-                    _LOGGER.error('get dev room page error, invalid home, %s', home)
+                    _LOGGER.error('get dev room page error, invalid home, %s',
+                                  home)
                     continue
                 home_id_str = str(home['id'])
                 home_list.setdefault(home_id_str, {'dids': [], 'room_info': {}})
-                home_list[home_id_str]['dids'].extend(home.get('dids', None) or [])
+                home_list[home_id_str]['dids'].extend(
+                    home.get('dids', None) or [])
 
                 for room in home.get('roomlist', []):
                     if 'id' not in room:
-                        _LOGGER.error('get dev room page error, invalid room, %s', room)
+                        _LOGGER.error(
+                            'get dev room page error, invalid room, %s', room)
                         continue
                     room_id_str = str(room['id'])
-                    home_list[home_id_str]['room_info'].setdefault(room_id_str, {'dids': []})
-                    home_list[home_id_str]['room_info'][room_id_str]['dids'].extend(room.get('dids', None) or [])
+                    room_info = home_list[home_id_str][
+                        'room_info'].setdefault(room_id_str, {'dids': []})
+                    room_info['dids'].extend(room.get('dids', None) or [])
 
             has_more_flag = res_obj['result'].get('has_more', False)
             next_max_id = res_obj['result'].get('max_id', None)
@@ -404,7 +412,8 @@ class MIoTHttpClient:
 
     async def get_separated_shared_devices_async(self) -> dict[str, dict]:
         separated_shared_devices: dict = {}
-        device_list: dict[str, dict] = await self.__get_device_list_page_async(dids=[])
+        device_list: dict[str, dict] = await self.__get_device_list_page_async(
+            dids=[])
         for did, value in device_list.items():
             if value['owner'] is not None and ('userid' in value['owner']) and (
                 'nickname' in value['owner']
@@ -530,36 +539,58 @@ class MIoTHttpClient:
                     _LOGGER.info('invalid device, cloud, %s', device)
                     continue
                 if urn is None or model is None:
-                    _LOGGER.info('missing the urn|model field, cloud, %s', device)
+                    _LOGGER.info('missing the urn|model field, cloud, %s',
+                                 device)
                     continue
                 if did.startswith('miwifi.'):
                     _LOGGER.info('ignore miwifi.* device, cloud, %s', did)
                     continue
                 if model in UNSUPPORTED_MODELS:
-                    _LOGGER.info('ignore unsupported model %s, cloud, %s', model, did)
+                    _LOGGER.info('ignore unsupported model %s, cloud, %s',
+                                 model, did)
                     continue
 
                 device_infos[did] = {
-                    'did': did,
-                    'uid': device.get('uid', None),
-                    'name': name,
-                    'urn': urn,
-                    'model': model,
-                    'connect_type': device.get('pid', -1),
-                    'token': device.get('token', None),
-                    'online': device.get('isOnline', False),
-                    'icon': device.get('icon', None),
-                    'parent_id': device.get('parent_id', None),
-                    'manufacturer': model.split('.')[0],
-                    'voice_ctrl': device.get('voice_ctrl', 0),
-                    'rssi': device.get('rssi', None),
-                    'owner': device.get('owner', None),
-                    'pid': device.get('pid', None),
-                    'local_ip': device.get('localip', None),
-                    'ssid': device.get('ssid', None),
-                    'bssid': device.get('bssid', None),
-                    'order_time': device.get('orderTime', 0),
-                    'fw_version': device.get('extra', {}).get('fw_version', None)
+                    'did':
+                        did,
+                    'uid':
+                        device.get('uid', None),
+                    'name':
+                        name,
+                    'urn':
+                        urn,
+                    'model':
+                        model,
+                    'connect_type':
+                        device.get('pid', -1),
+                    'token':
+                        device.get('token', None),
+                    'online':
+                        device.get('isOnline', False),
+                    'icon':
+                        device.get('icon', None),
+                    'parent_id':
+                        device.get('parent_id', None),
+                    'manufacturer':
+                        model.split('.')[0],
+                    'voice_ctrl':
+                        device.get('voice_ctrl', 0),
+                    'rssi':
+                        device.get('rssi', None),
+                    'owner':
+                        device.get('owner', None),
+                    'pid':
+                        device.get('pid', None),
+                    'local_ip':
+                        device.get('localip', None),
+                    'ssid':
+                        device.get('ssid', None),
+                    'bssid':
+                        device.get('bssid', None),
+                    'order_time':
+                        device.get('orderTime', 0),
+                    'fw_version':
+                        device.get('extra', {}).get('fw_version', None)
                 }
 
             next_start_did = res_data.get('next_start_did', None)
@@ -592,7 +623,8 @@ class MIoTHttpClient:
 
         for device_type in ['home_list', 'share_home_list']:
             homes.setdefault(device_type, {})
-            for home_id, home_info in (homeinfos.get(device_type, None) or {}).items():
+            for home_id, home_info in (homeinfos.get(device_type, None) or
+                                       {}).items():
                 if isinstance(home_ids, list) and home_id not in home_ids:
                     continue
                 home_name: str = home_info['home_name']
@@ -678,7 +710,8 @@ class MIoTHttpClient:
     async def get_props_async(self, params: list) -> list:
         clean_params = []
         for p in params:
-            if isinstance(p, dict) and 'did' in p and 'siid' in p and 'piid' in p:
+            if isinstance(p,
+                          dict) and 'did' in p and 'siid' in p and 'piid' in p:
                 clean_params.append({
                     'did': str(p['did']),
                     'siid': int(p['siid']),

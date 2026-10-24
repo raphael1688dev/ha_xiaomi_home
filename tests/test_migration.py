@@ -71,7 +71,8 @@ async def test_migration_stable_format() -> None:
     with patch("custom_components.xiaomi_home.entity_registry.async_get", return_value=er_mock), \
          patch("custom_components.xiaomi_home.entity_registry.async_entries_for_config_entry", return_value=entries_list):
 
-        await _async_migrate_legacy_entity_ids(hass_mock, entry_id, [device_mock])
+        await _async_migrate_legacy_entity_ids(hass_mock, entry_id,
+                                               [device_mock])
 
         # Verify it updated the entity to the expected new target ID
         er_mock.async_update_entity.assert_called_once_with(

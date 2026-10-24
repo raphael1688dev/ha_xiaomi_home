@@ -109,7 +109,9 @@ class WaterHeater(MIoTServiceEntity, WaterHeaterEntity):
                 self._mode_map = prop.value_list.to_map()
                 # Optimized: Pre-build O(1) mode reverse lookup dictionary
                 # instead of O(N) scanning
-                self._mode_reverse_map = {v: k for k, v in self._mode_map.items()}
+                self._mode_reverse_map = {
+                    v: k for k, v in self._mode_map.items()
+                }
                 self._attr_operation_list = list(self._mode_map.values())
                 self._prop_mode = prop
 
@@ -201,4 +203,5 @@ class WaterHeater(MIoTServiceEntity, WaterHeaterEntity):
             return STATE_ON
 
         val_mode = self.get_prop_value(prop=self._prop_mode)
-        return self._mode_map.get(val_mode) if val_mode is not None else STATE_ON
+        return self._mode_map.get(
+            val_mode) if val_mode is not None else STATE_ON

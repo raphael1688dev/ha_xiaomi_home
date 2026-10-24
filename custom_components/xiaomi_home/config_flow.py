@@ -346,7 +346,8 @@ class XiaomiMihomeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     raise RuntimeError('mqtt connect error')
                 mqtt_client.disconnect()
             except Exception as err:
-                _LOGGER.error('try connect mqtt broker error, %s', traceback.format_exc())
+                _LOGGER.error('try connect mqtt broker error, %s',
+                              traceback.format_exc())
                 return await self.__show_network_detect_config_form(
                     reason='unreachable_mqtt_broker')
 
@@ -546,7 +547,8 @@ class XiaomiMihomeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     def _cc_generate_devices_filter(self, mips_list: Optional[dict]) -> None:
         """Generate devices filter with found central gateways and homes."""
         home_list = {}
-        tip_devices = self._miot_i18n.translate_str(key='config.other.devices') or ''
+        tip_devices = self._miot_i18n.translate_str(
+            key='config.other.devices') or ''
         # home list
         for device_source in ['home_list','share_home_list',
                               'separated_shared_list']:
@@ -739,7 +741,8 @@ class XiaomiMihomeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ):
         if user_input:
             self._ctrl_mode = user_input.get('ctrl_mode', self._ctrl_mode)
-            self._poll_priority = user_input.get('poll_priority', self._poll_priority)
+            self._poll_priority = user_input.get('poll_priority',
+                                                 self._poll_priority)
             self._action_debug = user_input.get(
                 'action_debug', self._action_debug)
             self._hide_non_standard_entities = user_input.get(
@@ -756,33 +759,44 @@ class XiaomiMihomeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id='advanced_options',
             data_schema=vol.Schema({
+                vol.Required('devices_filter', default=False):
+                    bool,  # type: ignore
                 vol.Required(
-                    'devices_filter', default=False): bool,  # type: ignore
+                    'ctrl_mode',
+                    default=self._ctrl_mode  # type: ignore
+                ):
+                    vol.In(self._miot_i18n.translate(key='config.control_mode')
+                          ),
                 vol.Required(
-                    'ctrl_mode', default=self._ctrl_mode  # type: ignore
-                ): vol.In(self._miot_i18n.translate(key='config.control_mode')),
+                    'poll_priority',
+                    default=self._poll_priority  # type: ignore
+                ):
+                    vol.In(self._miot_i18n.translate(key='config.poll_priority')
+                          ),
                 vol.Required(
-                    'poll_priority', default=self._poll_priority  # type: ignore
-                ): vol.In(self._miot_i18n.translate(key='config.poll_priority')),
-                vol.Required(
-                    'action_debug', default=self._action_debug  # type: ignore
-                ): bool,
+                    'action_debug',
+                    default=self._action_debug  # type: ignore
+                ):
+                    bool,
                 vol.Required(
                     'hide_non_standard_entities',
                     default=self._hide_non_standard_entities  # type: ignore
-                ): bool,
+                ):
+                    bool,
                 vol.Required(
                     'display_binary_mode',
                     default=self._display_binary_mode  # type: ignore
-                ): cv.multi_select(
-                    self._miot_i18n.translate(
-                        key='config.binary_mode')),  # type: ignore
+                ):
+                    cv.multi_select(
+                        self._miot_i18n.translate(key='config.binary_mode')
+                    ),  # type: ignore
                 vol.Required(
                     'display_devices_changed_notify',
                     default=self._display_devices_changed_notify  # type: ignore
-                ): cv.multi_select(
-                    self._miot_i18n.translate(
-                        key='config.device_state')),  # type: ignore
+                ):
+                    cv.multi_select(
+                        self._miot_i18n.translate(key='config.device_state')
+                    ),  # type: ignore
             }),
             last_step=False,
         )

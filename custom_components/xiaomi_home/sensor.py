@@ -46,13 +46,15 @@ async def async_setup_entry(
 
     # Add Control Path diagnostic sensor
     new_entities.extend([
-        MIoTControlPathSensor(miot_device=miot_device, entry_id=config_entry.entry_id)
+        MIoTControlPathSensor(miot_device=miot_device,
+                              entry_id=config_entry.entry_id)
         for miot_device in device_list
     ])
 
     # Add IP Address diagnostic sensor
     new_entities.extend([
-        MIoTIPAddressSensor(miot_device=miot_device, entry_id=config_entry.entry_id)
+        MIoTIPAddressSensor(miot_device=miot_device,
+                            entry_id=config_entry.entry_id)
         for miot_device in device_list
         if miot_device.is_lan_capable
     ])
@@ -138,14 +140,12 @@ class Sensor(MIoTPropertyEntity, SensorEntity):
                 if len(_opts) > 64:
                     _LOGGER.warning(
                         "Device returned too many undocumented values for %s. Ignoring '%s'.",
-                        self.entity_id, str_val
-                    )
+                        self.entity_id, str_val)
                 else:
                     self._attr_options = list(_opts) + [str_val]
                     _LOGGER.debug(
                         "Device returned undocumented value '%s' for %s. Dynamically added to Enum options.",
-                        str_val, self.entity_id
-                    )
+                        str_val, self.entity_id)
 
             return str_val
 
@@ -179,7 +179,8 @@ class MIoTControlPathSensor(SensorEntity):
     @property
     def native_value(self) -> str:
         if self.miot_device and self.miot_device.miot_client:
-            return self.miot_device.miot_client.get_device_control_path(self.miot_device.did)
+            return self.miot_device.miot_client.get_device_control_path(
+                self.miot_device.did)
         return "Unknown"
 
 class MIoTIPAddressSensor(SensorEntity):

@@ -40,7 +40,8 @@ class DeviceTracker(MIoTServiceEntity, TrackerEntity):
     _prop_longitude: Optional[MIoTSpecProperty]
     _prop_area_id: Optional[MIoTSpecProperty]
 
-    def __init__(self, miot_device: MIoTDevice, entity_data: MIoTEntityData) -> None:
+    def __init__(self, miot_device: MIoTDevice,
+                 entity_data: MIoTEntityData) -> None:
         """Initialize the DeviceTracker."""
         super().__init__(miot_device=miot_device, entity_data=entity_data)
 

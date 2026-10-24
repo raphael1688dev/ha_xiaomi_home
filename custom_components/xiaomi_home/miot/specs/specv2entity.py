@@ -136,10 +136,13 @@ SPEC_DEVICE_TRANS_MAP = MappingProxyType({
                     'actions': frozenset({'start-sweep', 'stop-sweeping'}),
                 },
                 'optional': {
-                    'properties': frozenset({'status', 'fan-level'}),
-                    'actions': frozenset({
-                        'pause-sweeping', 'continue-sweep', 'stop-and-gocharge'
-                    })
+                    'properties':
+                        frozenset({'status', 'fan-level'}),
+                    'actions':
+                        frozenset({
+                            'pause-sweeping', 'continue-sweep',
+                            'stop-and-gocharge'
+                        })
                 }
             }
         },
@@ -176,15 +179,18 @@ SPEC_DEVICE_TRANS_MAP = MappingProxyType({
             'fan-control': {
                 'required': {},
                 'optional': {
-                    'properties': frozenset({
-                        'on', 'fan-level', 'horizontal-swing', 'vertical-swing'
-                    })
+                    'properties':
+                        frozenset({
+                            'on', 'fan-level', 'horizontal-swing',
+                            'vertical-swing'
+                        })
                 }
             },
             'environment': {
                 'required': {},
                 'optional': {
-                    'properties': frozenset({'temperature', 'relative-humidity'})
+                    'properties':
+                        frozenset({'temperature', 'relative-humidity'})
                 }
             },
             'air-condition-outlet-matching': {
@@ -206,9 +212,11 @@ SPEC_DEVICE_TRANS_MAP = MappingProxyType({
                     }
                 },
                 'optional': {
-                    'properties': frozenset({
-                        'target-temperature', 'mode', 'fan-level', 'temperature'
-                    })
+                    'properties':
+                        frozenset({
+                            'target-temperature', 'mode', 'fan-level',
+                            'temperature'
+                        })
                 }
             }
         },
@@ -216,7 +224,8 @@ SPEC_DEVICE_TRANS_MAP = MappingProxyType({
             'environment': {
                 'required': {},
                 'optional': {
-                    'properties': frozenset({'temperature', 'relative-humidity'})
+                    'properties':
+                        frozenset({'temperature', 'relative-humidity'})
                 }
             }
         },
@@ -231,7 +240,8 @@ SPEC_DEVICE_TRANS_MAP = MappingProxyType({
                     }
                 },
                 'optional': {
-                    'properties': frozenset({'target-temperature', 'heat-level'})
+                    'properties':
+                        frozenset({'target-temperature', 'heat-level'})
                 }
             }
         },
@@ -239,7 +249,8 @@ SPEC_DEVICE_TRANS_MAP = MappingProxyType({
             'environment': {
                 'required': {},
                 'optional': {
-                    'properties': frozenset({'temperature', 'relative-humidity'})
+                    'properties':
+                        frozenset({'temperature', 'relative-humidity'})
                 }
             }
         },
@@ -254,7 +265,8 @@ SPEC_DEVICE_TRANS_MAP = MappingProxyType({
                     }
                 },
                 'optional': {
-                    'properties': frozenset({'target-temperature', 'temperature'})
+                    'properties':
+                        frozenset({'target-temperature', 'temperature'})
                 }
             }
         },
@@ -262,9 +274,11 @@ SPEC_DEVICE_TRANS_MAP = MappingProxyType({
             'fan-control': {
                 'required': {},
                 'optional': {
-                    'properties': frozenset({
-                        'on', 'fan-level', 'horizontal-swing', 'vertical-swing'
-                    })
+                    'properties':
+                        frozenset({
+                            'on', 'fan-level', 'horizontal-swing',
+                            'vertical-swing'
+                        })
                 }
             },
             'environment': {
@@ -351,14 +365,16 @@ SPEC_DEVICE_TRANS_MAP = MappingProxyType({
                     }
                 },
                 'optional': {
-                    'properties': frozenset({'play-loop-mode'}),
-                    'actions': frozenset({'play', 'pause', 'stop', 'next', 'previous'})
+                    'properties':
+                        frozenset({'play-loop-mode'}),
+                    'actions':
+                        frozenset({'play', 'pause', 'stop', 'next', 'previous'})
                 }
             }
         },
         'entity': 'television'
     },
-    'tv-box':{
+    'tv-box': {
         'required': {
             'speaker': {
                 'required': {
@@ -387,8 +403,10 @@ SPEC_DEVICE_TRANS_MAP = MappingProxyType({
                     }
                 },
                 'optional': {
-                    'properties': frozenset({'play-loop-mode'}),
-                    'actions': frozenset({'play', 'pause', 'stop', 'next', 'previous'})
+                    'properties':
+                        frozenset({'play-loop-mode'}),
+                    'actions':
+                        frozenset({'play', 'pause', 'stop', 'next', 'previous'})
                 }
             }
         },
@@ -442,7 +460,8 @@ SPEC_SERVICE_TRANS_MAP = MappingProxyType({
             }
         },
         'optional': {
-            'properties': frozenset({'mode', 'brightness', 'color', 'color-temperature'})
+            'properties':
+                frozenset({'mode', 'brightness', 'color', 'color-temperature'})
         },
         'entity': 'light'
     },
@@ -472,7 +491,8 @@ SPEC_SERVICE_TRANS_MAP = MappingProxyType({
             }
         },
         'optional': {
-            'properties': frozenset({'mode', 'horizontal-swing', 'wind-reverse'})
+            'properties':
+                frozenset({'mode', 'horizontal-swing', 'wind-reverse'})
         },
         'entity': 'fan'
     },
@@ -487,7 +507,8 @@ SPEC_SERVICE_TRANS_MAP = MappingProxyType({
             }
         },
         'optional': {
-            'properties': frozenset({'temperature', 'target-temperature', 'mode'})
+            'properties':
+                frozenset({'temperature', 'target-temperature', 'mode'})
         },
         'entity': 'water_heater'
     },
@@ -498,7 +519,8 @@ SPEC_SERVICE_TRANS_MAP = MappingProxyType({
             }
         },
         'optional': {
-            'properties': frozenset({'status', 'current-position', 'target-position'})
+            'properties':
+                frozenset({'status', 'current-position', 'target-position'})
         },
         'entity': 'cover'
     },

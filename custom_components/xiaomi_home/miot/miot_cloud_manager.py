@@ -32,14 +32,17 @@ class MIoTCloudManager:
             self.client.refresh_props_list.clear()
         else:
             # PERFORMANCE FIX: Efficient dictionary slicing using itertools
-            request_items = dict(islice(self.client.refresh_props_list.items(), patch_len))
+            request_items = dict(
+                islice(self.client.refresh_props_list.items(), patch_len))
             for k in request_items:
                 del self.client.refresh_props_list[k]
 
         clean_request_list = {}
         clean_params = []
         for key, val in request_items.items():
-            if isinstance(val, dict) and 'did' in val and 'siid' in val and 'piid' in val:
+            if isinstance(
+                    val,
+                    dict) and 'did' in val and 'siid' in val and 'piid' in val:
                 clean_item = {
                     'did': str(val['did']),
                     'siid': int(val['siid']),
@@ -75,21 +78,28 @@ class MIoTCloudManager:
                     list(clean_request_list.keys()))
             return True
         except (TimeoutError, asyncio.TimeoutError, aiohttp.ClientError) as err:
-            err_msg = f'{type(err).__name__}: {err}' if str(err) else type(err).__name__
+            err_msg = f'{type(err).__name__}: {err}' if str(err) else type(
+                err).__name__
             _LOGGER.warning(
                 'refresh props failed, cloud network/timeout: %s', err_msg)
             self.client.refresh_props_list.update(clean_request_list)
             return False
         except MIoTClientError as err:
             err_str = str(err).lower()
-            if getattr(err, 'code', None) == MIoTErrorCode.CODE_HTTP_INVALID_ACCESS_TOKEN or 'unauthorized(401)' in err_str:
+            if getattr(
+                    err, 'code', None
+            ) == MIoTErrorCode.CODE_HTTP_INVALID_ACCESS_TOKEN or 'unauthorized(401)' in err_str:
                 _LOGGER.warning(
                     'refresh props failed, cloud: unauthorized(401). Access token is likely invalid or expired. Please re-authenticate.'
                 )
-            elif getattr(err, 'code', None) in [500, 502, 503, 504] or getattr(err, 'status_code', None) in [500, 502, 503, 504] or any(code in err_str for code in ['500', '502', '503', '504']):
+            elif getattr(err, 'code', None) in [
+                    500, 502, 503, 504
+            ] or getattr(err, 'status_code', None) in [
+                    500, 502, 503, 504
+            ] or any(code in err_str for code in ['500', '502', '503', '504']):
                 _LOGGER.warning(
-                    'refresh props failed, cloud: server error (5xx). Xiaomi cloud might be temporarily down or unstable. Details: %s', err
-                )
+                    'refresh props failed, cloud: server error (5xx). Xiaomi cloud might be temporarily down or unstable. Details: %s',
+                    err)
             else:
                 _LOGGER.error(
                     'refresh props error, cloud, %s, %s',

@@ -121,7 +121,7 @@ class _MIoTLanDevice:
     _ka_timer: Optional[asyncio.TimerHandle]
     _ka_internal: float
 
-# All functions SHOULD be called from the internal loop
+    # All functions SHOULD be called from the internal loop
 
     def __init__(
         self,
@@ -447,7 +447,7 @@ class MIoTLan:
     _init_done: bool
     _ignore_mips_service: bool
 
-# The following should be called from the main loop
+    # The following should be called from the main loop
 
     def __init__(
         self,
@@ -506,11 +506,12 @@ class MIoTLan:
         self._init_lock = asyncio.Lock()
         self._init_done = False
 
-        if (
-            (self._ignore_mips_service or len(self._mips_service.get_services()) == 0)
-            and len(self._net_ifs) > 0
-        ):
-            _LOGGER.info('miot lan init condition met (no central hub or ignored), init miot lan')
+        if ((self._ignore_mips_service or
+             len(self._mips_service.get_services()) == 0) and
+                len(self._net_ifs) > 0):
+            _LOGGER.info(
+                'miot lan init condition met (no central hub or ignored), init miot lan'
+            )
             self._main_loop.call_later(
                 0, lambda: self._main_loop.create_task(
                     self.init_async()))
@@ -552,8 +553,10 @@ class MIoTLan:
             if not any(self._lan_ctrl_vote_map.values()):
                 _LOGGER.info('no vote for lan ctrl')
                 return
-            if not self._ignore_mips_service and len(self._mips_service.get_services()) > 0:
-                _LOGGER.info('central hub gateway service exist, skipping lan init')
+            if not self._ignore_mips_service and len(
+                    self._mips_service.get_services()) > 0:
+                _LOGGER.info(
+                    'central hub gateway service exist, skipping lan init')
                 return
             for if_name in list(self._network.network_info.keys()):
                 self._available_net_ifs.add(if_name)
@@ -793,7 +796,8 @@ class MIoTLan:
 
         device = self._lan_devices.get(did)
         if device and device.model and device.model in MIIO_SPECS:
-            return await self.__get_prop_miio_async(device, siid, piid, timeout_ms)
+            return await self.__get_prop_miio_async(device, siid, piid,
+                                                    timeout_ms)
 
         result_obj = await self.__call_api_async(
             did=did, msg={
@@ -819,7 +823,8 @@ class MIoTLan:
 
         device = self._lan_devices.get(did)
         if device and device.model and device.model in MIIO_SPECS:
-            return await self.__set_prop_miio_async(device, siid, piid, value, timeout_ms, props, max_val)
+            return await self.__set_prop_miio_async(device, siid, piid, value,
+                                                    timeout_ms, props, max_val)
 
         result_obj = await self.__call_api_async(
             did=did, msg={
@@ -840,7 +845,8 @@ class MIoTLan:
                 return result_obj
         raise MIoTError('Invalid result', MIoTErrorCode.CODE_INTERNAL_ERROR)
 
-    async def __get_prop_miio_async(self, device: _MIoTLanDevice, siid: int, piid: int, timeout_ms: int) -> Any:
+    async def __get_prop_miio_async(self, device: _MIoTLanDevice, siid: int,
+                                    piid: int, timeout_ms: int) -> Any:
         spec = MIIO_SPECS[device.model]
         prop_key = f"prop.{siid}.{piid}"
         if "miio_specs" not in spec or prop_key not in spec["miio_specs"]:
@@ -858,7 +864,8 @@ class MIoTLan:
                 'params': [prop_name]
             }, timeout_ms=timeout_ms)
 
-        if result_obj and 'result' in result_obj and len(result_obj['result']) > 0:
+        if result_obj and 'result' in result_obj and len(
+                result_obj['result']) > 0:
             val = result_obj['result'][0]
 
             # Inverse translate the value using dict mapping if exists
@@ -892,14 +899,17 @@ class MIoTLan:
         spec = MIIO_SPECS[device.model]
         prop_key = f"prop.{siid}.{piid}"
         if "miio_specs" not in spec or prop_key not in spec["miio_specs"]:
-            raise MIoTError('Unsupported property', MIoTErrorCode.CODE_INVALID_PROPERTY)
+            raise MIoTError('Unsupported property',
+                            MIoTErrorCode.CODE_INVALID_PROPERTY)
 
         prop_cfg = spec["miio_specs"][prop_key]
         setter = prop_cfg.get("setter")
         if not setter:
-            raise MIoTError('Property not writable', MIoTErrorCode.CODE_PROPERTY_NOT_WRITABLE)
+            raise MIoTError('Property not writable',
+                            MIoTErrorCode.CODE_PROPERTY_NOT_WRITABLE)
 
-        method = setter if isinstance(setter, str) else f"set_{prop_cfg.get('prop')}"
+        method = setter if isinstance(setter,
+                                      str) else f"set_{prop_cfg.get('prop')}"
         params = [value]
 
         # Apply forward mapping
@@ -910,7 +920,8 @@ class MIoTLan:
             try:
                 # set_template is our Python lambda!
                 # Signature: lambda value, props, max_val
-                new_params = prop_cfg['set_template'](value, props or {}, max_val)
+                new_params = prop_cfg['set_template'](value, props or {},
+                                                      max_val)
                 if isinstance(new_params, dict) and 'method' in new_params:
                     method = new_params.get('method', method)
                     params = new_params.get('params', params)
@@ -919,7 +930,9 @@ class MIoTLan:
                 else:
                     params = [new_params]
             except Exception as err:
-                _LOGGER.exception("Failed to execute set_template lambda for %s %s: %s", device.did, prop_key, err)
+                _LOGGER.exception(
+                    "Failed to execute set_template lambda for %s %s: %s",
+                    device.did, prop_key, err)
         elif prop_cfg.get('format') == 'onoff':
             params = ["on" if value else "off"]
 
@@ -1021,7 +1034,9 @@ class MIoTLan:
         _LOGGER.info(
             'on mips service change, %s, %s, %s',  group_id, state, data)
         if self._ignore_mips_service:
-            _LOGGER.info('ignore mips service change due to ignore_mips_service flag, init miot lan')
+            _LOGGER.info(
+                'ignore mips service change due to ignore_mips_service flag, init miot lan'
+            )
             if not self._init_done:
                 await self.init_async()
             return
@@ -1183,7 +1198,8 @@ class MIoTLan:
             model = info.get('model')
 
             if model in MIIO_SPECS:
-                _LOGGER.info('model supports miio native transpilation, %s, %s', did, model)
+                _LOGGER.info('model supports miio native transpilation, %s, %s',
+                             did, model)
             elif (
                     'model' not in info
                     or info['model'] in self._profile_models):
@@ -1358,7 +1374,8 @@ class MIoTLan:
                 try:
                     device.subscribe()
                 except Exception as err:
-                    _LOGGER.exception('subscribe device error, %s, %s', did, err)
+                    _LOGGER.exception('subscribe device error, %s, %s', did,
+                                      err)
         if data_len > self.OT_PROBE_LEN:
             # handle device message
             try:

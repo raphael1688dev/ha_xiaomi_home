@@ -121,7 +121,9 @@ class Fan(MIoTServiceEntity, FanEntity):
                 # Fan level with value-list
                 self._speed_name_map = prop.value_list.to_map()
                 # Optimized: Pre-build O(1) reverse speed lookup map
-                self._speed_name_reverse_map = {v: k for k, v in self._speed_name_map.items()}
+                self._speed_name_reverse_map = {
+                    v: k for k, v in self._speed_name_map.items()
+                }
                 self._speed_names = list(self._speed_name_map.values())
                 self._attr_speed_count = len(self._speed_names)
                 self._attr_supported_features |= FanEntityFeature.SET_SPEED
@@ -134,7 +136,9 @@ class Fan(MIoTServiceEntity, FanEntity):
             else:
                 self._mode_map = prop.value_list.to_map()
                 # Optimized: Pre-build O(1) reverse mode lookup map
-                self._mode_reverse_map = {v: k for k, v in self._mode_map.items()}
+                self._mode_reverse_map = {
+                    v: k for k, v in self._mode_map.items()
+                }
                 self._attr_preset_modes = list(self._mode_map.values())
                 self._attr_supported_features |= FanEntityFeature.PRESET_MODE
                 self._prop_mode = prop
@@ -212,7 +216,8 @@ class Fan(MIoTServiceEntity, FanEntity):
             if not self.is_on and not self._is_turning_on:
                 self._is_turning_on = True
                 try:
-                    await self.set_property_async(prop=self._prop_on, value=True)
+                    await self.set_property_async(prop=self._prop_on,
+                                                  value=True)
                     self._prop_value_map[self._prop_on] = True
                     if hasattr(self.miot_device, 'props_cache'):
                         self.miot_device.props_cache[self._prop_on.name] = True
@@ -222,10 +227,12 @@ class Fan(MIoTServiceEntity, FanEntity):
             if self._speed_names:
                 # Optimized: Use O(1) reverse lookup map to replace O(N)
                 # get_map_key scan
-                speed_str = percentage_to_ordered_list_item(self._speed_names, percentage)
+                speed_str = percentage_to_ordered_list_item(
+                    self._speed_names, percentage)
                 speed_val = self._speed_name_reverse_map.get(speed_str)
                 if speed_val is not None:
-                    await self.set_property_async(prop=self._prop_fan_level, value=speed_val)
+                    await self.set_property_async(prop=self._prop_fan_level,
+                                                  value=speed_val)
             else:
                 await self.set_property_async(
                     prop=self._prop_fan_level,
@@ -297,7 +304,8 @@ class Fan(MIoTServiceEntity, FanEntity):
         if self._speed_names and self._speed_name_map:
             speed_str = self._speed_name_map.get(fan_level)
             if speed_str is not None:
-                return ordered_list_item_to_percentage(self._speed_names, speed_str)
+                return ordered_list_item_to_percentage(self._speed_names,
+                                                       speed_str)
             return None
         else:
             return ranged_value_to_percentage(

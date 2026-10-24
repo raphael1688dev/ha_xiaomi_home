@@ -101,13 +101,19 @@ class MIoTHttp:
         session_to_use = session or MIoTHttp._shared_session
         try:
             if session_to_use:
-                async with session_to_use.get(url, params=params, headers=headers, timeout=10) as response:
+                async with session_to_use.get(url,
+                                              params=params,
+                                              headers=headers,
+                                              timeout=10) as response:
                     if response.status == 200:
                         return await response.text()
                     return None
             else:
-                async with aiohttp.ClientSession(headers=headers) as session_internal:
-                    async with session_internal.get(url, params=params, timeout=10) as response:
+                async with aiohttp.ClientSession(
+                        headers=headers) as session_internal:
+                    async with session_internal.get(url,
+                                                    params=params,
+                                                    timeout=10) as response:
                         if response.status == 200:
                             return await response.text()
                         return None
@@ -143,13 +149,18 @@ class MIoTHttp:
 
         try:
             if session_to_use:
-                async with session_to_use.post(url, json=data, headers=req_headers, timeout=10) as response:
+                async with session_to_use.post(url,
+                                               json=data,
+                                               headers=req_headers,
+                                               timeout=10) as response:
                     if response.status == 200:
                         return await response.text()
                     return None
             else:
-                async with aiohttp.ClientSession(headers=req_headers) as session_internal:
-                    async with session_internal.post(url, json=data, timeout=10) as response:
+                async with aiohttp.ClientSession(
+                        headers=req_headers) as session_internal:
+                    async with session_internal.post(url, json=data,
+                                                     timeout=10) as response:
                         if response.status == 200:
                             return await response.text()
                         return None

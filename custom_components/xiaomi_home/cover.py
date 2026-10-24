@@ -39,7 +39,8 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry,
             # Optimized: O(1) dictionary lookup for device class
             if data.spec.name in _DEVICE_CLASS_MAP:
                 data.spec.device_class = _DEVICE_CLASS_MAP[data.spec.name]
-            new_entities.append(Cover(miot_device=miot_device, entity_data=data))
+            new_entities.append(Cover(miot_device=miot_device,
+                                      entity_data=data))
 
     if new_entities:
         async_add_entities(new_entities)
@@ -214,7 +215,8 @@ class Cover(MIoTServiceEntity, CoverEntity):
         # Optimized: Protect against ZeroDivisionError and handle min offset
         # calculation
         if self._prop_position_value_range and self._prop_position_value_range > 0:
-            pos_val = (pos * self._prop_position_value_range / 100) + (self._prop_position_value_min or 0)
+            pos_val = (pos * self._prop_position_value_range /
+                       100) + (self._prop_position_value_min or 0)
             pos = round(pos_val)
         else:
             pos = round(pos)
@@ -243,7 +245,8 @@ class Cover(MIoTServiceEntity, CoverEntity):
         # Optimized: Protect against ZeroDivisionError and calculate position
         # using min offset
         if self._prop_position_value_range and self._prop_position_value_range > 0:
-            pos = round((pos_val - (self._prop_position_value_min or 0)) * 100 / self._prop_position_value_range)
+            pos = round((pos_val - (self._prop_position_value_min or 0)) * 100 /
+                        self._prop_position_value_range)
         else:
             pos = round(pos_val)
 

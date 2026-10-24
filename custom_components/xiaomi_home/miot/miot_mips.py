@@ -408,7 +408,7 @@ class _MipsClient(ABC):
         siid: Optional[int] = None,
         piid: Optional[int] = None,
         handler_ctx: Any = None
-    ) -> bool: ...
+    ) -> bool:        ...
 
     @abstractmethod
     def unsub_prop(
@@ -416,7 +416,7 @@ class _MipsClient(ABC):
         did: str,
         siid: Optional[int] = None,
         piid: Optional[int] = None
-    ) -> bool: ...
+    ) -> bool:        ...
 
     @abstractmethod
     def sub_event(
@@ -426,7 +426,7 @@ class _MipsClient(ABC):
         siid: Optional[int] = None,
         eiid: Optional[int] = None,
         handler_ctx: Any = None
-    ) -> bool: ...
+    ) -> bool:        ...
 
     @abstractmethod
     def unsub_event(
@@ -434,31 +434,31 @@ class _MipsClient(ABC):
         did: str,
         siid: Optional[int] = None,
         eiid: Optional[int] = None
-    ) -> bool: ...
+    ) -> bool:        ...
 
     @abstractmethod
     async def get_dev_list_async(
         self,
         payload: Optional[str] = None,
         timeout_ms: int = 10000
-    ) -> dict[str, dict]: ...
+    ) -> dict[str, dict]:        ...
 
     @abstractmethod
     async def get_prop_async(
         self, did: str, siid: int, piid: int, timeout_ms: int = 10000
-    ) -> Any: ...
+    ) -> Any:        ...
 
     @abstractmethod
     async def set_prop_async(
         self, did: str, siid: int, piid: int, value: Any,
         timeout_ms: int = 10000, props: dict = None, max_val: int = 100
-    ) -> dict: ...
+    ) -> dict:        ...
 
     @abstractmethod
     async def action_async(
         self, did: str, siid: int, aiid: int, in_list: list,
         timeout_ms: int = 10000
-    ) -> dict: ...
+    ) -> dict:        ...
 
     @abstractmethod
     def _on_mips_message(self, topic: str, payload: bytes) -> None: ...
@@ -846,10 +846,12 @@ class MipsCloudClient(_MipsClient):
         return True
 
     @staticmethod
-    def _get_topic(action: str, did: str, siid: Optional[int], iid: Optional[int]) -> str:
+    def _get_topic(action: str, did: str, siid: Optional[int],
+                   iid: Optional[int]) -> str:
         return f'device/{did}/up/{action}/{"#" if siid is None or iid is None else f"{siid}/{iid}"}'
 
-    def _parse_msg(self, topic: str, payload: str, required_keys: list[str]) -> Optional[dict]:
+    def _parse_msg(self, topic: str, payload: str,
+                   required_keys: list[str]) -> Optional[dict]:
         try:
             msg: dict = json.loads(payload)
         except json.JSONDecodeError:
@@ -914,7 +916,8 @@ class MipsCloudClient(_MipsClient):
         topic = self._get_topic('event_occured', did, siid, eiid)
 
         def on_event_msg(topic: str, payload: str, ctx: Any) -> None:
-            params = self._parse_msg(topic, payload, ['siid', 'eiid', 'arguments'])
+            params = self._parse_msg(topic, payload,
+                                     ['siid', 'eiid', 'arguments'])
             if params is None:
                 return
             if handler:
@@ -970,10 +973,10 @@ class MipsCloudClient(_MipsClient):
                     else MIoTDeviceState.OFFLINE, ctx)
 
         if did.startswith('blt.') or did.startswith('proxy.'):
-        # MIoT cloud may not publish BLE device or proxy gateway child device
-        # online/offline state message.
-        # Do not subscribe BLE device or proxy gateway child device
-        # online/offline state.
+            # MIoT cloud may not publish BLE device or proxy gateway child device
+            # online/offline state message.
+            # Do not subscribe BLE device or proxy gateway child device
+            # online/offline state.
             return True
         return self.__reg_broadcast_external(
             topic=topic, handler=on_state_msg, handler_ctx=handler_ctx)
@@ -1161,10 +1164,12 @@ class MipsLocalClient(_MipsClient):
         self.main_loop.call_soon_threadsafe(self.__clear_prop_queue)
 
     @staticmethod
-    def _get_topic(action: str, did: str, siid: Optional[int], iid: Optional[int]) -> str:
+    def _get_topic(action: str, did: str, siid: Optional[int],
+                   iid: Optional[int]) -> str:
         return f'appMsg/notify/iot/{did}/{action}/{"#" if siid is None or iid is None else f"{siid}.{iid}"}'
 
-    def _parse_msg(self, topic: str, payload: str, required_keys: list[str]) -> Optional[dict]:
+    def _parse_msg(self, topic: str, payload: str,
+                   required_keys: list[str]) -> Optional[dict]:
         try:
             msg: dict = json.loads(payload)
         except json.JSONDecodeError:
@@ -1191,7 +1196,8 @@ class MipsLocalClient(_MipsClient):
         topic = self._get_topic('property', did, siid, piid)
 
         def on_prop_msg(topic: str, payload: str, ctx: Any):
-            msg = self._parse_msg(topic, payload, ['did', 'siid', 'piid', 'value'])
+            msg = self._parse_msg(topic, payload,
+                                  ['did', 'siid', 'piid', 'value'])
             if msg is None:
                 return
             if handler:
@@ -1365,18 +1371,23 @@ class MipsLocalClient(_MipsClient):
                     err_msg = err.get('message', 'unknown error')
                     if err_code == -10006:
                         raise MIoTMipsError(f'request timeout ({timeout_ms}ms)')
-                    raise MIoTMipsError(f'gateway error ({err_code}): {err_msg}')
+                    raise MIoTMipsError(
+                        f'gateway error ({err_code}): {err_msg}')
                 raise MIoTMipsError(f'gateway error: {err}')
             if 'code' in result_obj and result_obj['code'] != 0:
                 raise MIoTMipsError(
-                    f"gateway error ({result_obj['code']}): {result_obj.get('message', 'unknown error')}")
+                    f"gateway error ({result_obj['code']}): {result_obj.get('message', 'unknown error')}"
+                )
 
-        dev_list = result_obj.get('devList') if isinstance(result_obj, dict) else None
-        if dev_list is None and isinstance(result_obj, dict) and isinstance(result_obj.get('result'), dict):
+        dev_list = result_obj.get('devList') if isinstance(result_obj,
+                                                           dict) else None
+        if dev_list is None and isinstance(result_obj, dict) and isinstance(
+                result_obj.get('result'), dict):
             dev_list = result_obj['result'].get('devList')
 
         if not isinstance(dev_list, dict):
-            raise MIoTMipsError(f"invalid result (devList missing or invalid): {result_obj}")
+            raise MIoTMipsError(
+                f"invalid result (devList missing or invalid): {result_obj}")
 
         device_list = {}
         for did, info in dev_list.items():
@@ -1415,8 +1426,11 @@ class MipsLocalClient(_MipsClient):
                 raise MIoTMipsError(f'gateway error: {err}')
             if 'code' in result_obj and result_obj['code'] != 0:
                 raise MIoTMipsError(
-                    f"gateway error ({result_obj['code']}): {result_obj.get('message', 'unknown error')}")
-        if not isinstance(result_obj, dict) or 'result' not in result_obj or not isinstance(result_obj['result'], list):
+                    f"gateway error ({result_obj['code']}): {result_obj.get('message', 'unknown error')}"
+                )
+        if not isinstance(result_obj,
+                          dict) or 'result' not in result_obj or not isinstance(
+                              result_obj['result'], list):
             raise MIoTMipsError(f"invalid result: {result_obj}")
         return result_obj['result']
 
@@ -1574,7 +1588,8 @@ class MipsLocalClient(_MipsClient):
                 payload_obj: dict = json.loads(mips_msg.payload)
                 dev_list = payload_obj.get('devList', None)
             except json.JSONDecodeError:
-                self.log_error(f'devListChange msg is not valid JSON: {mips_msg.payload}')
+                self.log_error(
+                    f'devListChange msg is not valid JSON: {mips_msg.payload}')
                 return
 
             if not isinstance(dev_list, list) or not dev_list:
@@ -1647,7 +1662,8 @@ class MipsLocalClient(_MipsClient):
             fut: asyncio.Future = ctx
             if fut and not fut.done():
                 self.main_loop.call_soon_threadsafe(
-                    lambda f=fut, p=payload: f.set_result(p) if not f.done() else None)
+                    lambda f=fut, p=payload: f.set_result(p)
+                    if not f.done() else None)
         if not self.__request_external(
                 topic=topic,
                 payload=payload,

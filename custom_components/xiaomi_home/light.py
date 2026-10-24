@@ -210,12 +210,14 @@ class Light(MIoTServiceEntity, LightEntity):
         # Check mode property first (since it's typically the "main" effect)
         if self._prop_mode:
             val = self.get_prop_value(prop=self._prop_mode)
-            if val is not None and (self._prop_mode, val) in self._effect_reverse_map:
+            if val is not None and (self._prop_mode,
+                                    val) in self._effect_reverse_map:
                 return self._effect_reverse_map[(self._prop_mode, val)]
         # Then check brightness property
         if self._prop_brightness and not self._brightness_scale:
             val = self.get_prop_value(prop=self._prop_brightness)
-            if val is not None and (self._prop_brightness, val) in self._effect_reverse_map:
+            if val is not None and (self._prop_brightness,
+                                    val) in self._effect_reverse_map:
                 return self._effect_reverse_map[(self._prop_brightness, val)]
         return None
 

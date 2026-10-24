@@ -276,7 +276,9 @@ class FeatureSoundMode(_FeatureBase):
                 continue
             self._sound_mode_map = prop.value_list.to_map()
             # Optimized: Pre-build O(1) reverse lookup dictionary
-            self._sound_mode_reverse_map = {v: k for k, v in self._sound_mode_map.items()}
+            self._sound_mode_reverse_map = {
+                v: k for k, v in self._sound_mode_map.items()
+            }
             self._attr_sound_mode_list = list(self._sound_mode_map.values())
             self._attr_supported_features |= MediaPlayerEntityFeature.SELECT_SOUND_MODE
             self._prop_sound_mode = prop
@@ -287,7 +289,8 @@ class FeatureSoundMode(_FeatureBase):
         # Optimized: Use O(1) dictionary lookup instead of O(N)
         mode_val = self._sound_mode_reverse_map.get(sound_mode)
         if mode_val is not None:
-            await self.set_property_async(prop=self._prop_sound_mode, value=mode_val)
+            await self.set_property_async(prop=self._prop_sound_mode,
+                                          value=mode_val)
 
     @property
     def sound_mode(self) -> Optional[str]:
@@ -318,7 +321,9 @@ class FeatureSource(_FeatureBase):
                 continue
             self._source_map = prop.value_list.to_map()
             # Optimized: Pre-build O(1) reverse lookup dictionary
-            self._source_reverse_map = {v: k for k, v in self._source_map.items()}
+            self._source_reverse_map = {
+                v: k for k, v in self._source_map.items()
+            }
             self._attr_source_list = list(self._source_map.values())
             self._attr_supported_features |= MediaPlayerEntityFeature.SELECT_SOURCE
             self._prop_source = prop
@@ -329,7 +334,8 @@ class FeatureSource(_FeatureBase):
         # Optimized: Use O(1) dictionary lookup instead of O(N)
         source_val = self._source_reverse_map.get(source)
         if source_val is not None:
-            await self.set_property_async(prop=self._prop_source, value=source_val)
+            await self.set_property_async(prop=self._prop_source,
+                                          value=source_val)
 
     @property
     def source(self) -> Optional[str]:
@@ -355,13 +361,14 @@ class FeatureState(_FeatureBase):
                                   self.entity_id)
                     continue
                 self._playing_state_map = {}
+                state_map = self._playing_state_map
                 for item in prop.value_list.items:
                     if item.name in {'playing', 'play'}:
-                        self._playing_state_map[item.value] = MediaPlayerState.PLAYING
+                        state_map[item.value] = MediaPlayerState.PLAYING
                     elif item.name in {'pause', 'paused'}:
-                        self._playing_state_map[item.value] = MediaPlayerState.PAUSED
+                        state_map[item.value] = MediaPlayerState.PAUSED
                     elif item.name in {'stop', 'stopped'}:
-                        self._playing_state_map[item.value] = MediaPlayerState.IDLE
+                        state_map[item.value] = MediaPlayerState.IDLE
                 self._prop_playing_state = prop
 
     @property

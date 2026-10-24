@@ -135,7 +135,9 @@ class Humidifier(MIoTServiceEntity, HumidifierEntity):
                     self._mode_legacy_map[item.description] = item.value
                 # Optimized: Pre-build O(1) mode reverse lookup dictionary to
                 # prevent runtime performance overhead
-                self._mode_reverse_map = {v: k for k, v in self._mode_map.items()}
+                self._mode_reverse_map = {
+                    v: k for k, v in self._mode_map.items()
+                }
 
                 self._attr_available_modes = list(self._mode_map.values())
                 self._attr_supported_features |= HumidifierEntityFeature.MODES

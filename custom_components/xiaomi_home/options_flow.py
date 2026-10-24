@@ -132,7 +132,8 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         self._storage_path = self._entry_data['storage_path']
         self._cloud_server = self._entry_data['cloud_server']
         self._ctrl_mode = self._entry_data.get('ctrl_mode', DEFAULT_CTRL_MODE)
-        self._poll_priority = self._entry_data.get('poll_priority', 'cloud_first')
+        self._poll_priority = self._entry_data.get('poll_priority',
+                                                   'cloud_first')
         self._integration_language = self._entry_data.get(
             'integration_language', DEFAULT_INTEGRATION_LANGUAGE)
         if self._integration_language not in INTEGRATION_LANGUAGES:
@@ -300,8 +301,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     self.hass.data[DOMAIN][self._virtual_did][
                         'fut_oauth_code'] = self._cc_fut_oauth_code
                 self._cc_task_oauth = self._config_entry.async_create_background_task(
-                    self.hass, self.__check_oauth_async(), name="xiaomi_oauth"
-                )
+                    self.hass, self.__check_oauth_async(), name="xiaomi_oauth")
                 _LOGGER.info(
                     'async_step_oauth, webhook.async_register: %s',
                     self._virtual_did)
@@ -580,7 +580,8 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         if not self._home_selected_list:
             return await self.__show_homes_select_form('no_family_selected')
         self._ctrl_mode = user_input.get('ctrl_mode', self._ctrl_mode)
-        self._poll_priority = user_input.get('poll_priority', self._poll_priority)
+        self._poll_priority = user_input.get('poll_priority',
+                                             self._poll_priority)
         self._home_selected = {}
         for device_source in ['home_list','share_home_list',
                               'separated_shared_list']:
@@ -613,23 +614,29 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 vol.Required(
                     'home_infos',
                     default=self._home_selected_list  # type: ignore
-                ): cv.multi_select(self._cc_home_list_show),
+                ):
+                    cv.multi_select(self._cc_home_list_show),
                 vol.Required(
-                    'devices_filter', default=False  # type: ignore
-                ): bool,
+                    'devices_filter',
+                    default=False  # type: ignore
+                ):
+                    bool,
                 vol.Required(
-                    'ctrl_mode', default=self._ctrl_mode  # type: ignore
-                ): vol.In(self._miot_i18n.translate(key='config.control_mode')),
+                    'ctrl_mode',
+                    default=self._ctrl_mode  # type: ignore
+                ):
+                    vol.In(self._miot_i18n.translate(key='config.control_mode')
+                          ),
                 vol.Required(
-                    'poll_priority', default=self._poll_priority  # type: ignore
-                ): vol.In(self._miot_i18n.translate(key='config.poll_priority')),
+                    'poll_priority',
+                    default=self._poll_priority  # type: ignore
+                ):
+                    vol.In(self._miot_i18n.translate(key='config.poll_priority')
+                          ),
             }),
             errors={'base': reason},
-            description_placeholders={
-                'local_count': devices_local_count
-            },
-            last_step=False
-        )
+            description_placeholders={'local_count': devices_local_count},
+            last_step=False)
 
     async def async_step_devices_filter(
         self, user_input: Optional[dict] = None
@@ -983,7 +990,8 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     raise RuntimeError('mqtt connect error')
                 mqtt_client.disconnect()
             except Exception as err:
-                _LOGGER.error('try connect mqtt broker error, %s', traceback.format_exc())
+                _LOGGER.error('try connect mqtt broker error, %s',
+                              traceback.format_exc())
                 return await self.__show_network_detect_config_form(
                     reason='unreachable_mqtt_broker')
 

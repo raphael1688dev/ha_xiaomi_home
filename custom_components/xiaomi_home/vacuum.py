@@ -139,8 +139,9 @@ class Vacuum(MIoTServiceEntity, StateVacuumEntity):
                         self._prop_status_returning.add(item.value)
                     elif item_name in VACUUM_STATUS_ERROR_WORDS:
                         self._prop_status_error.add(item.value)
-                    elif (item_name.find('sweeping') != -1) or (
-                            item_name.find('mopping') != -1) or (item_name in VACUUM_STATUS_CLEANING_WORDS):
+                    elif (item_name.find('sweeping')
+                          != -1) or (item_name.find('mopping') != -1) or (
+                              item_name in VACUUM_STATUS_CLEANING_WORDS):
                         self._prop_status_cleaning.add(item.value)
             elif prop.name == 'fan-level':
                 if not prop.value_list:
@@ -150,7 +151,9 @@ class Vacuum(MIoTServiceEntity, StateVacuumEntity):
                 self._fan_level_map = prop.value_list.to_map()
                 # Optimized: Pre-build O(1) fan speed reverse lookup dictionary
                 # instead of O(N) scanning
-                self._fan_level_reverse_map = {v: k for k, v in self._fan_level_map.items()}
+                self._fan_level_reverse_map = {
+                    v: k for k, v in self._fan_level_map.items()
+                }
                 self._attr_fan_speed_list = list(self._fan_level_map.values())
                 self._attr_supported_features |= VacuumEntityFeature.FAN_SPEED
                 self._prop_fan_level = prop

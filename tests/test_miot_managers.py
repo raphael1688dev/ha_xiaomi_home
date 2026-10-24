@@ -44,7 +44,8 @@ async def test_cloud_manager_sanitization_and_coroutine_resilience() -> None:
             "did": "dev1",
             "siid": 2,
             "piid": 1,
-            "fut": dummy_coro  # Coroutine object that previously broke JSON serialization
+            "fut":
+                dummy_coro  # Coroutine object that previously broke JSON serialization
         }
     }
 
@@ -75,11 +76,16 @@ async def test_cloud_manager_timeout_handling() -> None:
     client.refresh_props_list = {
         "dev1|2|1": {"did": "dev1", "siid": 2, "piid": 1}
     }
-    client.miot_http.get_props_async = AsyncMock(side_effect=TimeoutError("Request timed out"))
+    client.miot_http.get_props_async = AsyncMock(
+        side_effect=TimeoutError("Request timed out"))
 
     manager = MIoTCloudManager(client)
     success = await manager.refresh_props()
 
     assert success is False
     assert "dev1|2|1" in client.refresh_props_list
-    assert client.refresh_props_list["dev1|2|1"] == {"did": "dev1", "siid": 2, "piid": 1}
+    assert client.refresh_props_list["dev1|2|1"] == {
+        "did": "dev1",
+        "siid": 2,
+        "piid": 1
+    }

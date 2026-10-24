@@ -26,7 +26,9 @@ class MIoTLanManager:
             if did not in self.client.device_list_lan:
                 continue
             params = self.client.refresh_props_list.pop(key)
-            if not isinstance(params, dict) or 'did' not in params or 'siid' not in params or 'piid' not in params:
+            if not isinstance(
+                    params, dict
+            ) or 'did' not in params or 'siid' not in params or 'piid' not in params:
                 continue
             clean_param = {
                 'did': params['did'],
@@ -84,7 +86,9 @@ class MIoTLanManager:
                 _LOGGER.error('mips gateway not exist, %s', key)
                 continue
             params = self.client.refresh_props_list.pop(key)
-            if not isinstance(params, dict) or 'did' not in params or 'siid' not in params or 'piid' not in params:
+            if not isinstance(
+                    params, dict
+            ) or 'did' not in params or 'siid' not in params or 'piid' not in params:
                 continue
             clean_param = {
                 'did': params['did'],

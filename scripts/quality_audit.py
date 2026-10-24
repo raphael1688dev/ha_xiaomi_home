@@ -32,14 +32,17 @@ def scan_for_chinese(root_dir: str) -> list[tuple[str, int, str]]:
                 filepath = os.path.join(dirpath, file)
                 relpath = os.path.relpath(filepath, root_dir)
                 try:
-                    with open(filepath, "r", encoding="utf-8", errors="ignore") as fp:
+                    with open(filepath, "r", encoding="utf-8",
+                              errors="ignore") as fp:
                         for idx, line in enumerate(fp, 1):
                             for ch in line:
                                 if "\u4e00" <= ch <= "\u9fff":
-                                    violations.append((relpath, idx, line.strip()[:80]))
+                                    violations.append(
+                                        (relpath, idx, line.strip()[:80]))
                                     break
                 except Exception as err:
-                    violations.append((relpath, 0, f"Error reading file: {err}"))
+                    violations.append(
+                        (relpath, 0, f"Error reading file: {err}"))
     return violations
 
 
@@ -47,20 +50,25 @@ def check_chinese_policy() -> bool:
     print("[1/4] Checking Zero Chinese Characters Policy...")
     violations = scan_for_chinese(WORKSPACE_ROOT)
     if violations:
-        print(f"      [FAILED] Found {len(violations)} lines containing literal Chinese characters:")
+        print(
+            f"      [FAILED] Found {len(violations)} lines containing literal Chinese characters:"
+        )
         for relpath, idx, sample in violations[:10]:
             print(f"        - {relpath}:{idx}: {sample}")
         if len(violations) > 10:
             print(f"        ... and {len(violations) - 10} more.")
         return False
-    print("      [PASSED] 0 literal Chinese characters found across all Python and Markdown files.")
+    print(
+        "      [PASSED] 0 literal Chinese characters found across all Python and Markdown files."
+    )
     return True
 
 
 def check_compilation() -> bool:
     print("[2/4] Checking Python Compilation (py_compile)...")
     py_files = []
-    for dirpath, _, files in os.walk(os.path.join(WORKSPACE_ROOT, "custom_components")):
+    for dirpath, _, files in os.walk(
+            os.path.join(WORKSPACE_ROOT, "custom_components")):
         for f in files:
             if f.endswith(".py"):
                 py_files.append(os.path.join(dirpath, f))
@@ -86,7 +94,8 @@ def check_unit_tests() -> bool:
 
     # Check for pytest executable
     test_env_pytest = os.path.join(WORKSPACE_ROOT, "test_env", "bin", "pytest")
-    pytest_bin = test_env_pytest if os.path.isfile(test_env_pytest) else "pytest"
+    pytest_bin = test_env_pytest if os.path.isfile(
+        test_env_pytest) else "pytest"
 
     # tests/ holds the fork's unit tests; test/ holds the upstream suite, whose
     # offline cases are marked "github". check_rule_format.py is not named
@@ -99,7 +108,11 @@ def check_unit_tests() -> bool:
     ]
     passed = True
     for name, cmd in suites:
-        result = subprocess.run(cmd, cwd=WORKSPACE_ROOT, env=env, capture_output=True, text=True)
+        result = subprocess.run(cmd,
+                                cwd=WORKSPACE_ROOT,
+                                env=env,
+                                capture_output=True,
+                                text=True)
         if result.returncode != 0:
             print(f"      [FAILED] {name} tests failed:")
             print(result.stdout)
@@ -114,7 +127,8 @@ def check_unit_tests() -> bool:
 
 def check_manifest_version() -> bool:
     print("[4/4] Verifying Manifest Version...")
-    manifest_path = os.path.join(WORKSPACE_ROOT, "custom_components", "xiaomi_home", "manifest.json")
+    manifest_path = os.path.join(WORKSPACE_ROOT, "custom_components",
+                                 "xiaomi_home", "manifest.json")
     if not os.path.isfile(manifest_path):
         print("      [FAILED] manifest.json not found.")
         return False

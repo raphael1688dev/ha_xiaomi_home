@@ -52,7 +52,8 @@ class _MIoTSpecMultiLang:
             trans_cache = trans_cloud.get(self._lang, {})
         except Exception as err:
             trans_cloud = {}
-            _LOGGER.info('get multi lang from cloud failed, %s, %s\n%s', urn, err, traceback.format_exc())
+            _LOGGER.info('get multi lang from cloud failed, %s, %s\n%s', urn,
+                         err, traceback.format_exc())
         # Get multi lang from local
         try:
             trans_local = await self._storage.load_async(domain=self._DOMAIN,
@@ -63,7 +64,8 @@ class _MIoTSpecMultiLang:
                 trans_cache.update(trans_local[self._lang])
         except Exception as err:
             trans_local = {}
-            _LOGGER.info('get multi lang from local failed, %s, %s\n%s', urn, err, traceback.format_exc())
+            _LOGGER.info('get multi lang from local failed, %s, %s\n%s', urn,
+                         err, traceback.format_exc())
         # Revert: load multi_lang.json
         try:
             trans_local_json = await self._main_loop.run_in_executor(
@@ -78,7 +80,8 @@ class _MIoTSpecMultiLang:
                 trans_cache.update(trans_local_json[urn_key][self._lang])
                 trans_local = trans_local_json[urn_key]
         except (OSError, ValueError) as err:
-            _LOGGER.error('multi lang, load json file error, %s\n%s', err, traceback.format_exc())
+            _LOGGER.error('multi lang, load json file error, %s\n%s', err,
+                          traceback.format_exc())
         # Revert end
         # Default language
         if not trans_cache:
@@ -152,7 +155,8 @@ class MIoTI18n:
                     os.path.dirname(os.path.abspath(__file__)),
                     f'i18n/{self._lang}.json'))
         except (OSError, ValueError) as err:
-            _LOGGER.error('load i18n file error, %s\n%s', err, traceback.format_exc())
+            _LOGGER.error('load i18n file error, %s\n%s', err,
+                          traceback.format_exc())
 
             return
 

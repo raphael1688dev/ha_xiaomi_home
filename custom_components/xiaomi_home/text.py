@@ -115,7 +115,8 @@ class ActionText(MIoTActionEntity, TextEntity):
 
             # Optimization: simplify type checking logic to improve readability
             # and performance
-            if prop.format_ is str and isinstance(raw_val, (bool, int, float, str)):
+            if prop.format_ is str and isinstance(raw_val,
+                                                  (bool, int, float, str)):
                 parsed_val = str(raw_val)
                 is_valid = True
             elif prop.format_ is bool and isinstance(raw_val, (bool, int)):
@@ -134,7 +135,8 @@ class ActionText(MIoTActionEntity, TextEntity):
                     'action exec failed, %s(%s), invalid params item, '
                     'which item(%s) in the list must be %s, %s type was %s, %s',
                     self.name, self.entity_id, prop.description_trans,
-                    prop.format_.__name__, raw_val, type(raw_val).__name__, value)
+                    prop.format_.__name__, raw_val,
+                    type(raw_val).__name__, value)
                 raise ValueError(
                     f'action exec failed, {self.name}({self.entity_id}), '
                     f'invalid params item, which item({prop.description_trans}) '

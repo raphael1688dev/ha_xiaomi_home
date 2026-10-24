@@ -692,8 +692,12 @@ class MIoTClient:
                         'no gateway route, %s, try control through cloud',
                         device_gw)
                 else:
-                    result = await mips.set_prop_async(
-                        did=did, siid=siid, piid=piid, value=value, props=props, max_val=max_val)
+                    result = await mips.set_prop_async(did=did,
+                                                       siid=siid,
+                                                       piid=piid,
+                                                       value=value,
+                                                       props=props,
+                                                       max_val=max_val)
                     _LOGGER.debug(
                         'gateway set prop, %s.%d.%d, %s -> %s',
                         did, siid, piid, value, result)
@@ -706,8 +710,12 @@ class MIoTClient:
             # Lan control
             device_lan = self._device_list_lan.get(did, None)
             if device_lan and device_lan.get('online', False):
-                result = await self._miot_lan.set_prop_async(
-                    did=did, siid=siid, piid=piid, value=value, props=props, max_val=max_val)
+                result = await self._miot_lan.set_prop_async(did=did,
+                                                             siid=siid,
+                                                             piid=piid,
+                                                             value=value,
+                                                             props=props,
+                                                             max_val=max_val)
                 _LOGGER.debug(
                     'lan set prop, %s.%d.%d, %s -> %s',
                     did, siid, piid, value, result)
@@ -734,9 +742,12 @@ class MIoTClient:
                         'code', MIoTErrorCode.CODE_MIPS_INVALID_RESULT.value)
                     if rc in [0, 1]:
                         return True
-                    if rc in [MIHOME_ERR_DEVICE_REMOVED, MIHOME_ERR_DEVICE_OFFLINE]:
+                    if rc in [
+                            MIHOME_ERR_DEVICE_REMOVED, MIHOME_ERR_DEVICE_OFFLINE
+                    ]:
                         # Device remove or offline
-                        _LOGGER.error('device may be removed or offline, %s', did)
+                        _LOGGER.error('device may be removed or offline, %s',
+                                      did)
                         self._create_tracked_task(
                             self.__refresh_cloud_device_with_dids_async(
                                 dids=[did]))
@@ -779,7 +790,8 @@ class MIoTClient:
                         did=did, siid=siid, piid=piid)
                     if result is not None:
                         return result
-            except (MIoTClientError, MIoTHttpError, asyncio.TimeoutError) as err:
+            except (MIoTClientError, MIoTHttpError,
+                    asyncio.TimeoutError) as err:
                 _LOGGER.error(
                     'client get prop from cloud error, %s, %s',
                     err, traceback.format_exc())
@@ -800,20 +812,26 @@ class MIoTClient:
                     _LOGGER.error('no gw route, %s', device_gw)
                 else:
                     try:
-                        res = await mips.get_prop_async(did=did, siid=siid, piid=piid)
+                        res = await mips.get_prop_async(did=did,
+                                                        siid=siid,
+                                                        piid=piid)
                         if res is not None:
                             return res
                     except (MIoTClientError, asyncio.TimeoutError) as err:
-                        _LOGGER.error('client get prop from gw error, %s\n%s', err, traceback.format_exc())
+                        _LOGGER.error('client get prop from gw error, %s\n%s',
+                                      err, traceback.format_exc())
             # Lan
             device_lan = self._device_list_lan.get(did, None)
             if device_lan and device_lan.get('online', False):
                 try:
-                    res = await self._miot_lan.get_prop_async(did=did, siid=siid, piid=piid)
+                    res = await self._miot_lan.get_prop_async(did=did,
+                                                              siid=siid,
+                                                              piid=piid)
                     if res is not None:
                         return res
                 except (MIoTClientError, asyncio.TimeoutError) as err:
-                    _LOGGER.error('client get prop from lan error, %s\n%s', err, traceback.format_exc())
+                    _LOGGER.error('client get prop from lan error, %s\n%s', err,
+                                  traceback.format_exc())
             return None
 
         if poll_priority == 'local_first':
@@ -879,7 +897,9 @@ class MIoTClient:
                         'code', MIoTErrorCode.CODE_MIPS_INVALID_RESULT.value)
                     if rc in [0, 1]:
                         return result.get('out', [])
-                    if rc in [MIHOME_ERR_DEVICE_REMOVED, MIHOME_ERR_DEVICE_OFFLINE]:
+                    if rc in [
+                            MIHOME_ERR_DEVICE_REMOVED, MIHOME_ERR_DEVICE_OFFLINE
+                    ]:
                         # Device remove or offline
                         _LOGGER.error('device removed or offline, %s', did)
                         self._create_tracked_task(
@@ -1211,7 +1231,8 @@ class MIoTClient:
         else:
             # Disconnect
             self._mips_local_refresh_retry_counts.pop(group_id, None)
-            refresh_timer = self._mips_local_state_changed_timers.pop(group_id, None)
+            refresh_timer = self._mips_local_state_changed_timers.pop(
+                group_id, None)
             if refresh_timer:
                 refresh_timer.cancel()
             for did, info in self._device_list_gateway.items():
@@ -1257,16 +1278,23 @@ class MIoTClient:
                     await self._miot_lan.get_dev_list_async()).items():
                 await self.__on_lan_device_state_changed(
                     did=did, state=info, ctx=None)
-            self._miot_lan.update_devices(devices={
-                did: {
-                    'token': info['token'],
-                    'model': info['model'],
-                    'ip': info.get('local_ip') if self._cloud_server not in SUPPORT_CENTRAL_GATEWAY_CTRL else None,
-                    'connect_type': info['connect_type']}
-                for did, info in self._device_list_cache.items()
-                if 'token' in info and 'connect_type' in info
-                and info['connect_type'] in LAN_CAPABLE_CONNECT_TYPES
-            })
+            self._miot_lan.update_devices(
+                devices={
+                    did: {
+                        'token':
+                            info['token'],
+                        'model':
+                            info['model'],
+                        'ip':
+                            info.get('local_ip') if self._cloud_server not in
+                            SUPPORT_CENTRAL_GATEWAY_CTRL else None,
+                        'connect_type':
+                            info['connect_type']
+                    }
+                    for did, info in self._device_list_cache.items()
+                    if 'token' in info and 'connect_type' in info and
+                    info['connect_type'] in LAN_CAPABLE_CONNECT_TYPES
+                })
         else:
             for did, info in self._device_list_lan.items():
                 if not info.get('online', False):
@@ -1403,7 +1431,8 @@ class MIoTClient:
             for sub in subs:
                 sub.handler(params, sub.handler_ctx)
         except Exception as err:  # pylint: disable=broad-exception-caught
-            _LOGGER.error('on prop msg error, %s, %s\n%s', params, err, traceback.format_exc())
+            _LOGGER.error('on prop msg error, %s, %s\n%s', params, err,
+                          traceback.format_exc())
 
     @final
     def __on_event_msg(self, params: dict, ctx: Any) -> None:
@@ -1413,7 +1442,8 @@ class MIoTClient:
             for sub in subs:
                 sub.handler(params, sub.handler_ctx)
         except Exception as err:  # pylint: disable=broad-exception-caught
-            _LOGGER.error('on event msg error, %s, %s\n%s', params, err, traceback.format_exc())
+            _LOGGER.error('on event msg error, %s, %s\n%s', params, err,
+                          traceback.format_exc())
 
     @final
     def __check_device_state(
@@ -1528,7 +1558,8 @@ class MIoTClient:
             result = await self._http.get_devices_async(
                 home_ids=list(self._entry_data.get('home_selected', {}).keys()))
         except (TimeoutError, asyncio.TimeoutError, aiohttp.ClientError) as err:
-            err_msg = f'{type(err).__name__}: {err}' if str(err) else type(err).__name__
+            err_msg = f'{type(err).__name__}: {err}' if str(err) else type(
+                err).__name__
             _LOGGER.warning(
                 'refresh cloud devices failed (network/timeout), %s', err_msg)
             self._refresh_cloud_devices_timer = self._main_loop.call_later(
@@ -1537,7 +1568,8 @@ class MIoTClient:
                     self.__refresh_cloud_devices_async()))
             return
         except Exception as err:  # pylint: disable=broad-exception-caught
-            _LOGGER.error('refresh cloud devices failed, %s\n%s', err, traceback.format_exc())
+            _LOGGER.error('refresh cloud devices failed, %s\n%s', err,
+                          traceback.format_exc())
             self._refresh_cloud_devices_timer = self._main_loop.call_later(
                 REFRESH_CLOUD_DEVICES_RETRY_DELAY,
                 lambda: self._create_tracked_task(
@@ -1559,16 +1591,23 @@ class MIoTClient:
             self._ctrl_mode in [CtrlMode.AUTO, CtrlMode.LOCAL]
             and self._miot_lan.init_done
         ):
-            self._miot_lan.update_devices(devices={
-                did: {
-                    'token': info['token'],
-                    'model': info['model'],
-                    'ip': info.get('local_ip') if self._cloud_server not in SUPPORT_CENTRAL_GATEWAY_CTRL else None,
-                    'connect_type': info['connect_type']}
-                for did, info in self._device_list_cache.items()
-                if 'token' in info and 'connect_type' in info
-                and info['connect_type'] in LAN_CAPABLE_CONNECT_TYPES
-            })
+            self._miot_lan.update_devices(
+                devices={
+                    did: {
+                        'token':
+                            info['token'],
+                        'model':
+                            info['model'],
+                        'ip':
+                            info.get('local_ip') if self._cloud_server not in
+                            SUPPORT_CENTRAL_GATEWAY_CTRL else None,
+                        'connect_type':
+                            info['connect_type']
+                    }
+                    for did, info in self._device_list_cache.items()
+                    if 'token' in info and 'connect_type' in info and
+                    info['connect_type'] in LAN_CAPABLE_CONNECT_TYPES
+                })
 
         self.__request_show_devices_changed_notify()
 
@@ -1696,7 +1735,8 @@ class MIoTClient:
         except (MIoTMipsError, Exception) as err:
             retries = self._mips_local_refresh_retry_counts.get(group_id, 0) + 1
             self._mips_local_refresh_retry_counts[group_id] = retries
-            retry_delay = min(REFRESH_GATEWAY_DEVICES_DELAY * (2 ** min(retries - 1, 4)), 60)
+            retry_delay = min(
+                REFRESH_GATEWAY_DEVICES_DELAY * (2**min(retries - 1, 4)), 60)
             if retries <= 3:
                 _LOGGER.info(
                     'refresh gw devices with group_id temporarily failed (attempt %d/3), will retry in %ds, %s, %s: %s',
@@ -1718,8 +1758,10 @@ class MIoTClient:
 
     @final
     def __request_refresh_gw_devices_by_group_id(
-        self, group_id: str, immediately: bool = False, delay: Optional[int] = None
-    ) -> None:
+            self,
+            group_id: str,
+            immediately: bool = False,
+            delay: Optional[int] = None) -> None:
         """Request refresh gateway devices by group_id"""
         refresh_timer = self._mips_local_state_changed_timers.get(
             group_id, None)
@@ -1752,14 +1794,26 @@ class MIoTClient:
 
         # Determine execution order based on ctrl_mode and poll_priority
         if self._ctrl_mode == CtrlMode.LOCAL:
-            handlers = [self._lan_manager.refresh_props_from_gw, self._lan_manager.refresh_props_from_lan]
+            handlers = [
+                self._lan_manager.refresh_props_from_gw,
+                self._lan_manager.refresh_props_from_lan
+            ]
         elif self._ctrl_mode == CtrlMode.CLOUD:
             handlers = [self._cloud_manager.refresh_props]
         else: # AUTO
-            if self._entry_data.get('poll_priority', 'cloud_first') == 'local_first':
-                handlers = [self._lan_manager.refresh_props_from_gw, self._lan_manager.refresh_props_from_lan, self._cloud_manager.refresh_props]
+            if self._entry_data.get('poll_priority',
+                                    'cloud_first') == 'local_first':
+                handlers = [
+                    self._lan_manager.refresh_props_from_gw,
+                    self._lan_manager.refresh_props_from_lan,
+                    self._cloud_manager.refresh_props
+                ]
             else: # cloud_first
-                handlers = [self._cloud_manager.refresh_props, self._lan_manager.refresh_props_from_gw, self._lan_manager.refresh_props_from_lan]
+                handlers = [
+                    self._cloud_manager.refresh_props,
+                    self._lan_manager.refresh_props_from_gw,
+                    self._lan_manager.refresh_props_from_lan
+                ]
 
         for handler in handlers:
             handled = await handler()
@@ -1931,9 +1985,10 @@ class MIoTClient:
     @final
     def __show_central_state_changed_notify(self, connected: bool) -> None:
         conn_status: str = (
-            self._i18n.translate_str('miot.client.central_state_connected') or ''
-            if connected else
-            self._i18n.translate_str('miot.client.central_state_disconnected') or '')
+            self._i18n.translate_str('miot.client.central_state_connected') or
+            '' if connected else
+            self._i18n.translate_str('miot.client.central_state_disconnected')
+            or '')
         self._persistence_notify(
             self.__gen_notify_key('central_state_changed'),
             self._i18n.translate_str('miot.client.central_state_changed_title'),
@@ -2006,7 +2061,8 @@ async def get_miot_instance_async(
             network=network,
             mips_service=mips_service,
             enable_subscribe=global_config.get('enable_subscribe', False),
-            ignore_mips_service=(entry_data['cloud_server'] not in SUPPORT_CENTRAL_GATEWAY_CTRL),
+            ignore_mips_service=(entry_data['cloud_server']
+                                 not in SUPPORT_CENTRAL_GATEWAY_CTRL),
             loop=loop)
         hass.data[DOMAIN]['miot_lan'] = miot_lan
         _LOGGER.debug('create miot_lan instance')

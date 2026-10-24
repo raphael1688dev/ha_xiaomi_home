@@ -14,7 +14,9 @@ import urllib.request
 import urllib.error
 
 UPSTREAM_REPO = "XiaoMi/ha_xiaomi_home"
-VERSION_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".upstream_version")
+VERSION_FILE = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    ".upstream_version")
 
 
 def get_tracked_version() -> str:
@@ -47,9 +49,12 @@ def github_api_get(url: str) -> dict:
         with urllib.request.urlopen(req, timeout=15) as resp:
             return json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as err:
-        print(f"[-] GitHub API error ({err.code}): {err.reason}", file=sys.stderr)
+        print(f"[-] GitHub API error ({err.code}): {err.reason}",
+              file=sys.stderr)
         if err.code == 403:
-            print("[-] API rate limit reached. Set GITHUB_TOKEN environment variable to increase limits.", file=sys.stderr)
+            print(
+                "[-] API rate limit reached. Set GITHUB_TOKEN environment variable to increase limits.",
+                file=sys.stderr)
         sys.exit(1)
     except Exception as err:
         print(f"[-] Network connection error: {err}", file=sys.stderr)
@@ -74,9 +79,17 @@ def categorize_file(filename: str) -> str:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Track upstream XiaoMi/ha_xiaomi_home releases")
-    parser.add_argument("--update", action="store_true", help="Update .upstream_version to the latest upstream release")
-    parser.add_argument("--ci", action="store_true", help="Exit with code 1 if a new release is available (for CI pipelines)")
+    parser = argparse.ArgumentParser(
+        description="Track upstream XiaoMi/ha_xiaomi_home releases")
+    parser.add_argument(
+        "--update",
+        action="store_true",
+        help="Update .upstream_version to the latest upstream release")
+    parser.add_argument(
+        "--ci",
+        action="store_true",
+        help="Exit with code 1 if a new release is available (for CI pipelines)"
+    )
     args = parser.parse_args()
 
     tracked_version = get_tracked_version()
@@ -85,7 +98,8 @@ def main():
     print("=" * 70)
     print(f"[*] Currently tracked version: {tracked_version}")
 
-    latest_release = github_api_get(f"https://api.github.com/repos/{UPSTREAM_REPO}/releases/latest")
+    latest_release = github_api_get(
+        f"https://api.github.com/repos/{UPSTREAM_REPO}/releases/latest")
     latest_tag = latest_release.get("tag_name")
     latest_name = latest_release.get("name", latest_tag)
     published_at = latest_release.get("published_at", "N/A")
@@ -99,7 +113,9 @@ def main():
     github_output_path = os.environ.get("GITHUB_OUTPUT")
 
     if latest_tag == tracked_version:
-        print(f"[✓] Your fork is 100% up to date with the latest upstream release ({latest_tag})!")
+        print(
+            f"[✓] Your fork is 100% up to date with the latest upstream release ({latest_tag})!"
+        )
         print("    No new upstream releases detected.")
         print("=" * 70)
         if github_output_path:
@@ -107,20 +123,24 @@ def main():
                 gho.write("has_new_release=false\n")
         sys.exit(0)
 
-    print(f"[!] NEW UPSTREAM RELEASE DETECTED: {tracked_version} -> {latest_tag}")
+    print(
+        f"[!] NEW UPSTREAM RELEASE DETECTED: {tracked_version} -> {latest_tag}")
     compare_url = f"https://github.com/{UPSTREAM_REPO}/compare/{tracked_version}...{latest_tag}"
     print(f"[*] Comparison link: {compare_url}")
     print("-" * 70)
 
     # Fetch comparison details
-    compare_data = github_api_get(f"https://api.github.com/repos/{UPSTREAM_REPO}/compare/{tracked_version}...{latest_tag}")
+    compare_data = github_api_get(
+        f"https://api.github.com/repos/{UPSTREAM_REPO}/compare/{tracked_version}...{latest_tag}"
+    )
     commits = compare_data.get("commits", [])
     files = compare_data.get("files", [])
 
     print(f"[*] Commits ahead ({len(commits)}):")
     for commit in commits:
         sha = commit.get("sha", "")[:7]
-        author = commit.get("commit", {}).get("author", {}).get("name", "Unknown")
+        author = commit.get("commit", {}).get("author",
+                                              {}).get("name", "Unknown")
         msg = commit.get("commit", {}).get("message", "").split("\n")[0]
         print(f"    - [{sha}] {msg} (by {author})")
 
@@ -133,22 +153,39 @@ def main():
 
     print("-" * 70)
     print("[*] Recommended Next Steps:")
-    print("    1. Review files flagged as 'High Value' (spec_modify.yaml, specv2entity.py).")
-    print("    2. Cherry-pick bug fixes while avoiding regressions to custom fork features.")
-    print("    3. Ensure 0 Chinese characters in code: use Unicode escapes (\\uXXXX) if copying strings.")
-    print("    4. Run 'python3 scripts/quality_audit.py' to verify tests and compliance.")
-    print("    5. Once adopted, run 'python3 scripts/check_upstream.py --update' to advance tracking.")
+    print(
+        "    1. Review files flagged as 'High Value' (spec_modify.yaml, specv2entity.py)."
+    )
+    print(
+        "    2. Cherry-pick bug fixes while avoiding regressions to custom fork features."
+    )
+    print(
+        "    3. Ensure 0 Chinese characters in code: use Unicode escapes (\\uXXXX) if copying strings."
+    )
+    print(
+        "    4. Run 'python3 scripts/quality_audit.py' to verify tests and compliance."
+    )
+    print(
+        "    5. Once adopted, run 'python3 scripts/check_upstream.py --update' to advance tracking."
+    )
     print("=" * 70)
 
     # Generate Markdown report for GitHub Issue
-    report_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "upstream_report.md")
+    report_file = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "upstream_report.md")
     with open(report_file, "w", encoding="utf-8") as rf:
         rf.write(f"## 🚀 New Upstream Release Detected: `{latest_tag}`\n\n")
-        rf.write(f"A new official release has been detected from [{UPSTREAM_REPO}]({release_url}).\n\n")
+        rf.write(
+            f"A new official release has been detected from [{UPSTREAM_REPO}]({release_url}).\n\n"
+        )
         rf.write(f"- **Tracked Version**: `{tracked_version}`\n")
-        rf.write(f"- **New Upstream Version**: `{latest_tag}` ({latest_name})\n")
+        rf.write(
+            f"- **New Upstream Version**: `{latest_tag}` ({latest_name})\n")
         rf.write(f"- **Published Date**: {published_at}\n")
-        rf.write(f"- **Full Diff Comparison**: [{tracked_version}...{latest_tag}]({compare_url})\n\n")
+        rf.write(
+            f"- **Full Diff Comparison**: [{tracked_version}...{latest_tag}]({compare_url})\n\n"
+        )
         rf.write(f"### 📦 Commits Ahead ({len(commits)})\n\n")
         for commit in commits[:25]:
             sha = commit.get("sha", "")[:7]
@@ -160,7 +197,9 @@ def main():
                 author = f"@{login}"
             else:
                 author = f"`{commit.get('commit', {}).get('author', {}).get('name', 'Unknown')}`"
-            rf.write(f"- [`{sha}`](https://github.com/{UPSTREAM_REPO}/commit/{commit.get('sha', '')}) {msg} (by {author})\n")
+            rf.write(
+                f"- [`{sha}`](https://github.com/{UPSTREAM_REPO}/commit/{commit.get('sha', '')}) {msg} (by {author})\n"
+            )
         if len(commits) > 25:
             rf.write(f"- ... and {len(commits) - 25} more commits.\n")
         rf.write(f"\n### 📁 Modified Files ({len(files)})\n\n")
@@ -171,11 +210,20 @@ def main():
         if len(files) > 30:
             rf.write(f"- ... and {len(files) - 30} more files.\n")
         rf.write("\n### 🛠️ Triage & Quality Gate Checklist\n\n")
-        rf.write("- [ ] Review high-value spec overrides in `spec_modify.yaml`\n")
-        rf.write("- [ ] Port critical bug fixes into `miot_cloud.py` / `miot_mips.py`\n")
-        rf.write("- [ ] Enforce zero Chinese policy (use Unicode escapes `\\uXXXX` for Chinese spec strings)\n")
-        rf.write("- [ ] Run `python3 scripts/quality_audit.py` to ensure 100% test pass rate\n")
-        rf.write("- [ ] Run `python3 scripts/check_upstream.py --update` to advance tracking marker\n")
+        rf.write(
+            "- [ ] Review high-value spec overrides in `spec_modify.yaml`\n")
+        rf.write(
+            "- [ ] Port critical bug fixes into `miot_cloud.py` / `miot_mips.py`\n"
+        )
+        rf.write(
+            "- [ ] Enforce zero Chinese policy (use Unicode escapes `\\uXXXX` for Chinese spec strings)\n"
+        )
+        rf.write(
+            "- [ ] Run `python3 scripts/quality_audit.py` to ensure 100% test pass rate\n"
+        )
+        rf.write(
+            "- [ ] Run `python3 scripts/check_upstream.py --update` to advance tracking marker\n"
+        )
 
     if github_output_path:
         with open(github_output_path, "a", encoding="utf-8") as gho:

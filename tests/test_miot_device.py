@@ -65,12 +65,18 @@ def test_unique_id_generation() -> None:
     device: DummyDevice = DummyDevice()
     assert device.gen_device_unique_id() == "12345_lamp_lamp"
 
-    assert device.gen_service_unique_id(1, "Device Info") == "12345_lamp_lamp_s_1_Device Info"
-    assert device.gen_service_unique_id(1, "Device Info", slugify_description=True) == "12345_lamp_lamp_s_1_device_info"
+    assert device.gen_service_unique_id(
+        1, "Device Info") == "12345_lamp_lamp_s_1_Device Info"
+    assert device.gen_service_unique_id(
+        1, "Device Info",
+        slugify_description=True) == "12345_lamp_lamp_s_1_device_info"
 
-    assert device.gen_prop_unique_id("Switch", 2, 1) == "12345_lamp_lamp_switch_p_2_1"
-    assert device.gen_event_unique_id("Motion", 3, 1) == "12345_lamp_lamp_motion_e_3_1"
-    assert device.gen_action_unique_id("Toggle", 4, 1) == "12345_lamp_lamp_toggle_a_4_1"
+    assert device.gen_prop_unique_id("Switch", 2,
+                                     1) == "12345_lamp_lamp_switch_p_2_1"
+    assert device.gen_event_unique_id("Motion", 3,
+                                      1) == "12345_lamp_lamp_motion_e_3_1"
+    assert device.gen_action_unique_id("Toggle", 4,
+                                       1) == "12345_lamp_lamp_toggle_a_4_1"
 
 
 def test_device_tracker_extra_state_attributes() -> None:
@@ -106,10 +112,13 @@ def test_device_tracker_extra_state_attributes() -> None:
 
     mock_entity_data = MagicMock()
     mock_entity_data.spec = mock_spec
-    mock_entity_data.props = [mock_prop_battery, mock_prop_lat, mock_prop_lon, mock_prop_area]
+    mock_entity_data.props = [
+        mock_prop_battery, mock_prop_lat, mock_prop_lon, mock_prop_area
+    ]
     mock_entity_data.platform = "device_tracker"
 
-    tracker = DeviceTracker(miot_device=mock_miot_device, entity_data=mock_entity_data)
+    tracker = DeviceTracker(miot_device=mock_miot_device,
+                            entity_data=mock_entity_data)
 
     def mock_get_prop_value(prop: MagicMock) -> Any:
         if prop.name == "battery-level":

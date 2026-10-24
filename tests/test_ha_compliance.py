@@ -102,27 +102,44 @@ def test_binary_property_shown_as_sensor_uses_sensor_domain() -> None:
     from custom_components.xiaomi_home.sensor import Sensor
 
     instance = MIoTSpecInstance.load({
-        "urn": "urn:miot-spec-v2:device:sensor:0000A000:test-s1:1",
-        "name": "sensor",
-        "description": "Sensor",
-        "description_trans": "Sensor",
+        "urn":
+            "urn:miot-spec-v2:device:sensor:0000A000:test-s1:1",
+        "name":
+            "sensor",
+        "description":
+            "Sensor",
+        "description_trans":
+            "Sensor",
         "services": [{
             "iid": 2,
             "type": "urn:miot-spec-v2:service:contact:00007800:test-s1:1",
             "description": "Contact",
             "description_trans": "Contact",
             "properties": [{
-                "iid": 1,
-                "type": "urn:miot-spec-v2:property:contact-state:0000007C:test-s1:1",
-                "description": "Contact State",
-                "description_trans": "Contact State",
-                "format": "bool",
+                "iid":
+                    1,
+                "type":
+                    "urn:miot-spec-v2:property:contact-state:0000007C:test-s1:1",
+                "description":
+                    "Contact State",
+                "description_trans":
+                    "Contact State",
+                "format":
+                    "bool",
                 "access": ["read", "notify"],
-                "unit": None,
-                "value_range": None,
+                "unit":
+                    None,
+                "value_range":
+                    None,
                 "value_list": [
-                    {"value": False, "description": "Open"},
-                    {"value": True, "description": "Closed"},
+                    {
+                        "value": False,
+                        "description": "Open"
+                    },
+                    {
+                        "value": True,
+                        "description": "Closed"
+                    },
                 ],
             }],
             "events": [],
@@ -157,10 +174,14 @@ def test_doorbell_event_offers_and_fires_ring() -> None:
     from custom_components.xiaomi_home.event import Event
 
     instance = MIoTSpecInstance.load({
-        "urn": "urn:miot-spec-v2:device:doorbell:0000A0A0:test-d1:1",
-        "name": "doorbell",
-        "description": "Doorbell",
-        "description_trans": "Doorbell",
+        "urn":
+            "urn:miot-spec-v2:device:doorbell:0000A0A0:test-d1:1",
+        "name":
+            "doorbell",
+        "description":
+            "Doorbell",
+        "description_trans":
+            "Doorbell",
         "services": [{
             "iid": 2,
             "type": "urn:miot-spec-v2:service:doorbell:00007810:test-d1:1",
@@ -168,10 +189,14 @@ def test_doorbell_event_offers_and_fires_ring() -> None:
             "description_trans": "Doorbell",
             "properties": [],
             "events": [{
-                "iid": 1,
-                "type": "urn:miot-spec-v2:event:doorbell-ring:00005032:test-d1:1",
-                "description": "Doorbell Ring",
-                "description_trans": "Doorbell Ring",
+                "iid":
+                    1,
+                "type":
+                    "urn:miot-spec-v2:event:doorbell-ring:00005032:test-d1:1",
+                "description":
+                    "Doorbell Ring",
+                "description_trans":
+                    "Doorbell Ring",
                 "argument": [],
             }],
             "actions": [],

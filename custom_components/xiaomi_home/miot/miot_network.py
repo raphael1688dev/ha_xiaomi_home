@@ -267,7 +267,8 @@ class MIoTNetwork:
             )
             # Add asyncio.wait_for to prevent subprocess from hanging
             # indefinitely on system issues
-            await asyncio.wait_for(process.communicate(), timeout=self._DETECT_TIMEOUT + 1)
+            await asyncio.wait_for(process.communicate(),
+                                   timeout=self._DETECT_TIMEOUT + 1)
 
             if process.returncode == 0:
                 return self._main_loop.time() - start_ts
@@ -339,7 +340,8 @@ class MIoTNetwork:
             # new_names)
             for name in (current_names - new_names):
                 removed_info = self._network_info.pop(name)
-                self.__call_network_info_change(InterfaceStatus.REMOVE, removed_info)
+                self.__call_network_info_change(InterfaceStatus.REMOVE,
+                                                removed_info)
 
             # Handle added and updated interfaces
             for name, info in infos.items():
@@ -352,7 +354,8 @@ class MIoTNetwork:
                     old_info = self._network_info[name]
                     if old_info.ip != info.ip or old_info.netmask != info.netmask:
                         self._network_info[name] = info
-                        self.__call_network_info_change(InterfaceStatus.UPDATE, info)
+                        self.__call_network_info_change(InterfaceStatus.UPDATE,
+                                                        info)
 
             if not self._done_event.is_set():
                 self._done_event.set()

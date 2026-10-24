@@ -83,7 +83,8 @@ class Notify(MIoTActionEntity, NotifyEntity):
 
             # Optimization: simplify type checking logic to improve readability
             # and performance
-            if prop.format_ is str and isinstance(raw_val, (bool, int, float, str)):
+            if prop.format_ is str and isinstance(raw_val,
+                                                  (bool, int, float, str)):
                 parsed_val = str(raw_val)
                 is_valid = True
             elif prop.format_ is bool and isinstance(raw_val, (bool, int)):
@@ -102,7 +103,8 @@ class Notify(MIoTActionEntity, NotifyEntity):
                     'action exec failed, %s(%s), invalid params item, '
                     'which item(%s) in the list must be %s, %s type was %s, %s',
                     self.name, self.entity_id, prop.description_trans,
-                    prop.format_.__name__, raw_val, type(raw_val).__name__, message)
+                    prop.format_.__name__, raw_val,
+                    type(raw_val).__name__, message)
                 return
 
             in_value.append({'piid': prop.iid, 'value': parsed_val})

@@ -68,9 +68,11 @@ class MIoTStorage:
 
     def _safe_join(self, *paths: str) -> str:
         """Security Check: Prevent Path Traversal Vulnerability."""
-        target_path = os.path.abspath(os.path.join(self._root_path, *[str(p) for p in paths if p]))
+        target_path = os.path.abspath(
+            os.path.join(self._root_path, *[str(p) for p in paths if p]))
         if not target_path.startswith(self._root_path):
-            raise ValueError(f"Security Alert: Path traversal detected - {target_path}")
+            raise ValueError(
+                f"Security Alert: Path traversal detected - {target_path}")
         return target_path
 
     def __get_full_path(self, domain: str, name: str, suffix: str) -> str:

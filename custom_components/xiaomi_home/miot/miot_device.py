@@ -97,100 +97,196 @@ except (ImportError, AttributeError):
         CONCENTRATION_PARTS_PER_MILLION = 'ppm'
 
 MIOT_UNIT_MAP = {
-    'percentage': PERCENTAGE,
-    'weeks': UnitOfTime.WEEKS,
-    'days': UnitOfTime.DAYS,
-    'hour': UnitOfTime.HOURS,
-    'hours': UnitOfTime.HOURS,
-    'minutes': UnitOfTime.MINUTES,
-    'seconds': UnitOfTime.SECONDS,
-    'ms': UnitOfTime.MILLISECONDS,
-    'μs': UnitOfTime.MICROSECONDS,
-    'celsius': UnitOfTemperature.CELSIUS,
-    'fahrenheit': UnitOfTemperature.FAHRENHEIT,
-    'kelvin': UnitOfTemperature.KELVIN,
-    'μg/m3': CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
-    'mg/m3': CONCENTRATION_MILLIGRAMS_PER_CUBIC_METER,
-    'ppm': CONCENTRATION_PARTS_PER_MILLION,
-    'ppb': CONCENTRATION_PARTS_PER_BILLION,
-    'lux': LIGHT_LUX,
-    'pascal': UnitOfPressure.PA,
-    'kilopascal': UnitOfPressure.KPA,
-    'mmHg': UnitOfPressure.MMHG,
-    'bar': UnitOfPressure.BAR,
-    'L': UnitOfVolume.LITERS,
-    'liter': UnitOfVolume.LITERS,
-    'mL': UnitOfVolume.MILLILITERS,
-    'Hz': UnitOfFrequency.HERTZ,
-    'calorie': UnitOfEnergy.CALORIE,
-    'kCal': UnitOfEnergy.KILO_CALORIE,
-    'km/h': UnitOfSpeed.KILOMETERS_PER_HOUR,
-    'm/s': UnitOfSpeed.METERS_PER_SECOND,
-    'watt': UnitOfPower.WATT,
-    'w': UnitOfPower.WATT,
-    'W': UnitOfPower.WATT,
-    'kW': UnitOfPower.KILO_WATT,
-    'Wh': UnitOfEnergy.WATT_HOUR,
-    'kWh': UnitOfEnergy.KILO_WATT_HOUR,
-    'A': UnitOfElectricCurrent.AMPERE,
-    'mA': UnitOfElectricCurrent.MILLIAMPERE,
-    'V': UnitOfElectricPotential.VOLT,
-    'mv': UnitOfElectricPotential.MILLIVOLT,
-    'mV': UnitOfElectricPotential.MILLIVOLT,
-    'cm': UnitOfLength.CENTIMETERS,
-    'm': UnitOfLength.METERS,
-    'meter': UnitOfLength.METERS,
-    'km': UnitOfLength.KILOMETERS,
-    'm3/h': UnitOfVolumeFlowRate.CUBIC_METERS_PER_HOUR,
-    '\u6beb\u6469\u5c14\u6bcf\u5347': UnitOfBloodGlucoseConcentration.MILLIMOLE_PER_LITER,
-    'mmol/L': UnitOfBloodGlucoseConcentration.MILLIMOLE_PER_LITER,
-    'rpm': REVOLUTIONS_PER_MINUTE,
-    'gram': UnitOfMass.GRAMS,
-    'kilogram': UnitOfMass.KILOGRAMS,
-    'dB': SIGNAL_STRENGTH_DECIBELS,
-    'arcdegrees': DEGREE,
-    'arcdegress': DEGREE,
-    'kB': UnitOfInformation.KILOBYTES,
-    'MB': UnitOfInformation.MEGABYTES,
-    'GB': UnitOfInformation.GIGABYTES,
-    'TB': UnitOfInformation.TERABYTES,
-    'B/s': UnitOfDataRate.BYTES_PER_SECOND,
-    'KB/s': UnitOfDataRate.KILOBYTES_PER_SECOND,
-    'KByte/s': UnitOfDataRate.KILOBYTES_PER_SECOND,
-    'MB/s': UnitOfDataRate.MEGABYTES_PER_SECOND,
-    'GB/s': UnitOfDataRate.GIGABYTES_PER_SECOND,
-    'mWh': UnitOfEnergy.MILLIWATT_HOUR,
-    'μS/cm': _MICROSIEMENS_PER_CM
+    'percentage':
+        PERCENTAGE,
+    'weeks':
+        UnitOfTime.WEEKS,
+    'days':
+        UnitOfTime.DAYS,
+    'hour':
+        UnitOfTime.HOURS,
+    'hours':
+        UnitOfTime.HOURS,
+    'minutes':
+        UnitOfTime.MINUTES,
+    'seconds':
+        UnitOfTime.SECONDS,
+    'ms':
+        UnitOfTime.MILLISECONDS,
+    'μs':
+        UnitOfTime.MICROSECONDS,
+    'celsius':
+        UnitOfTemperature.CELSIUS,
+    'fahrenheit':
+        UnitOfTemperature.FAHRENHEIT,
+    'kelvin':
+        UnitOfTemperature.KELVIN,
+    'μg/m3':
+        CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
+    'mg/m3':
+        CONCENTRATION_MILLIGRAMS_PER_CUBIC_METER,
+    'ppm':
+        CONCENTRATION_PARTS_PER_MILLION,
+    'ppb':
+        CONCENTRATION_PARTS_PER_BILLION,
+    'lux':
+        LIGHT_LUX,
+    'pascal':
+        UnitOfPressure.PA,
+    'kilopascal':
+        UnitOfPressure.KPA,
+    'mmHg':
+        UnitOfPressure.MMHG,
+    'bar':
+        UnitOfPressure.BAR,
+    'L':
+        UnitOfVolume.LITERS,
+    'liter':
+        UnitOfVolume.LITERS,
+    'mL':
+        UnitOfVolume.MILLILITERS,
+    'Hz':
+        UnitOfFrequency.HERTZ,
+    'calorie':
+        UnitOfEnergy.CALORIE,
+    'kCal':
+        UnitOfEnergy.KILO_CALORIE,
+    'km/h':
+        UnitOfSpeed.KILOMETERS_PER_HOUR,
+    'm/s':
+        UnitOfSpeed.METERS_PER_SECOND,
+    'watt':
+        UnitOfPower.WATT,
+    'w':
+        UnitOfPower.WATT,
+    'W':
+        UnitOfPower.WATT,
+    'kW':
+        UnitOfPower.KILO_WATT,
+    'Wh':
+        UnitOfEnergy.WATT_HOUR,
+    'kWh':
+        UnitOfEnergy.KILO_WATT_HOUR,
+    'A':
+        UnitOfElectricCurrent.AMPERE,
+    'mA':
+        UnitOfElectricCurrent.MILLIAMPERE,
+    'V':
+        UnitOfElectricPotential.VOLT,
+    'mv':
+        UnitOfElectricPotential.MILLIVOLT,
+    'mV':
+        UnitOfElectricPotential.MILLIVOLT,
+    'cm':
+        UnitOfLength.CENTIMETERS,
+    'm':
+        UnitOfLength.METERS,
+    'meter':
+        UnitOfLength.METERS,
+    'km':
+        UnitOfLength.KILOMETERS,
+    'm3/h':
+        UnitOfVolumeFlowRate.CUBIC_METERS_PER_HOUR,
+    '\u6beb\u6469\u5c14\u6bcf\u5347':
+        UnitOfBloodGlucoseConcentration.MILLIMOLE_PER_LITER,
+    'mmol/L':
+        UnitOfBloodGlucoseConcentration.MILLIMOLE_PER_LITER,
+    'rpm':
+        REVOLUTIONS_PER_MINUTE,
+    'gram':
+        UnitOfMass.GRAMS,
+    'kilogram':
+        UnitOfMass.KILOGRAMS,
+    'dB':
+        SIGNAL_STRENGTH_DECIBELS,
+    'arcdegrees':
+        DEGREE,
+    'arcdegress':
+        DEGREE,
+    'kB':
+        UnitOfInformation.KILOBYTES,
+    'MB':
+        UnitOfInformation.MEGABYTES,
+    'GB':
+        UnitOfInformation.GIGABYTES,
+    'TB':
+        UnitOfInformation.TERABYTES,
+    'B/s':
+        UnitOfDataRate.BYTES_PER_SECOND,
+    'KB/s':
+        UnitOfDataRate.KILOBYTES_PER_SECOND,
+    'KByte/s':
+        UnitOfDataRate.KILOBYTES_PER_SECOND,
+    'MB/s':
+        UnitOfDataRate.MEGABYTES_PER_SECOND,
+    'GB/s':
+        UnitOfDataRate.GIGABYTES_PER_SECOND,
+    'mWh':
+        UnitOfEnergy.MILLIWATT_HOUR,
+    'μS/cm':
+        _MICROSIEMENS_PER_CM
 }
 
 MIOT_ICON_MAP = {
     'percentage': 'mdi:percent',
-    'weeks': 'mdi:clock', 'days': 'mdi:clock', 'hour': 'mdi:clock', 'hours': 'mdi:clock',
-    'minutes': 'mdi:clock', 'seconds': 'mdi:clock', 'ms': 'mdi:clock', 'μs': 'mdi:clock',
+    'weeks': 'mdi:clock',
+    'days': 'mdi:clock',
+    'hour': 'mdi:clock',
+    'hours': 'mdi:clock',
+    'minutes': 'mdi:clock',
+    'seconds': 'mdi:clock',
+    'ms': 'mdi:clock',
+    'μs': 'mdi:clock',
     'celsius': 'mdi:temperature-celsius',
     'fahrenheit': 'mdi:temperature-fahrenheit',
     'kelvin': 'mdi:temperature-kelvin',
-    'μg/m3': 'mdi:blur', 'mg/m3': 'mdi:blur', 'ppm': 'mdi:blur', 'ppb': 'mdi:blur',
+    'μg/m3': 'mdi:blur',
+    'mg/m3': 'mdi:blur',
+    'ppm': 'mdi:blur',
+    'ppb': 'mdi:blur',
     'lux': 'mdi:brightness-6',
-    'pascal': 'mdi:gauge', 'kilopascal': 'mdi:gauge', 'megapascal': 'mdi:gauge', 'mmHg': 'mdi:gauge', 'bar': 'mdi:gauge',
-    'watt': 'mdi:flash-triangle', 'w': 'mdi:flash-triangle', 'W': 'mdi:flash-triangle',
-    'L': 'mdi:gas-cylinder', 'mL': 'mdi:gas-cylinder',
-    'km/h': 'mdi:speedometer', 'm/s': 'mdi:speedometer',
+    'pascal': 'mdi:gauge',
+    'kilopascal': 'mdi:gauge',
+    'megapascal': 'mdi:gauge',
+    'mmHg': 'mdi:gauge',
+    'bar': 'mdi:gauge',
+    'watt': 'mdi:flash-triangle',
+    'w': 'mdi:flash-triangle',
+    'W': 'mdi:flash-triangle',
+    'L': 'mdi:gas-cylinder',
+    'mL': 'mdi:gas-cylinder',
+    'km/h': 'mdi:speedometer',
+    'm/s': 'mdi:speedometer',
     'kWh': 'mdi:transmission-tower',
-    'A': 'mdi:current-ac', 'mA': 'mdi:current-ac',
-    'V': 'mdi:current-dc', 'mv': 'mdi:current-dc', 'mV': 'mdi:current-dc',
-    'cm': 'mdi:ruler', 'm': 'mdi:ruler', 'meter': 'mdi:ruler', 'km': 'mdi:ruler',
+    'A': 'mdi:current-ac',
+    'mA': 'mdi:current-ac',
+    'V': 'mdi:current-dc',
+    'mv': 'mdi:current-dc',
+    'mV': 'mdi:current-dc',
+    'cm': 'mdi:ruler',
+    'm': 'mdi:ruler',
+    'meter': 'mdi:ruler',
+    'km': 'mdi:ruler',
     'rgb': 'mdi:palette',
-    'm3/h': 'mdi:pipe-leak', 'L/s': 'mdi:pipe-leak',
+    'm3/h': 'mdi:pipe-leak',
+    'L/s': 'mdi:pipe-leak',
     'μS/cm': 'mdi:resistor-nodes',
-    'gram': 'mdi:weight', 'kilogram': 'mdi:weight',
+    'gram': 'mdi:weight',
+    'kilogram': 'mdi:weight',
     'dB': 'mdi:signal-distance-variant',
     'times': 'mdi:counter',
     'mmol/L': 'mdi:dots-hexagon',
-    'kB': 'mdi:network-pos', 'MB': 'mdi:network-pos', 'GB': 'mdi:network-pos',
-    'arcdegress': 'mdi:angle-obtuse', 'arcdegrees': 'mdi:angle-obtuse',
-    'B/s': 'mdi:network', 'KB/s': 'mdi:network', 'MB/s': 'mdi:network', 'GB/s': 'mdi:network',
-    'calorie': 'mdi:food', 'kCal': 'mdi:food',
+    'kB': 'mdi:network-pos',
+    'MB': 'mdi:network-pos',
+    'GB': 'mdi:network-pos',
+    'arcdegress': 'mdi:angle-obtuse',
+    'arcdegrees': 'mdi:angle-obtuse',
+    'B/s': 'mdi:network',
+    'KB/s': 'mdi:network',
+    'MB/s': 'mdi:network',
+    'GB/s': 'mdi:network',
+    'calorie': 'mdi:food',
+    'kCal': 'mdi:food',
     'rpm': 'mdi:fan-clock'
 }
 # =========================================================
@@ -216,7 +312,9 @@ class MIoTEntityData:
         self.events = set()
         self.actions = set()
 
-    def get_prop(self, prop_name: str, service_name: str | None = None) -> MIoTSpecProperty | None:
+    def get_prop(self,
+                 prop_name: str,
+                 service_name: str | None = None) -> MIoTSpecProperty | None:
         if not hasattr(self, '_props_map'):
             self._props_map = {}
             for prop in self.props:
@@ -227,7 +325,9 @@ class MIoTEntityData:
             return self._props_map.get(f"{service_name}:{prop_name}")
         return self._props_map.get(prop_name)
 
-    def get_event(self, event_name: str, service_name: str | None = None) -> MIoTSpecEvent | None:
+    def get_event(self,
+                  event_name: str,
+                  service_name: str | None = None) -> MIoTSpecEvent | None:
         if not hasattr(self, '_events_map'):
             self._events_map = {}
             for event in self.events:
@@ -238,11 +338,14 @@ class MIoTEntityData:
             return self._events_map.get(f"{service_name}:{event_name}")
         return self._events_map.get(event_name)
 
-    def get_action(self, action_name: str, service_name: str | None = None) -> MIoTSpecAction | None:
+    def get_action(self,
+                   action_name: str,
+                   service_name: str | None = None) -> MIoTSpecAction | None:
         if not hasattr(self, '_actions_map'):
             self._actions_map = {}
             for action in self.actions:
-                self._actions_map[f"{action.service.name}:{action.name}"] = action
+                key = f"{action.service.name}:{action.name}"
+                self._actions_map[key] = action
                 if action.name not in self._actions_map:
                     self._actions_map[action.name] = action
         if service_name:
@@ -463,12 +566,14 @@ class MIoTDevice:
     @property
     def local_ip(self) -> Optional[str]:
         """Local IP Address."""
-        return (self.miot_client.device_list.get(self.did) or {}).get('local_ip')
+        return (self.miot_client.device_list.get(self.did) or
+                {}).get('local_ip')
 
     @property
     def connect_type(self) -> int:
         """Connection Type."""
-        return (self.miot_client.device_list.get(self.did) or {}).get('connect_type', -1)
+        return (self.miot_client.device_list.get(self.did) or
+                {}).get('connect_type', -1)
 
     @property
     def is_lan_capable(self) -> bool:
@@ -526,22 +631,33 @@ class MIoTDevice:
         seen_target_ids = set()
 
         # Helper to process entities
-        def _add_mapping(platform_dict: dict, item_type: str, uid_gen_func, has_description=False):
+        def _add_mapping(platform_dict: dict,
+                         item_type: str,
+                         uid_gen_func,
+                         has_description=False):
             for platform, items in platform_dict.items():
                 for item in items:
                     spec_item = item.spec if item_type == 'service' else item
-                    if item_type == 'service' and not isinstance(spec_item, MIoTSpecService):
+                    if item_type == 'service' and not isinstance(
+                            spec_item, MIoTSpecService):
                         continue
 
                     # Generate unique_id
                     if has_description:
-                        uid = uid_gen_func(siid=spec_item.iid, description=spec_item.description)
+                        uid = uid_gen_func(siid=spec_item.iid,
+                                           description=spec_item.description)
                     elif item_type == 'property':
-                        uid = uid_gen_func(spec_name=spec_item.name, siid=spec_item.service.iid, piid=spec_item.iid)
+                        uid = uid_gen_func(spec_name=spec_item.name,
+                                           siid=spec_item.service.iid,
+                                           piid=spec_item.iid)
                     elif item_type == 'event':
-                        uid = uid_gen_func(spec_name=spec_item.name, siid=spec_item.service.iid, eiid=spec_item.iid)
+                        uid = uid_gen_func(spec_name=spec_item.name,
+                                           siid=spec_item.service.iid,
+                                           eiid=spec_item.iid)
                     elif item_type == 'action':
-                        uid = uid_gen_func(spec_name=spec_item.name, siid=spec_item.service.iid, aiid=spec_item.iid)
+                        uid = uid_gen_func(spec_name=spec_item.name,
+                                           siid=spec_item.service.iid,
+                                           aiid=spec_item.iid)
                     else:
                         continue
 
@@ -574,12 +690,15 @@ class MIoTDevice:
                     mapping[uid] = target_eid
 
         # Device main entity
-        mapping[self.gen_device_unique_id()] = "unknown" # Device main entity doesn't have a fixed domain here, handled specially if needed
+        mapping[self.gen_device_unique_id(
+        )] = "unknown"  # Device main entity doesn't have a fixed domain here, handled specially if needed
 
-        _add_mapping(self.entity_list, 'service', self.gen_service_unique_id, True)
+        _add_mapping(self.entity_list, 'service', self.gen_service_unique_id,
+                     True)
         _add_mapping(self.prop_list, 'property', self.gen_prop_unique_id, False)
         _add_mapping(self.event_list, 'event', self.gen_event_unique_id, False)
-        _add_mapping(self.action_list, 'action', self.gen_action_unique_id, False)
+        _add_mapping(self.action_list, 'action', self.gen_action_unique_id,
+                     False)
 
         return mapping
 
@@ -941,7 +1060,8 @@ class MIoTServiceEntity(Entity):
             # If the service description is the same as the platform, we can
             # make it None to just use the device name
             # Otherwise we use the description as the entity name.
-            if self.entity_data.spec.description.lower() == self.entity_data.platform:
+            if self.entity_data.spec.description.lower(
+            ) == self.entity_data.platform:
                 self._attr_name = None
             else:
                 self._attr_name = (
@@ -1004,7 +1124,8 @@ class MIoTServiceEntity(Entity):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes of the device."""
         attrs = getattr(self, '_attr_extra_state_attributes', {}) or {}
-        if getattr(self, 'miot_device', None) and getattr(self.miot_device, 'miot_client', None):
+        if getattr(self, 'miot_device', None) and getattr(
+                self.miot_device, 'miot_client', None):
             ctrl_path = self.miot_device.miot_client.get_device_control_path(
                 self.miot_device.did)
             attrs['control_path'] = ctrl_path
@@ -1366,8 +1487,12 @@ class MIoTPropertyEntity(Entity):
                 max_val = self.spec.value_range.max_
 
             await self.miot_device.miot_client.set_prop_async(
-                did=self.miot_device.did, siid=self.spec.service.iid,
-                piid=self.spec.iid, value=value, props=props_dict, max_val=max_val)
+                did=self.miot_device.did,
+                siid=self.spec.service.iid,
+                piid=self.spec.iid,
+                value=value,
+                props=props_dict,
+                max_val=max_val)
         except MIoTClientError as e:
             raise RuntimeError(
                 f'{e}, {self.name}') from e
@@ -1508,7 +1633,7 @@ class MIoTEventEntity(Entity):
     @abstractmethod
     def on_event_occurred(
         self, name: str, arguments: dict[str, Any] | None = None
-    ) -> None: ...
+    ) -> None:        ...
 
     def __on_event_occurred(self, params: dict, ctx: Any) -> None:
         _LOGGER.debug('event occurred, %s',  params)
