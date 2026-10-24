@@ -222,7 +222,7 @@ Conducted a massive cleanup of logical errors inherited from upstream:
 
 ### 4. Codebase Performance Optimizations & "Code Diet"
 Across all major entity platforms (`climate.py`, `vacuum.py`, `cover.py`, `water_heater.py`, `select.py`, `humidifier.py`, `fan.py`, `light.py`), we overhauled the data structures:
-- **O(N) Zombie Eradication**: Removed all hidden $O(N)$ `for prop in entity_data.props:` loops during HA entity initialization.
+- **Single-pass initialization**: Platforms that look up a few known properties use `get_prop()`. Platforms that inspect every property (cover, humidifier, media_player, vacuum, water_heater, device_tracker) keep one `for prop in entity_data.props:` dispatch loop in `__init__`: it runs once per entity, and it keeps the last-match semantics for duplicate property names across services, which `get_prop()` (first match) would change.
 - **O(1) Lazy Cache Architecture**: Re-architected `MIoTEntityData` with an intelligent, lazy-loading dictionary cache (`props_map`, `events_map`, `actions_map` via `get_prop()`). This transforms all property lookups into instantaneous $O(1)$ operations, drastically shrinking boilerplate code and improving readability.
 - Replaced $O(N)$ linear array scans (`get_map_key`) with pre-computed $O(1)$ dictionary lookups (`_val_to_desc` and `_desc_to_val`) for `MIoTSpecValueList` mapping.
 - Enforced strict Type Safety (`float`, `bool`) and robust `None` guards before returning states to HA Core.
