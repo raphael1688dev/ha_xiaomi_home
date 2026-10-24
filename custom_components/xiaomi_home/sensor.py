@@ -65,6 +65,8 @@ async def async_setup_entry(
 
 class Sensor(MIoTPropertyEntity, SensorEntity):
     """Sensor entities for Xiaomi Home."""
+    # The full value of long strings can be large and changes often
+    _unrecorded_attributes = frozenset({'value'})
 
     def __init__(self, miot_device: MIoTDevice, spec: MIoTSpecProperty) -> None:
         """Initialize the Sensor."""
