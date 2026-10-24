@@ -15,7 +15,8 @@ try:
     from miio2miot_specs import MIIO_TO_MIOT_SPECS
 except Exception as e:
     print(
-        f"Error importing MIIO_TO_MIOT_SPECS. Ensure {HASS_XIAOMI_MIOT_DIR} exists."
+        f"Error importing MIIO_TO_MIOT_SPECS. Ensure {HASS_XIAOMI_MIOT_DIR} "
+        "exists."
     )
     sys.exit(1)
 
@@ -74,25 +75,36 @@ for model in WHITELIST:
 # --- 3. Static Jinja to Python Lambda Mapping ---
 JINJA_TO_PYTHON = {
     '{{ ["on" if value else "off","smooth",500] }}':
-        'lambda value, props, max_val: ["on" if value else "off", "smooth", 500]',
+        'lambda value, props, max_val: ["on" if value else "off", "smooth", '
+        '500]',
     '{{ [value|int] }}':
         'lambda value, props, max_val: [int(value)]',
     '{{ ["auto_delay_off",props.bright|default(100)|int,value] }}':
-        'lambda value, props, max_val: ["auto_delay_off", int(props.get("bright", 100)), value]',
+        'lambda value, props, max_val: ["auto_delay_off", '
+        'int(props.get("bright", 100)), value]',
     '{{ value|int(0) > 0 }}':
         'lambda value, props, max_val: int(value or 0) > 0',
     '{% set nlv = props.natural_level|default(0)|int(0) %}{{ {"method": "set_natural_level" if nlv else "set_speed_level","params": [value|int(0)],} }}':
-        'lambda value, props, max_val: {"method": "set_natural_level" if int(props.get("natural_level", 0)) else "set_speed_level", "params": [int(value or 0)]}',
+        'lambda value, props, max_val: {"method": "set_natural_level" if '
+        'int(props.get("natural_level", 0)) else "set_speed_level", "params": '
+        '[int(value or 0)]}',
     '{% set nlb = props.nl_br|default(0)|int(0) %}{{ nlb if nlb else value }}':
-        'lambda value, props, max_val: int(props.get("nl_br", 0)) if int(props.get("nl_br", 0)) else value',
+        'lambda value, props, max_val: int(props.get("nl_br", 0)) if '
+        'int(props.get("nl_br", 0)) else value',
     '{% set lvl = props.natural_level|default(value,true)|int(0) %}{{ lvl if max == 100 else 1 if lvl <= 25 else 2 if lvl <= 50 else 3 if lvl <= 75 else 4 }}':
-        'lambda value, props, max_val: (int(props.get("natural_level", value) or 0) if max_val == 100 else (1 if int(props.get("natural_level", value) or 0) <= 25 else (2 if int(props.get("natural_level", value) or 0) <= 50 else (3 if int(props.get("natural_level", value) or 0) <= 75 else 4))))',
+        'lambda value, props, max_val: (int(props.get("natural_level", value) '
+        'or 0) if max_val == 100 else (1 if int(props.get("natural_level", '
+        'value) or 0) <= 25 else (2 if int(props.get("natural_level", value) '
+        'or 0) <= 50 else (3 if int(props.get("natural_level", value) or 0) <= '
+        '75 else 4))))',
     '{{ 1 if value|int(0) > 0 else 2 }}':
         'lambda value, props, max_val: 1 if int(value or 0) > 0 else 2',
     '{{ 2 if value == "complete" else 1 }}':
         'lambda value, props, max_val: 2 if value == "complete" else 1',
     '{% set nlv = props.natural_level|default(0)|int(0) %}{{ {"method": "set_natural_level" if nlv else "set_speed_level","params": [value|int(0) * (1 if max == 100 else 25)],} }}':
-        'lambda value, props, max_val: {"method": "set_natural_level" if int(props.get("natural_level", 0)) else "set_speed_level", "params": [int(value or 0) * (1 if max_val == 100 else 25)]}',
+        'lambda value, props, max_val: {"method": "set_natural_level" if '
+        'int(props.get("natural_level", 0)) else "set_speed_level", "params": '
+        '[int(value or 0) * (1 if max_val == 100 else 25)]}',
     '{{ 1 if value|int(0) > 0 else 0 }}':
         'lambda value, props, max_val: 1 if int(value or 0) > 0 else 0',
     '{{ [value,"smooth",500] }}':
@@ -106,9 +118,11 @@ JINJA_TO_PYTHON = {
     '{{ [1 if value else 0] }}':
         'lambda value, props, max_val: [1 if value else 0]',
     '{{ props.natural_level|default(value,true)|int(0) }}':
-        'lambda value, props, max_val: int(props.get("natural_level", value) or 0)',
+        'lambda value, props, max_val: int(props.get("natural_level", value) '
+        'or 0)',
     '{{ ["nightlight","on" if value == 2 else "off"] }}':
-        'lambda value, props, max_val: ["nightlight", "on" if value == 2 else "off"]',
+        'lambda value, props, max_val: ["nightlight", "on" if value == 2 else '
+        '"off"]',
     '{{ 2 if value|int else 1 }}':
         'lambda value, props, max_val: 2 if int(value) else 1'
 }
@@ -150,7 +164,8 @@ for model in sorted(flattened_specs.keys()):
                             f'                "{k}": {JINJA_TO_PYTHON[v]},')
                     else:
                         print(
-                            f"WARNING: Unknown Jinja template '{v}' in {model}.{prop_id}"
+                            f"WARNING: Unknown Jinja template '{v}' in "
+                            f"{model}.{prop_id}"
                         )
                 else:
                     if isinstance(v, str):

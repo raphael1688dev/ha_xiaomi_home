@@ -83,7 +83,8 @@ async def _async_migrate_legacy_entity_ids(
             try:
                 er.async_remove(entry.entity_id)
                 _LOGGER.info(
-                    "Removed legacy action entity orphan %s (old unique_id==entity_id format)",
+                    "Removed legacy action entity orphan %s (old "
+                    "unique_id==entity_id format)",
                     entry.entity_id,
                 )
             except Exception as err:  # pylint: disable=broad-exception-caught

@@ -139,12 +139,14 @@ class Sensor(MIoTPropertyEntity, SensorEntity):
             if str_val not in _opts:
                 if len(_opts) > 64:
                     _LOGGER.warning(
-                        "Device returned too many undocumented values for %s. Ignoring '%s'.",
+                        "Device returned too many undocumented values for %s. "
+                        "Ignoring '%s'.",
                         self.entity_id, str_val)
                 else:
                     self._attr_options = list(_opts) + [str_val]
                     _LOGGER.debug(
-                        "Device returned undocumented value '%s' for %s. Dynamically added to Enum options.",
+                        "Device returned undocumented value '%s' for %s. "
+                        "Dynamically added to Enum options.",
                         str_val, self.entity_id)
 
             return str_val

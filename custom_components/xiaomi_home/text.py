@@ -139,8 +139,10 @@ class ActionText(MIoTActionEntity, TextEntity):
                     type(raw_val).__name__, value)
                 raise ValueError(
                     f'action exec failed, {self.name}({self.entity_id}), '
-                    f'invalid params item, which item({prop.description_trans}) '
-                    f'in the list must be {prop.format_.__name__}, {raw_val} type '
+                    'invalid params item, which '
+                    f'item({prop.description_trans}) '
+                    f'in the list must be {prop.format_.__name__}, {raw_val} '
+                    'type '
                     f'was {type(raw_val).__name__}, {value}')
 
             in_value.append({'piid': prop.iid, 'value': parsed_val})

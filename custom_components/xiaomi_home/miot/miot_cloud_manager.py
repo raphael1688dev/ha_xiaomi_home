@@ -90,7 +90,9 @@ class MIoTCloudManager:
                     err, 'code', None
             ) == MIoTErrorCode.CODE_HTTP_INVALID_ACCESS_TOKEN or 'unauthorized(401)' in err_str:
                 _LOGGER.warning(
-                    'refresh props failed, cloud: unauthorized(401). Access token is likely invalid or expired. Please re-authenticate.'
+                    'refresh props failed, cloud: unauthorized(401). Access '
+                    'token is likely invalid or expired. Please '
+                    're-authenticate.'
                 )
             elif getattr(err, 'code', None) in [
                     500, 502, 503, 504
@@ -98,7 +100,8 @@ class MIoTCloudManager:
                     500, 502, 503, 504
             ] or any(code in err_str for code in ['500', '502', '503', '504']):
                 _LOGGER.warning(
-                    'refresh props failed, cloud: server error (5xx). Xiaomi cloud might be temporarily down or unstable. Details: %s',
+                    'refresh props failed, cloud: server error (5xx). Xiaomi '
+                    'cloud might be temporarily down or unstable. Details: %s',
                     err)
             else:
                 _LOGGER.error(

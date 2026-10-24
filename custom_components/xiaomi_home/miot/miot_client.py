@@ -614,7 +614,8 @@ class MIoTClient:
                     'miot.client.invalid_oauth_info'),
                 notify_key='oauth_info')
             _LOGGER.warning(
-                'refresh oauth info failed (%s, %s): %s (user needs to re-auth)',
+                'refresh oauth info failed (%s, %s): %s (user needs to '
+                're-auth)',
                 self._uid, self._cloud_server, err)
             return False
         except Exception as err:  # pylint: disable=broad-exception-caught
@@ -1739,11 +1740,13 @@ class MIoTClient:
                 REFRESH_GATEWAY_DEVICES_DELAY * (2**min(retries - 1, 4)), 60)
             if retries <= 3:
                 _LOGGER.info(
-                    'refresh gw devices with group_id temporarily failed (attempt %d/3), will retry in %ds, %s, %s: %s',
+                    'refresh gw devices with group_id temporarily failed '
+                    '(attempt %d/3), will retry in %ds, %s, %s: %s',
                     retries, retry_delay, self._uid, group_id, err)
             else:
                 _LOGGER.warning(
-                    'refresh gw devices with group_id failed (attempt %d), will retry in %ds, %s, %s: %s',
+                    'refresh gw devices with group_id failed (attempt %d), '
+                    'will retry in %ds, %s, %s: %s',
                     retries, retry_delay, self._uid, group_id, err)
             self.__request_refresh_gw_devices_by_group_id(
                 group_id=group_id, delay=retry_delay)

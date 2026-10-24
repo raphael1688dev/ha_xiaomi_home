@@ -510,7 +510,8 @@ class MIoTLan:
              len(self._mips_service.get_services()) == 0) and
                 len(self._net_ifs) > 0):
             _LOGGER.info(
-                'miot lan init condition met (no central hub or ignored), init miot lan'
+                'miot lan init condition met (no central hub or ignored), init '
+                'miot lan'
             )
             self._main_loop.call_later(
                 0, lambda: self._main_loop.create_task(
@@ -1035,7 +1036,8 @@ class MIoTLan:
             'on mips service change, %s, %s, %s',  group_id, state, data)
         if self._ignore_mips_service:
             _LOGGER.info(
-                'ignore mips service change due to ignore_mips_service flag, init miot lan'
+                'ignore mips service change due to ignore_mips_service flag, '
+                'init miot lan'
             )
             if not self._init_done:
                 await self.init_async()

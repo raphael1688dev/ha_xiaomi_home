@@ -53,7 +53,8 @@ def github_api_get(url: str) -> dict:
               file=sys.stderr)
         if err.code == 403:
             print(
-                "[-] API rate limit reached. Set GITHUB_TOKEN environment variable to increase limits.",
+                "[-] API rate limit reached. Set GITHUB_TOKEN environment "
+                "variable to increase limits.",
                 file=sys.stderr)
         sys.exit(1)
     except Exception as err:
@@ -114,7 +115,8 @@ def main():
 
     if latest_tag == tracked_version:
         print(
-            f"[✓] Your fork is 100% up to date with the latest upstream release ({latest_tag})!"
+            "[✓] Your fork is 100% up to date with the latest upstream "
+            f"release ({latest_tag})!"
         )
         print("    No new upstream releases detected.")
         print("=" * 70)
@@ -154,19 +156,24 @@ def main():
     print("-" * 70)
     print("[*] Recommended Next Steps:")
     print(
-        "    1. Review files flagged as 'High Value' (spec_modify.yaml, specv2entity.py)."
+        "    1. Review files flagged as 'High Value' (spec_modify.yaml, "
+        "specv2entity.py)."
     )
     print(
-        "    2. Cherry-pick bug fixes while avoiding regressions to custom fork features."
+        "    2. Cherry-pick bug fixes while avoiding regressions to custom "
+        "fork features."
     )
     print(
-        "    3. Ensure 0 Chinese characters in code: use Unicode escapes (\\uXXXX) if copying strings."
+        "    3. Ensure 0 Chinese characters in code: use Unicode escapes "
+        "(\\uXXXX) if copying strings."
     )
     print(
-        "    4. Run 'python3 scripts/quality_audit.py' to verify tests and compliance."
+        "    4. Run 'python3 scripts/quality_audit.py' to verify tests and "
+        "compliance."
     )
     print(
-        "    5. Once adopted, run 'python3 scripts/check_upstream.py --update' to advance tracking."
+        "    5. Once adopted, run 'python3 scripts/check_upstream.py --update' "
+        "to advance tracking."
     )
     print("=" * 70)
 
@@ -177,14 +184,16 @@ def main():
     with open(report_file, "w", encoding="utf-8") as rf:
         rf.write(f"## 🚀 New Upstream Release Detected: `{latest_tag}`\n\n")
         rf.write(
-            f"A new official release has been detected from [{UPSTREAM_REPO}]({release_url}).\n\n"
+            "A new official release has been detected from "
+            f"[{UPSTREAM_REPO}]({release_url}).\n\n"
         )
         rf.write(f"- **Tracked Version**: `{tracked_version}`\n")
         rf.write(
             f"- **New Upstream Version**: `{latest_tag}` ({latest_name})\n")
         rf.write(f"- **Published Date**: {published_at}\n")
         rf.write(
-            f"- **Full Diff Comparison**: [{tracked_version}...{latest_tag}]({compare_url})\n\n"
+            "- **Full Diff Comparison**: "
+            f"[{tracked_version}...{latest_tag}]({compare_url})\n\n"
         )
         rf.write(f"### 📦 Commits Ahead ({len(commits)})\n\n")
         for commit in commits[:25]:
@@ -198,7 +207,8 @@ def main():
             else:
                 author = f"`{commit.get('commit', {}).get('author', {}).get('name', 'Unknown')}`"
             rf.write(
-                f"- [`{sha}`](https://github.com/{UPSTREAM_REPO}/commit/{commit.get('sha', '')}) {msg} (by {author})\n"
+                "- "
+                f"[`{sha}`](https://github.com/{UPSTREAM_REPO}/commit/{commit.get('sha', '')}) {msg} (by {author})\n"
             )
         if len(commits) > 25:
             rf.write(f"- ... and {len(commits) - 25} more commits.\n")
@@ -213,16 +223,20 @@ def main():
         rf.write(
             "- [ ] Review high-value spec overrides in `spec_modify.yaml`\n")
         rf.write(
-            "- [ ] Port critical bug fixes into `miot_cloud.py` / `miot_mips.py`\n"
+            "- [ ] Port critical bug fixes into `miot_cloud.py` / "
+            "`miot_mips.py`\n"
         )
         rf.write(
-            "- [ ] Enforce zero Chinese policy (use Unicode escapes `\\uXXXX` for Chinese spec strings)\n"
+            "- [ ] Enforce zero Chinese policy (use Unicode escapes `\\uXXXX` "
+            "for Chinese spec strings)\n"
         )
         rf.write(
-            "- [ ] Run `python3 scripts/quality_audit.py` to ensure 100% test pass rate\n"
+            "- [ ] Run `python3 scripts/quality_audit.py` to ensure 100% test "
+            "pass rate\n"
         )
         rf.write(
-            "- [ ] Run `python3 scripts/check_upstream.py --update` to advance tracking marker\n"
+            "- [ ] Run `python3 scripts/check_upstream.py --update` to advance "
+            "tracking marker\n"
         )
 
     if github_output_path:

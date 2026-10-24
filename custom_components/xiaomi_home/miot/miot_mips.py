@@ -1376,7 +1376,8 @@ class MipsLocalClient(_MipsClient):
                 raise MIoTMipsError(f'gateway error: {err}')
             if 'code' in result_obj and result_obj['code'] != 0:
                 raise MIoTMipsError(
-                    f"gateway error ({result_obj['code']}): {result_obj.get('message', 'unknown error')}"
+                    f"gateway error ({result_obj['code']}): "
+                    f"{result_obj.get('message', 'unknown error')}"
                 )
 
         dev_list = result_obj.get('devList') if isinstance(result_obj,
@@ -1426,7 +1427,8 @@ class MipsLocalClient(_MipsClient):
                 raise MIoTMipsError(f'gateway error: {err}')
             if 'code' in result_obj and result_obj['code'] != 0:
                 raise MIoTMipsError(
-                    f"gateway error ({result_obj['code']}): {result_obj.get('message', 'unknown error')}"
+                    f"gateway error ({result_obj['code']}): "
+                    f"{result_obj.get('message', 'unknown error')}"
                 )
         if not isinstance(result_obj,
                           dict) or 'result' not in result_obj or not isinstance(
@@ -1541,7 +1543,8 @@ class MipsLocalClient(_MipsClient):
             if req.on_reply:
                 try:
                     req.on_reply(
-                        '{"error":{"code":-10001, "message":"mips disconnected"}}',
+                        '{"error":{"code":-10001, "message":"mips '
+                        'disconnected"}}',
                         req.on_reply_ctx)
                 except Exception as err:  # pylint: disable=broad-exception-caught
                     self.log_debug(

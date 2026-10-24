@@ -305,7 +305,8 @@ class MIoTHttpClient:
             res_obj: dict = json.loads(res_str)
         except json.JSONDecodeError:
             raise MIoTHttpError(
-                f'mihome api post failed, invalid JSON response: {res_str[:100]}'
+                'mihome api post failed, invalid JSON response: '
+                f'{res_str[:100]}'
             )
 
         if res_obj.get('code', None) != 0:

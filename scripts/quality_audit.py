@@ -51,7 +51,8 @@ def check_chinese_policy() -> bool:
     violations = scan_for_chinese(WORKSPACE_ROOT)
     if violations:
         print(
-            f"      [FAILED] Found {len(violations)} lines containing literal Chinese characters:"
+            f"      [FAILED] Found {len(violations)} lines containing literal "
+            "Chinese characters:"
         )
         for relpath, idx, sample in violations[:10]:
             print(f"        - {relpath}:{idx}: {sample}")
@@ -59,7 +60,8 @@ def check_chinese_policy() -> bool:
             print(f"        ... and {len(violations) - 10} more.")
         return False
     print(
-        "      [PASSED] 0 literal Chinese characters found across all Python and Markdown files."
+        "      [PASSED] 0 literal Chinese characters found across all Python "
+        "and Markdown files."
     )
     return True
 
