@@ -1,4 +1,11 @@
 # CHANGELOG
+## Unreleased
+### Fixed
+- Cloud devices whose ID contains a literal `#` can subscribe again: the Xiaomi cloud client accepts the hash inside the device ID segment of its topic filters, while all other MQTT validation stays unchanged. Contributed by @Blueve (XiaoMi/ha_xiaomi_home#1823).
+- MQTT reconnects are coalesced: two failure callbacks for one attempt no longer replace the scheduled retry and double the backoff, and a connection exception no longer falls through to an unrelated error. Transient connection losses log at DEBUG, a lasting outage warns after 120 seconds (at most every 30 minutes) and its recovery is logged once. Contributed by @Wuty-zju (XiaoMi/ha_xiaomi_home#1836).
+- Disconnect codes are classified by their meaning: client code 4 ("no connection") and broker reason code 4 are no longer reported as rejected credentials.
+- Sensor and text entities keep the full value of strings longer than 255 characters in a `value` attribute (the state is still cut at 255), for JSON properties such as a vacuum's cleaning records. The attribute is excluded from the recorder. Contributed by @MGrin (XiaoMi/ha_xiaomi_home#1814).
+
 ## v0.5.3 (Mod)
 ### Fixed
 - Security: OAuth token refresh no longer logs the new credentials, and token endpoint and user profile errors no longer embed the raw response body (tokens, personal data) that could reach logs and diagnostics. Contributed by @Wuty-zju (XiaoMi/ha_xiaomi_home#1835), extended to the remaining error paths of this fork.
