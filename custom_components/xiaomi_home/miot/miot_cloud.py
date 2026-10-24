@@ -116,18 +116,20 @@ class MIoTOauthClient:
                 f'invalid http status code, {http_res.status}')
 
         res_str = await http_res.text()
+        # The token response carries credentials, never put it in errors
         try:
             res_obj = json.loads(res_str)
         except json.JSONDecodeError:
-            raise MIoTOauthError(f'invalid http response (not JSON), {res_str}')
-            
+            raise MIoTOauthError('invalid http response (not JSON)')
+
         if not res_obj:
-            raise MIoTOauthError(f'empty http response, {res_str}')
-            
+            raise MIoTOauthError('empty http response')
+
         if res_obj.get('code', None) != 0:
-            err_desc = res_str
+            err_desc = f'code {res_obj.get("code", None)}'
             if 'result' in res_obj and isinstance(res_obj['result'], dict):
-                err_desc = res_obj['result'].get('error_description', res_str)
+                err_desc = res_obj['result'].get(
+                    'error_description', err_desc)
             raise MIoTOauthError(f'oauth API error: {err_desc}')
             
         if (
@@ -333,7 +335,10 @@ class MIoTHttpClient:
             or 'data' not in res_obj
             or 'miliaoNick' not in res_obj['data']
         ):
-            raise MIoTOauthError(f'invalid http response data, {res_str}')
+            # The profile response carries personal data, keep it out
+            raise MIoTOauthError(
+                'invalid http response data, code '
+                f'{res_obj.get("code", None) if res_obj else None}')
 
         return res_obj['data']
 
