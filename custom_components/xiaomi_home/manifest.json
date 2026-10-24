@@ -21,7 +21,7 @@
         "numpy",
         "psutil"
     ],
-    "version": "20261024r37",
+    "version": "20261024r38",
     "zeroconf": [
         "_miot-central._tcp.local."
     ]

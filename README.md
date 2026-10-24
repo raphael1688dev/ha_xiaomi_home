@@ -176,7 +176,12 @@ Report problems in the [issue tracker](https://github.com/raphael1688dev/ha_xiao
 
 The most recent releases are listed below. Older versions are in the [CHANGELOG](./CHANGELOG.md) and on the [Releases](https://github.com/raphael1688dev/ha_xiaomi_home/releases) page.
 
-### Version 20261024r37 (v0.5.4 Mod) — Latest
+### Version 20261024r38 (v0.5.5 Mod) — Latest
+- **Cloud Broker Failover**: When one node behind the cloud MQTT broker name fails the TLS handshake (seen on the Singapore broker as `UNEXPECTED_EOF_WHILE_READING`), the integration connects through the next address instead of staying offline.
+- **Clearer Outage Logs**: Connection errors during an outage log at DEBUG, and the single "connection remains unavailable" warning names the last error. Subscribing while disconnected is no longer reported as an error.
+- **README**: Rewritten to match the current fork, with troubleshooting tips and a corrected license description.
+
+### Version 20261024r37 (v0.5.4 Mod)
 - **Cloud Devices With `#` in Their ID**: These devices can subscribe to property, event and state updates again. Contributed by @Blueve.
 - **Steadier MQTT Reconnects**: One failed attempt schedules one retry, transient losses stay at DEBUG, and a lasting outage warns after 120 seconds and logs its recovery. Contributed by @Wuty-zju; disconnect codes are now classified by their actual meaning.
 - **Long String Values**: Sensor and text entities keep the full value of strings over 255 characters in a `value` attribute, excluded from the recorder. Contributed by @MGrin.

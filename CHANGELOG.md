@@ -1,8 +1,11 @@
 # CHANGELOG
-## Unreleased
+## v0.5.5 (Mod)
 ### Fixed
 - The cloud MQTT connection no longer stays down when one node behind the broker name fails the TLS handshake (seen on `sg-ha.mqtt.io.mi.com`, which logged `UNEXPECTED_EOF_WHILE_READING`): every resolved address is tried, least recently failed first, with SNI and certificate checks still on the broker name.
 - Connection errors during an outage log at DEBUG, and the single "connection remains unavailable" warning now names the last error. Subscribing while disconnected is no longer logged as an error, since those topics are subscribed when the connection is back.
+
+### Changed
+- The README is rewritten to match the current fork: features, control modes, troubleshooting and credits. Its license section now describes Xiaomi's non-commercial license in LICENSE.md instead of Apache 2.0; the license itself is unchanged.
 
 ## v0.5.4 (Mod)
 ### Fixed
