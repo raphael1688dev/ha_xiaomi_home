@@ -21,6 +21,7 @@ from paho.mqtt.client import (
     Client,
     MQTTv5,
     MQTTMessage)
+from paho.mqtt.reasoncodes import ReasonCode
 
 # pylint: disable=relative-beyond-top-level
 from .common import MIoTMatcher
@@ -32,6 +33,10 @@ from .const import (
 from .miot_error import MIoTErrorCode, MIoTMipsError
 
 _LOGGER = logging.getLogger(__name__)
+
+# Broker reason codes that mean the credentials were rejected
+_MQTT_AUTH_REASONS = frozenset({
+    'Bad user name or password', 'Bad username or password', 'Not authorized'})
 
 
 class _MipsMsgTypeOptions(Enum):
@@ -670,14 +675,16 @@ class _MipsClient(ABC):
 
     def __on_disconnect(self,  client, user_data, rc, props) -> None:
         if self._mqtt_state:
-            # Common disconnect codes: 0 (clean), 7 (connection lost), 16
-            # (server disconnect), None
-            is_auth_error = rc in (4, 5) or str(rc) in (
-                '4', '5', 'Bad username or password', 'Not authorized')
-            if is_auth_error:
+            # rc is a client error code (4 no connection, 7 connection lost,
+            # 16 keepalive timeout) or a ReasonCode sent by the broker.
+            # Transient losses are retried quietly; a lasting outage is
+            # reported by __mips_try_reconnect.
+            if rc == 0:
+                log = self.log_info
+            elif str(rc) in _MQTT_AUTH_REASONS:
                 log = self.log_warning
-            elif rc in (MQTT_ERR_NO_CONN, MQTT_ERR_CONN_LOST,
-                        MQTT_ERR_KEEPALIVE):
+            elif not isinstance(rc, ReasonCode) and rc in (
+                    MQTT_ERR_NO_CONN, MQTT_ERR_CONN_LOST, MQTT_ERR_KEEPALIVE):
                 log = self.log_debug
             else:
                 log = self.log_info
