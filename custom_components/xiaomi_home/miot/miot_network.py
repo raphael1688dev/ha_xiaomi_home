@@ -352,7 +352,8 @@ class MIoTNetwork:
                 else:
                     # Update
                     old_info = self._network_info[name]
-                    if old_info.ip != info.ip or old_info.netmask != info.netmask:
+                    if (old_info.ip != info.ip
+                            or old_info.netmask != info.netmask):
                         self._network_info[name] = info
                         self.__call_network_info_change(InterfaceStatus.UPDATE,
                                                         info)

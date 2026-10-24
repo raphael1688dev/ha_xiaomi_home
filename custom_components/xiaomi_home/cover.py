@@ -108,7 +108,8 @@ class Cover(MIoTServiceEntity, CoverEntity):
                         self._attr_supported_features |= CoverEntityFeature.OPEN
                         self._prop_motor_value_open = item.value
                     elif item.name in {'close', 'down'}:
-                        self._attr_supported_features |= CoverEntityFeature.CLOSE
+                        self._attr_supported_features |= (
+                            CoverEntityFeature.CLOSE)
                         self._prop_motor_value_close = item.value
                     elif item.name in {'pause', 'stop'}:
                         self._attr_supported_features |= CoverEntityFeature.STOP
@@ -214,7 +215,8 @@ class Cover(MIoTServiceEntity, CoverEntity):
 
         # Optimized: Protect against ZeroDivisionError and handle min offset
         # calculation
-        if self._prop_position_value_range and self._prop_position_value_range > 0:
+        if (self._prop_position_value_range
+                and self._prop_position_value_range > 0):
             pos_val = (pos * self._prop_position_value_range /
                        100) + (self._prop_position_value_min or 0)
             pos = round(pos_val)
@@ -244,7 +246,8 @@ class Cover(MIoTServiceEntity, CoverEntity):
 
         # Optimized: Protect against ZeroDivisionError and calculate position
         # using min offset
-        if self._prop_position_value_range and self._prop_position_value_range > 0:
+        if (self._prop_position_value_range
+                and self._prop_position_value_range > 0):
             pos = round((pos_val - (self._prop_position_value_min or 0)) * 100 /
                         self._prop_position_value_range)
         else:
@@ -261,7 +264,7 @@ class Cover(MIoTServiceEntity, CoverEntity):
         """Return if the cover is opening."""
         if self._prop_status and self._prop_status_opening:
             val = self.get_prop_value(prop=self._prop_status)
-            return val in self._prop_status_opening if val is not None else False
+            return val is not None and val in self._prop_status_opening
         return self._prop_pos_opening
 
     @property
@@ -269,7 +272,7 @@ class Cover(MIoTServiceEntity, CoverEntity):
         """Return if the cover is closing."""
         if self._prop_status and self._prop_status_closing:
             val = self.get_prop_value(prop=self._prop_status)
-            return val in self._prop_status_closing if val is not None else False
+            return val is not None and val in self._prop_status_closing
         return self._prop_pos_closing
 
     @property

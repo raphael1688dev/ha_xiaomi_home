@@ -76,7 +76,8 @@ async def _async_migrate_legacy_entity_ids(
     entries_snapshot = list(
         entity_registry.async_entries_for_config_entry(er, entry_id))
     for entry in entries_snapshot:
-        if entry.domain in ACTION_DOMAINS and entry.unique_id == entry.entity_id:
+        if (entry.domain in ACTION_DOMAINS
+                and entry.unique_id == entry.entity_id):
             # Old format: unique_id == entity_id (name-based). Remove so
             # platform can
             # freshly register with stable DID-based entity_id + new unique_id.

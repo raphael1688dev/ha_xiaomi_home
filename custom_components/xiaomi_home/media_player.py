@@ -59,12 +59,14 @@ class FeatureTurnOn(_FeatureBase):
         self._action_turn_on = None
         for prop in entity_data.props:
             if prop.name == 'on':
-                self._attr_supported_features |= MediaPlayerEntityFeature.TURN_ON
+                self._attr_supported_features |= (
+                    MediaPlayerEntityFeature.TURN_ON)
                 self._prop_on = prop
                 return
         for action in entity_data.actions:
             if action.name == 'turn-on':
-                self._attr_supported_features |= MediaPlayerEntityFeature.TURN_ON
+                self._attr_supported_features |= (
+                    MediaPlayerEntityFeature.TURN_ON)
                 self._action_turn_on = action
                 return
 
@@ -86,12 +88,14 @@ class FeatureTurnOff(_FeatureBase):
         self._action_turn_off = None
         for prop in entity_data.props:
             if prop.name == 'on':
-                self._attr_supported_features |= MediaPlayerEntityFeature.TURN_OFF
+                self._attr_supported_features |= (
+                    MediaPlayerEntityFeature.TURN_OFF)
                 self._prop_on = prop
                 return
         for action in entity_data.actions:
             if action.name == 'turn-off':
-                self._attr_supported_features |= MediaPlayerEntityFeature.TURN_OFF
+                self._attr_supported_features |= (
+                    MediaPlayerEntityFeature.TURN_OFF)
                 self._action_turn_off = action
                 return
 
@@ -111,8 +115,10 @@ class FeatureVolumeSet(_FeatureBase):
         self._prop_volume = None
         for prop in entity_data.props:
             if prop.name == 'volume':
-                self._attr_supported_features |= MediaPlayerEntityFeature.VOLUME_SET
-                self._attr_supported_features |= MediaPlayerEntityFeature.VOLUME_STEP
+                self._attr_supported_features |= (
+                    MediaPlayerEntityFeature.VOLUME_SET)
+                self._attr_supported_features |= (
+                    MediaPlayerEntityFeature.VOLUME_STEP)
                 self._prop_volume = prop
                 return
 
@@ -143,7 +149,8 @@ class FeatureVolumeMute(_FeatureBase):
         self._prop_mute = None
         for prop in entity_data.props:
             if prop.name == 'mute':
-                self._attr_supported_features |= MediaPlayerEntityFeature.VOLUME_MUTE
+                self._attr_supported_features |= (
+                    MediaPlayerEntityFeature.VOLUME_MUTE)
                 self._prop_mute = prop
                 return
 
@@ -227,7 +234,8 @@ class FeatureNextTrack(_FeatureBase):
         self._action_next = None
         for action in entity_data.actions:
             if action.name == 'next':
-                self._attr_supported_features |= MediaPlayerEntityFeature.NEXT_TRACK
+                self._attr_supported_features |= (
+                    MediaPlayerEntityFeature.NEXT_TRACK)
                 self._action_next = action
                 return
 
@@ -246,7 +254,8 @@ class FeaturePreviousTrack(_FeatureBase):
         self._action_previous = None
         for action in entity_data.actions:
             if action.name == 'previous':
-                self._attr_supported_features |= MediaPlayerEntityFeature.PREVIOUS_TRACK
+                self._attr_supported_features |= (
+                    MediaPlayerEntityFeature.PREVIOUS_TRACK)
                 self._action_previous = action
                 return
 
@@ -280,7 +289,8 @@ class FeatureSoundMode(_FeatureBase):
                 v: k for k, v in self._sound_mode_map.items()
             }
             self._attr_sound_mode_list = list(self._sound_mode_map.values())
-            self._attr_supported_features |= MediaPlayerEntityFeature.SELECT_SOUND_MODE
+            self._attr_supported_features |= (
+                MediaPlayerEntityFeature.SELECT_SOUND_MODE)
             self._prop_sound_mode = prop
 
     async def async_select_sound_mode(self, sound_mode: str) -> None:
@@ -325,7 +335,8 @@ class FeatureSource(_FeatureBase):
                 v: k for k, v in self._source_map.items()
             }
             self._attr_source_list = list(self._source_map.values())
-            self._attr_supported_features |= MediaPlayerEntityFeature.SELECT_SOURCE
+            self._attr_supported_features |= (
+                MediaPlayerEntityFeature.SELECT_SOURCE)
             self._prop_source = prop
 
     async def async_select_source(self, source: str) -> None:

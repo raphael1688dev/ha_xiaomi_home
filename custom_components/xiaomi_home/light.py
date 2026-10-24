@@ -151,7 +151,8 @@ class Light(MIoTServiceEntity, LightEntity):
                             break
             if mode_list:
                 for val, desc in mode_list.items():
-                    effect_name = f"Mode: {desc}" if desc in self._effect_map else desc
+                    effect_name = (
+                        f"Mode: {desc}" if desc in self._effect_map else desc)
                     self._effect_map[effect_name] = (prop, val)
                     self._effect_reverse_map[(prop, val)] = effect_name
                 self._attr_effect_list = list(self._effect_map.keys())

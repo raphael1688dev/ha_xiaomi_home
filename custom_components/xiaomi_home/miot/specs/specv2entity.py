@@ -16,7 +16,8 @@ from homeassistant.const import (EntityCategory, LIGHT_LUX, UnitOfEnergy,
 
 try:
     from homeassistant.const import UnitOfDensity  # type: ignore
-    CONCENTRATION_MICROGRAMS_PER_CUBIC_METER = UnitOfDensity.MICROGRAMS_PER_CUBIC_METER
+    CONCENTRATION_MICROGRAMS_PER_CUBIC_METER = (
+        UnitOfDensity.MICROGRAMS_PER_CUBIC_METER)
 except (ImportError, AttributeError):
     try:
         from homeassistant.const import CONCENTRATION_MICROGRAMS_PER_CUBIC_METER  # type: ignore
@@ -46,7 +47,7 @@ _RW = frozenset({'read', 'write'})
             '<service instance name>':{
                 'required':{
                     'properties': {
-                        '<property instance name>': frozenset<property access: str>
+                        '<property instance name>': frozenset<access: str>
                     },
                     'events': frozenset<event instance name: str>,
                     'actions': frozenset<action instance name: str>
@@ -62,7 +63,7 @@ _RW = frozenset({'read', 'write'})
             '<service instance name>':{
                 'required':{
                     'properties': {
-                        '<property instance name>': frozenset<property access: str>
+                        '<property instance name>': frozenset<access: str>
                     },
                     'events': frozenset<event instance name: str>,
                     'actions': frozenset<action instance name: str>

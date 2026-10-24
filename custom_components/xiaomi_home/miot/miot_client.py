@@ -231,7 +231,11 @@ class MIoTClient:
     def _create_tracked_task(
         self, coro: Coroutine[Any, Any, Any], name: Optional[str] = None
     ) -> asyncio.Task:
-        """Create an asyncio Task and retain a strong reference to prevent GC in Python 3.14+."""
+        """Create an asyncio Task and keep a strong reference to it.
+
+        Without the reference the task can be garbage collected before it
+        finishes (Python 3.14+).
+        """
         task = self._main_loop.create_task(coro, name=name)
         self._background_tasks.add(task)
         task.add_done_callback(self._background_tasks.discard)
@@ -1780,7 +1784,8 @@ class MIoTClient:
             return
         if refresh_timer:
             return
-        timer_delay = delay if delay is not None else REFRESH_GATEWAY_DEVICES_DELAY
+        timer_delay = (
+            delay if delay is not None else REFRESH_GATEWAY_DEVICES_DELAY)
         self._mips_local_state_changed_timers[group_id] = (
             self._main_loop.call_later(
                 timer_delay,

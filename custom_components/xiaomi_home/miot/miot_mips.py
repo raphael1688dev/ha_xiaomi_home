@@ -848,7 +848,8 @@ class MipsCloudClient(_MipsClient):
     @staticmethod
     def _get_topic(action: str, did: str, siid: Optional[int],
                    iid: Optional[int]) -> str:
-        return f'device/{did}/up/{action}/{"#" if siid is None or iid is None else f"{siid}/{iid}"}'
+        suffix = '#' if siid is None or iid is None else f'{siid}/{iid}'
+        return f'device/{did}/up/{action}/{suffix}'
 
     def _parse_msg(self, topic: str, payload: str,
                    required_keys: list[str]) -> Optional[dict]:
@@ -973,8 +974,8 @@ class MipsCloudClient(_MipsClient):
                     else MIoTDeviceState.OFFLINE, ctx)
 
         if did.startswith('blt.') or did.startswith('proxy.'):
-            # MIoT cloud may not publish BLE device or proxy gateway child device
-            # online/offline state message.
+            # MIoT cloud may not publish BLE device or proxy gateway child
+            # device online/offline state message.
             # Do not subscribe BLE device or proxy gateway child device
             # online/offline state.
             return True
@@ -1166,7 +1167,8 @@ class MipsLocalClient(_MipsClient):
     @staticmethod
     def _get_topic(action: str, did: str, siid: Optional[int],
                    iid: Optional[int]) -> str:
-        return f'appMsg/notify/iot/{did}/{action}/{"#" if siid is None or iid is None else f"{siid}.{iid}"}'
+        suffix = '#' if siid is None or iid is None else f'{siid}.{iid}'
+        return f'appMsg/notify/iot/{did}/{action}/{suffix}'
 
     def _parse_msg(self, topic: str, payload: str,
                    required_keys: list[str]) -> Optional[dict]:

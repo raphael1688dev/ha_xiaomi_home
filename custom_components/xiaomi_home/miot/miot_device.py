@@ -70,8 +70,10 @@ except Exception:
 
 try:
     from homeassistant.const import UnitOfDensity  # type: ignore
-    CONCENTRATION_MICROGRAMS_PER_CUBIC_METER = UnitOfDensity.MICROGRAMS_PER_CUBIC_METER
-    CONCENTRATION_MILLIGRAMS_PER_CUBIC_METER = UnitOfDensity.MILLIGRAMS_PER_CUBIC_METER
+    CONCENTRATION_MICROGRAMS_PER_CUBIC_METER = (
+        UnitOfDensity.MICROGRAMS_PER_CUBIC_METER)
+    CONCENTRATION_MILLIGRAMS_PER_CUBIC_METER = (
+        UnitOfDensity.MILLIGRAMS_PER_CUBIC_METER)
 except (ImportError, AttributeError):
     try:
         from homeassistant.const import (  # type: ignore
@@ -587,7 +589,8 @@ class MIoTDevice:
 
     @cached_property
     def _uid_prefix(self) -> str:
-        return f'{self._model_strs[0][:9]}_{self.did_tag}_{self._model_strs[-1][:20]}'
+        return (f'{self._model_strs[0][:9]}_{self.did_tag}_'
+                f'{self._model_strs[-1][:20]}')
 
     @cached_property
     def entity_id_prefix(self) -> str:
@@ -626,7 +629,7 @@ class MIoTDevice:
         return f'{self._uid_prefix}_{slugify_name(spec_name)}_a_{siid}_{aiid}'
 
     def get_expected_entity_ids(self) -> dict[str, str]:
-        """Generate a mapping of unique_id -> expected target entity_id for all entities of this device."""
+        """Map the unique_id of every entity of this device to its entity_id."""
         mapping = {}
         seen_target_ids = set()
 
@@ -666,14 +669,20 @@ class MIoTDevice:
                         if spec_item.description.lower() == platform:
                             attr_name = None
                         else:
-                            attr_name = f'{"* "if spec_item.proprietary else ""}{spec_item.description_trans}'
+                            attr_name = (
+                                f'{"* "if spec_item.proprietary else ""}'
+                                f'{spec_item.description_trans}')
                     else:
-                        attr_name = f'{"* "if spec_item.proprietary else ""}{spec_item.service.description_trans} {spec_item.description_trans}'
+                        attr_name = (
+                            f'{"* "if spec_item.proprietary else ""}'
+                            f'{spec_item.service.description_trans} '
+                            f'{spec_item.description_trans}')
 
                     domain = platform
                     if attr_name:
                         clean_name = attr_name.replace("* ", "")
-                        target_eid = f"{domain}.{self.entity_id_prefix}_{slugify_name(clean_name)}"
+                        target_eid = (f"{domain}.{self.entity_id_prefix}_"
+                                      f"{slugify_name(clean_name)}")
                     else:
                         target_eid = f"{domain}.{self.entity_id_prefix}"
 
@@ -683,15 +692,15 @@ class MIoTDevice:
                     while target_eid in seen_target_ids:
                         target_eid = f"{original_target_eid}_{spec_item.iid}"
                         if target_eid in seen_target_ids:
-                            target_eid = f"{original_target_eid}_{spec_item.iid}_{counter}"
+                            target_eid = (f"{original_target_eid}_"
+                                          f"{spec_item.iid}_{counter}")
                             counter += 1
 
                     seen_target_ids.add(target_eid)
                     mapping[uid] = target_eid
 
-        # Device main entity
-        mapping[self.gen_device_unique_id(
-        )] = "unknown"  # Device main entity doesn't have a fixed domain here, handled specially if needed
+        # Device main entity, it has no fixed domain here
+        mapping[self.gen_device_unique_id()] = "unknown"
 
         _add_mapping(self.entity_list, 'service', self.gen_service_unique_id,
                      True)
@@ -1085,7 +1094,8 @@ class MIoTServiceEntity(Entity):
         domain = ha_domain or self.entity_data.platform
         if self._attr_name:
             clean_name = self._attr_name.replace("* ", "")
-            self.entity_id = f"{domain}.{miot_device.entity_id_prefix}_{slugify_name(clean_name)}"
+            self.entity_id = (f"{domain}.{miot_device.entity_id_prefix}_"
+                              f"{slugify_name(clean_name)}")
         else:
             self.entity_id = f"{domain}.{miot_device.entity_id_prefix}"
 
@@ -1419,7 +1429,9 @@ class MIoTPropertyEntity(Entity):
         # name
         from .common import slugify_name
         clean_name = self._attr_name.replace("* ", "")
-        self.entity_id = f"{ha_domain or spec.platform}.{miot_device.entity_id_prefix}_{slugify_name(clean_name)}"
+        self.entity_id = (
+            f"{ha_domain or spec.platform}.{miot_device.entity_id_prefix}_"
+            f"{slugify_name(clean_name)}")
 
         _LOGGER.info(
             'new miot property entity, %s, %s, %s, %s, %s, entity_id: %s',
@@ -1591,7 +1603,8 @@ class MIoTEventEntity(Entity):
         # name
         from .common import slugify_name
         clean_name = self._attr_name.replace("* ", "")
-        self.entity_id = f"{spec.platform}.{miot_device.entity_id_prefix}_{slugify_name(clean_name)}"
+        self.entity_id = (f"{spec.platform}.{miot_device.entity_id_prefix}_"
+                          f"{slugify_name(clean_name)}")
 
         self._arguments_map = {}
         for prop in spec.argument:
@@ -1716,7 +1729,9 @@ class MIoTActionEntity(Entity):
         # name
         from .common import slugify_name
         clean_name = self._attr_name.replace("* ", "")
-        self.entity_id = f"{ha_domain or spec.platform}.{miot_device.entity_id_prefix}_{slugify_name(clean_name)}"
+        self.entity_id = (
+            f"{ha_domain or spec.platform}.{miot_device.entity_id_prefix}_"
+            f"{slugify_name(clean_name)}")
 
         self._in_map = {}
         for prop in spec.in_:
