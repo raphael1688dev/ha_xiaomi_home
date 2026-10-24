@@ -317,7 +317,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                         next_step_id='oauth_error')
                 return self.async_show_progress_done(
                     next_step_id='config_options')
-        except Exception as err:
+        except Exception as err:  # pylint: disable=broad-exception-caught
             _LOGGER.error(
                 'async_step_oauth error, %s, %s',
                 err, traceback.format_exc())
@@ -991,7 +991,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     port=8883) != 0:
                     raise RuntimeError('mqtt connect error')
                 mqtt_client.disconnect()
-            except Exception as err:
+            except Exception:  # pylint: disable=broad-exception-caught
                 _LOGGER.error('try connect mqtt broker error, %s',
                               traceback.format_exc())
                 return await self.__show_network_detect_config_form(

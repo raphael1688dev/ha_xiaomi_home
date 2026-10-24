@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+"""Constants of the Xiaomi Home integration."""
 from types import MappingProxyType
 
 DOMAIN: str = 'xiaomi_home'

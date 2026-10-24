@@ -49,6 +49,7 @@ class _FeatureBase(MIoTServiceEntity, MediaPlayerEntity):
 
 
 class FeatureTurnOn(_FeatureBase):
+    """Media player turn on feature."""
     _prop_on: Optional[MIoTSpecProperty]
     _action_turn_on: Optional[MIoTSpecAction]
 
@@ -78,6 +79,7 @@ class FeatureTurnOn(_FeatureBase):
 
 
 class FeatureTurnOff(_FeatureBase):
+    """Media player turn off feature."""
     _prop_on: Optional[MIoTSpecProperty]
     _action_turn_off: Optional[MIoTSpecAction]
 
@@ -107,6 +109,7 @@ class FeatureTurnOff(_FeatureBase):
 
 
 class FeatureVolumeSet(_FeatureBase):
+    """Media player volume set and step feature."""
     _prop_volume: Optional[MIoTSpecProperty]
 
     def __init__(self, miot_device: MIoTDevice,
@@ -141,6 +144,7 @@ class FeatureVolumeSet(_FeatureBase):
 
 
 class FeatureVolumeMute(_FeatureBase):
+    """Media player volume mute feature."""
     _prop_mute: Optional[MIoTSpecProperty]
 
     def __init__(self, miot_device: MIoTDevice,
@@ -169,6 +173,7 @@ class FeatureVolumeMute(_FeatureBase):
 
 
 class FeaturePlay(_FeatureBase):
+    """Media player play feature."""
     _action_play: Optional[MIoTSpecAction]
 
     def __init__(self, miot_device: MIoTDevice,
@@ -188,6 +193,7 @@ class FeaturePlay(_FeatureBase):
 
 
 class FeaturePause(_FeatureBase):
+    """Media player pause feature."""
     _action_pause: Optional[MIoTSpecAction]
 
     def __init__(self, miot_device: MIoTDevice,
@@ -207,6 +213,7 @@ class FeaturePause(_FeatureBase):
 
 
 class FeatureStop(_FeatureBase):
+    """Media player stop feature."""
     _action_stop: Optional[MIoTSpecAction]
 
     def __init__(self, miot_device: MIoTDevice,
@@ -226,6 +233,7 @@ class FeatureStop(_FeatureBase):
 
 
 class FeatureNextTrack(_FeatureBase):
+    """Media player next track feature."""
     _action_next: Optional[MIoTSpecAction]
 
     def __init__(self, miot_device: MIoTDevice,
@@ -246,6 +254,7 @@ class FeatureNextTrack(_FeatureBase):
 
 
 class FeaturePreviousTrack(_FeatureBase):
+    """Media player previous track feature."""
     _action_previous: Optional[MIoTSpecAction]
 
     def __init__(self, miot_device: MIoTDevice,
@@ -266,6 +275,7 @@ class FeaturePreviousTrack(_FeatureBase):
 
 
 class FeatureSoundMode(_FeatureBase):
+    """Media player sound mode selection feature."""
     _prop_sound_mode: Optional[MIoTSpecProperty]
     _sound_mode_map: Optional[dict[Any, Any]]
     _sound_mode_reverse_map: dict[Any, Any]
@@ -311,6 +321,7 @@ class FeatureSoundMode(_FeatureBase):
 
 
 class FeatureSource(_FeatureBase):
+    """Media player source selection feature."""
     _prop_source: Optional[MIoTSpecProperty]
     _source_map: Optional[dict[Any, Any]]
     _source_reverse_map: dict[Any, Any]
@@ -357,6 +368,7 @@ class FeatureSource(_FeatureBase):
 
 
 class FeatureState(_FeatureBase):
+    """Media player playing state feature."""
     _prop_playing_state: Optional[MIoTSpecProperty]
     _playing_state_map: Optional[dict[Any, Any]]
 

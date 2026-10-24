@@ -50,7 +50,7 @@ class _MIoTSpecMultiLang:
         try:
             trans_cloud = await self.__get_multi_lang_async(urn)
             trans_cache = trans_cloud.get(self._lang, {})
-        except Exception as err:
+        except Exception as err:  # pylint: disable=broad-exception-caught
             trans_cloud = {}
             _LOGGER.info('get multi lang from cloud failed, %s, %s\n%s', urn,
                          err, traceback.format_exc())
@@ -62,7 +62,7 @@ class _MIoTSpecMultiLang:
                                                         )  # type: ignore
             if (isinstance(trans_local, dict) and self._lang in trans_local):
                 trans_cache.update(trans_local[self._lang])
-        except Exception as err:
+        except Exception as err:  # pylint: disable=broad-exception-caught
             trans_local = {}
             _LOGGER.info('get multi lang from local failed, %s, %s\n%s', urn,
                          err, traceback.format_exc())

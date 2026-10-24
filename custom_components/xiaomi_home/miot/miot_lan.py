@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+"""MIoT LAN control of IP devices on the local network."""
 import json
 import time
 import asyncio
@@ -240,7 +240,7 @@ class _MIoTLanDevice:
                 handler=self.__subscribe_handler,
                 handler_ctx=sub_ts,
                 timeout_ms=5000)
-        except Exception as err:
+        except Exception as err:  # pylint: disable=broad-exception-caught
             _LOGGER.exception('subscribe device error, %s', err)
 
         self._sub_locked = False
@@ -571,7 +571,7 @@ class MIoTLan:
                 self._profile_models = await self._main_loop.run_in_executor(
                     None, load_yaml_file,
                     gen_absolute_path(self.PROFILE_MODELS_FILE))
-            except Exception as err:
+            except Exception as err:  # pylint: disable=broad-exception-caught
                 _LOGGER.exception('load profile models error, %s', err)
                 self._profile_models = {}
             self._internal_loop = asyncio.new_event_loop()
@@ -887,7 +887,7 @@ class MIoTLan:
 
             # Apply format cast if needed
             if prop_cfg.get('format') == 'onoff':
-                return val == 'on' or val == True
+                return val in ('on', True)
 
             return val
 
@@ -930,7 +930,7 @@ class MIoTLan:
                     params = new_params
                 else:
                     params = [new_params]
-            except Exception as err:
+            except Exception as err:  # pylint: disable=broad-exception-caught
                 _LOGGER.exception(
                     "Failed to execute set_template lambda for %s %s: %s",
                     device.did, prop_key, err)
@@ -1157,7 +1157,7 @@ class MIoTLan:
                 handler=handler,
                 handler_ctx=handler_ctx,
                 timeout_ms=timeout_ms)
-        except Exception as err:
+        except Exception as err:  # pylint: disable=broad-exception-caught
             _LOGGER.exception('send2device error, %s', err)
             handler({
                 'code': MIoTErrorCode.CODE_INTERNAL_ERROR.value,
@@ -1309,7 +1309,7 @@ class MIoTLan:
             self._local_port = self._local_port or sock.getsockname()[1]
             _LOGGER.info(
                 'created socket, %s, %s', if_name, self._local_port)
-        except Exception as err:
+        except Exception as err:  # pylint: disable=broad-exception-caught
             _LOGGER.exception('create socket error, %s, %s', if_name, err)
 
     def __deinit_socket(self) -> None:
@@ -1338,7 +1338,7 @@ class MIoTLan:
                 return
             self.__raw_message_handler(
                 self._read_buffer[:data_len], data_len, addr[0], ctx[0])
-        except Exception as err:
+        except Exception as err:  # pylint: disable=broad-exception-caught
             _LOGGER.exception('socket read handler error, %s', err)
 
     def __raw_message_handler(
@@ -1375,14 +1375,14 @@ class MIoTLan:
                 device.subscribed = False
                 try:
                     device.subscribe()
-                except Exception as err:
+                except Exception as err:  # pylint: disable=broad-exception-caught
                     _LOGGER.exception('subscribe device error, %s, %s', did,
                                       err)
         if data_len > self.OT_PROBE_LEN:
             # handle device message
             try:
                 decrypted_data = device.decrypt_packet(data)
-            except Exception as err:
+            except Exception as err:  # pylint: disable=broad-exception-caught
                 _LOGGER.exception('decrypt packet error, %s, %s', did, err)
                 return
 
@@ -1392,7 +1392,7 @@ class MIoTLan:
 
             try:
                 self.__message_handler(did, decrypted_data)
-            except Exception as err:
+            except Exception as err:  # pylint: disable=broad-exception-caught
                 _LOGGER.exception('handle lan message error, %s, %s', did, err)
                 return
 
@@ -1493,7 +1493,7 @@ class MIoTLan:
                     # routing handles it
                     for if_name in self._broadcast_socks:
                         self.ping(if_name=if_name, target_ip=device.ip)
-        except Exception as err:
+        except Exception as err:  # pylint: disable=broad-exception-caught
             # Optimized: Removed redundant pass statement
             _LOGGER.error('ping device error, %s', err)
 

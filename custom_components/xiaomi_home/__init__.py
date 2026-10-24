@@ -68,15 +68,14 @@ async def _async_migrate_legacy_entity_ids(
     # In the original Xiaomi code, MIoTActionEntity used unique_id = entity_id
     # (name-based).
     # Since r17 we use gen_action_unique_id (DID-based). The old entries can't
-    # be matched by
-    # the new unique_id, so they become orphans while new correctly-named
-    # entities are created
-    # alongside them. Clean up those orphans first so there's no conflict.
-    ACTION_DOMAINS = {'notify', 'button'}
+    # be matched by the new unique_id, so they become orphans while new
+    # correctly-named entities are created alongside them. Clean up those
+    # orphans first so there's no conflict.
+    action_domains = {'notify', 'button'}
     entries_snapshot = list(
         entity_registry.async_entries_for_config_entry(er, entry_id))
     for entry in entries_snapshot:
-        if (entry.domain in ACTION_DOMAINS
+        if (entry.domain in action_domains
                 and entry.unique_id == entry.entity_id):
             # Old format: unique_id == entity_id (name-based). Remove so
             # platform can

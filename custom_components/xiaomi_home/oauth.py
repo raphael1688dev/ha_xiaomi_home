@@ -60,7 +60,7 @@ async def _handle_oauth_webhook(hass, webhook_id, request):
                 success=True,
             ), content_type='text/html')
 
-    except Exception as err:
+    except Exception as err:  # pylint: disable=broad-exception-caught
         _LOGGER.error("oauth webhook error: %s", traceback.format_exc())
         fail_trans: dict = {}
         err_msg: str = str(err)

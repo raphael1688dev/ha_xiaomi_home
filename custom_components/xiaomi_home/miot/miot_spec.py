@@ -283,9 +283,9 @@ class _SpecStdLib:
                 results = await asyncio.gather(*tasks)
 
                 # Helper function for merging results
-                def merge_results(res_idx: int, target_key: str):
-                    if results[res_idx]:
-                        for k, v in results[res_idx].items():
+                def merge_results(result: Optional[dict], target_key: str):
+                    if result:
+                        for k, v in result.items():
                             if k in std_libs[target_key]:
                                 std_libs[target_key][k].update(v)
                             else:
@@ -294,15 +294,15 @@ class _SpecStdLib:
                         _LOGGER.error('get external std lib failed, %s',
                                       target_key)
 
-                merge_results(0, 'devices')
-                merge_results(1, 'services')
-                merge_results(2, 'properties')
-                merge_results(3, 'events')
-                merge_results(4, 'actions')
-                merge_results(5, 'values')
+                merge_results(results[0], 'devices')
+                merge_results(results[1], 'services')
+                merge_results(results[2], 'properties')
+                merge_results(results[3], 'events')
+                merge_results(results[4], 'actions')
+                merge_results(results[5], 'values')
 
                 return std_libs
-            except Exception as err:
+            except Exception as err:  # pylint: disable=broad-exception-caught
                 _LOGGER.error('update spec std lib error, retry, %d, %s, %s',
                               index, err, traceback.format_exc())
         return None
@@ -591,7 +591,7 @@ class MIoTSpecProperty(_MIoTSpecBase):
             return src_value
         try:
             return safe_eval(self.expr, src_value)
-        except Exception as err:
+        except Exception as err:  # pylint: disable=broad-exception-caught
             _LOGGER.error('eval expression error, %s, %s, %s, %s, %s', self.iid,
                           src_value, self.expr, err, traceback.format_exc())
             return src_value
@@ -839,7 +839,7 @@ class _SpecBoolTranslation:
                 None, load_yaml_file,
                 os.path.join(os.path.dirname(os.path.abspath(__file__)),
                              self._BOOL_TRANS_FILE))
-        except Exception as err:
+        except Exception as err:  # pylint: disable=broad-exception-caught
             _LOGGER.error('bool trans, load file error, %s, %s', err,
                           traceback.format_exc())
             return
@@ -920,7 +920,7 @@ class _SpecFilter:
                 None, load_yaml_file,
                 os.path.join(os.path.dirname(os.path.abspath(__file__)),
                              self._SPEC_FILTER_FILE))
-        except Exception as err:
+        except Exception as err:  # pylint: disable=broad-exception-caught
             _LOGGER.error('spec filter, load file error, %s, %s', err,
                           traceback.format_exc())
             return
@@ -1005,7 +1005,7 @@ class _SpecAdd:
                 None, load_json_file,
                 os.path.join(os.path.dirname(os.path.abspath(__file__)),
                              self._SPEC_ADD_FILE))
-        except Exception as err:
+        except Exception as err:  # pylint: disable=broad-exception-caught
             _LOGGER.error('spec add, load file error, %s, %s', err,
                           traceback.format_exc())
             return
@@ -1057,7 +1057,7 @@ class _SpecModify:
                 None, load_yaml_file,
                 os.path.join(os.path.dirname(os.path.abspath(__file__)),
                              self._SPEC_MODIFY_FILE))
-        except Exception as err:
+        except Exception as err:  # pylint: disable=broad-exception-caught
             _LOGGER.error('spec modify, load file error, %s, %s', err,
                           traceback.format_exc())
             return
@@ -1227,7 +1227,7 @@ class MIoTSpecParser:
         for index in range(3):
             try:
                 return await self.__parse(urn=urn)
-            except Exception as err:
+            except Exception as err:  # pylint: disable=broad-exception-caught
                 _LOGGER.error('parse error, retry, %d, %s, %s, %s', index, urn,
                               err, traceback.format_exc())
         return None

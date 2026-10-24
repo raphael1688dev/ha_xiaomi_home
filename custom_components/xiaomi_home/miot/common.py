@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+"""Common utilities: HTTP helpers, file loading and name slugify."""
 import asyncio
 import json
 import logging
@@ -98,6 +98,7 @@ class MIoTHttp:
         session: Optional[aiohttp.ClientSession] = None
     ) -> Optional[str]:
         """Async GET utilizing aiohttp for Home Assistant optimization."""
+        del loop  # Kept for API compatibility
         session_to_use = session or MIoTHttp._shared_session
         try:
             if session_to_use:
@@ -142,6 +143,7 @@ class MIoTHttp:
         session: Optional[aiohttp.ClientSession] = None
     ) -> Optional[str]:
         """Async POST utilizing aiohttp for Home Assistant optimization."""
+        del loop  # Kept for API compatibility
         session_to_use = session or MIoTHttp._shared_session
         req_headers = headers or {}
         if data and 'Content-Type' not in req_headers:

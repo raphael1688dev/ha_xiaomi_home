@@ -27,7 +27,7 @@ from .const import (
     DEFAULT_COVER_DEAD_ZONE_WIDTH)
 from .miot_cloud import MIoTHttpClient, MIoTOauthClient
 from .miot_error import (
-    MIoTClientError, MIoTHttpError, MIoTErrorCode, MIoTMipsError,
+    MIoTClientError, MIoTHttpError, MIoTErrorCode,
     MIoTOauthError)
 from .miot_mips import (
     MIoTDeviceState, MipsCloudClient, MipsDeviceState,
@@ -1374,7 +1374,7 @@ class MIoTClient:
         try:
             gw_list = await mips.get_dev_list_async(
                 payload=json.dumps(payload))
-        except (MIoTMipsError, Exception) as err:
+        except Exception as err:  # pylint: disable=broad-exception-caught
             _LOGGER.warning(
                 'local mips get_dev_list_async failed, %s: %s', did_list, err)
             return
@@ -1737,7 +1737,7 @@ class MIoTClient:
         try:
             gw_list = await mips.get_dev_list_async(
                 payload=json.dumps(payload))
-        except (MIoTMipsError, Exception) as err:
+        except Exception as err:  # pylint: disable=broad-exception-caught
             retries = self._mips_local_refresh_retry_counts.get(group_id, 0) + 1
             self._mips_local_refresh_retry_counts[group_id] = retries
             retry_delay = min(

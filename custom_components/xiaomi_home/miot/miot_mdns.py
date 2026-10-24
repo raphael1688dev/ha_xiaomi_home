@@ -222,7 +222,7 @@ class MipsService:
         target_group = data.get('group_id')
 
         # Optimized: Clarify matching logic via tuple unpacking
-        for (k_key, k_group), handler in list(self._sub_list.items()):
+        for (_, k_group), handler in list(self._sub_list.items()):
             if k_group in (target_group, '*'):
                 self._main_loop.create_task(
                     handler(target_group, state, data))

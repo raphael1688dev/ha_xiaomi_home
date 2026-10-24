@@ -52,12 +52,12 @@ from .miot.miot_error import (
 from .miot.miot_i18n import MIoTI18n
 from .miot.miot_network import MIoTNetwork
 
-_LOGGER = logging.getLogger(__name__)
-
-
 from .options_flow import OptionsFlowHandler
 from .oauth import _handle_oauth_webhook
 from .network import _handle_network_detect_addr, _handle_devices_filter
+
+_LOGGER = logging.getLogger(__name__)
+
 
 class XiaomiMihomeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Xiaomi Home config flow."""
@@ -345,7 +345,7 @@ class XiaomiMihomeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     port=8883) != 0:
                     raise RuntimeError('mqtt connect error')
                 mqtt_client.disconnect()
-            except Exception as err:
+            except Exception:  # pylint: disable=broad-exception-caught
                 _LOGGER.error('try connect mqtt broker error, %s',
                               traceback.format_exc())
                 return await self.__show_network_detect_config_form(
@@ -432,7 +432,7 @@ class XiaomiMihomeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     'async_step_oauth, webhook.async_register: %s',
                     self._virtual_did)
                 self._miot_oauth = miot_oauth
-        except Exception as err:
+        except Exception as err:  # pylint: disable=broad-exception-caught
             _LOGGER.error(
                 'async_step_oauth, %s, %s', err, traceback.format_exc())
             return self.async_show_progress_done(next_step_id='oauth_error')

@@ -119,7 +119,7 @@ class MIoTOauthClient:
         try:
             res_obj = json.loads(res_str)
         except json.JSONDecodeError:
-            raise MIoTOauthError('invalid http response (not JSON)')
+            raise MIoTOauthError('invalid http response (not JSON)') from None
 
         if not res_obj:
             raise MIoTOauthError('empty http response')
@@ -248,41 +248,6 @@ class MIoTHttpClient:
             'X-Client-AppId': self._client_id,
         }
 
-    async def __mihome_api_get_async(
-        self, url_path: str, params: dict,
-        timeout: int = MIHOME_HTTP_API_TIMEOUT
-    ) -> dict:
-        http_res = await self._session.get(
-            url=f'{self._base_url}{url_path}',
-            params=params,
-            headers=self.__api_request_headers,
-            timeout=timeout)
-        if http_res.status == 401:
-            raise MIoTHttpError(
-                'mihome api get failed, unauthorized(401)',
-                MIoTErrorCode.CODE_HTTP_INVALID_ACCESS_TOKEN)
-        if http_res.status != 200:
-            raise MIoTHttpError(
-                f'mihome api get failed, {http_res.status}, '
-                f'{url_path}, {params}')
-
-        res_str = await http_res.text()
-        try:
-            res_obj: dict = json.loads(res_str)
-        except json.JSONDecodeError:
-            raise MIoTHttpError(
-                f'mihome api get failed, invalid JSON response: {res_str[:100]}'
-            )
-
-        if res_obj.get('code', None) != 0:
-            raise MIoTHttpError(
-                f'invalid response code, {res_obj.get("code",None)}, '
-                f'{res_obj.get("message","")}')
-        _LOGGER.debug(
-            'mihome api get, %s%s, %s -> %s',
-            self._base_url, url_path, params, res_obj)
-        return res_obj
-
     async def __mihome_api_post_async(
         self, url_path: str, data: dict,
         timeout: int = MIHOME_HTTP_API_TIMEOUT
@@ -304,11 +269,10 @@ class MIoTHttpClient:
         res_str = await http_res.text()
         try:
             res_obj: dict = json.loads(res_str)
-        except json.JSONDecodeError:
+        except json.JSONDecodeError as err:
             raise MIoTHttpError(
                 'mihome api post failed, invalid JSON response: '
-                f'{res_str[:100]}'
-            )
+                f'{res_str[:100]}') from err
 
         if res_obj.get('code', None) != 0:
             raise MIoTHttpError(
@@ -331,8 +295,9 @@ class MIoTHttpClient:
         res_str = await http_res.text()
         try:
             res_obj = json.loads(res_str)
-        except json.JSONDecodeError:
-            raise MIoTOauthError(f'invalid http response, {res_str[:100]}')
+        except json.JSONDecodeError as err:
+            raise MIoTOauthError(
+                f'invalid http response, {res_str[:100]}') from err
 
         if (
             not res_obj

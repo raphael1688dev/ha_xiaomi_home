@@ -1,3 +1,4 @@
+"""Batched property refresh through the Xiaomi cloud."""
 import asyncio
 import logging
 import traceback
@@ -109,7 +110,7 @@ class MIoTCloudManager:
             # Add failed request back to the list
             self.client.refresh_props_list.update(clean_request_list)
             return False
-        except Exception as err:
+        except Exception as err:  # pylint: disable=broad-exception-caught
             _LOGGER.error(
                 'refresh props error, cloud, %s, %s',
                 err, traceback.format_exc())

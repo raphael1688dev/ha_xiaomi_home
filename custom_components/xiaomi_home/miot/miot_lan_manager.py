@@ -1,3 +1,4 @@
+"""Property refresh through the central hub gateway and LAN control."""
 import asyncio
 import logging
 from typing import TYPE_CHECKING

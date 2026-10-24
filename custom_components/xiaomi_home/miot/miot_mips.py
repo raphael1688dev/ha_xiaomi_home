@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+"""MIoT Pub/Sub message bus (MQTT) for cloud and central hub gateway."""
 import asyncio
 import json
 import logging

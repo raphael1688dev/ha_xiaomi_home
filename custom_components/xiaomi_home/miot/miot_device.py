@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+"""MIoT device and the base classes of its Home Assistant entities."""
 import asyncio
 from abc import abstractmethod
 from typing import Any, Callable, Optional
@@ -65,7 +65,7 @@ _LOGGER = logging.getLogger(__name__)
 try:
     from homeassistant.const import UnitOfConductivity  # type: ignore
     _MICROSIEMENS_PER_CM = UnitOfConductivity.MICROSIEMENS_PER_CM
-except Exception:
+except (ImportError, AttributeError):
     _MICROSIEMENS_PER_CM = 'μS/cm'
 
 try:
@@ -1088,7 +1088,6 @@ class MIoTServiceEntity(Entity):
 
         # Override entity_id explicitly to bypass HA's slugification of device
         # name
-        from .common import slugify_name
         domain = ha_domain or self.entity_data.platform
         if self._attr_name:
             clean_name = self._attr_name.replace("* ", "")
@@ -1425,7 +1424,6 @@ class MIoTPropertyEntity(Entity):
 
         # Override entity_id explicitly to bypass HA's slugification of device
         # name
-        from .common import slugify_name
         clean_name = self._attr_name.replace("* ", "")
         self.entity_id = (
             f"{ha_domain or spec.platform}.{miot_device.entity_id_prefix}_"
@@ -1599,7 +1597,6 @@ class MIoTEventEntity(Entity):
 
         # Override entity_id explicitly to bypass HA's slugification of device
         # name
-        from .common import slugify_name
         clean_name = self._attr_name.replace("* ", "")
         self.entity_id = (f"{spec.platform}.{miot_device.entity_id_prefix}_"
                           f"{slugify_name(clean_name)}")
@@ -1725,7 +1722,6 @@ class MIoTActionEntity(Entity):
 
         # Override entity_id explicitly to bypass HA's slugification of device
         # name
-        from .common import slugify_name
         clean_name = self._attr_name.replace("* ", "")
         self.entity_id = (
             f"{ha_domain or spec.platform}.{miot_device.entity_id_prefix}_"

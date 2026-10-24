@@ -135,15 +135,15 @@ class Sensor(MIoTPropertyEntity, SensorEntity):
             # Fix Enum error caused by undefined options:
             # If device reports an undocumented value (e.g. 0), dynamically add
             # it to _attr_options
-            _opts = self._attr_options or []
-            if str_val not in _opts:
-                if len(_opts) > 64:
+            opts = self._attr_options or []
+            if str_val not in opts:
+                if len(opts) > 64:
                     _LOGGER.warning(
                         'Device returned too many undocumented values for %s. '
                         "Ignoring '%s'.",
                         self.entity_id, str_val)
                 else:
-                    self._attr_options = list(_opts) + [str_val]
+                    self._attr_options = list(opts) + [str_val]
                     _LOGGER.debug(
                         "Device returned undocumented value '%s' for %s. "
                         'Dynamically added to Enum options.',
