@@ -2,7 +2,7 @@
 
 import asyncio
 from abc import abstractmethod
-from typing import Any, Callable, Optional, cast
+from typing import Any, Callable, Optional
 from functools import cached_property
 import logging
 

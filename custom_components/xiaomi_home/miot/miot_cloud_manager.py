@@ -2,7 +2,7 @@ import asyncio
 import logging
 import traceback
 from itertools import islice
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 import aiohttp
 

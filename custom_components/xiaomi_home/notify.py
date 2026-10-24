@@ -3,7 +3,7 @@
 Notify entities for Xiaomi Home.
 """
 import logging
-from typing import Any, Optional
+from typing import Optional
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant

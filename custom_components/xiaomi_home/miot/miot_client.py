@@ -11,7 +11,6 @@ import time
 import traceback
 from dataclasses import dataclass
 from enum import Enum, auto
-from itertools import islice
 
 import aiohttp
 from homeassistant.core import HomeAssistant

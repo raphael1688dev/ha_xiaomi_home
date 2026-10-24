@@ -4,13 +4,10 @@ Config flow for Xiaomi Home.
 """
 import asyncio
 import hashlib
-import ipaddress
 import json
 import secrets
 import traceback
-from typing import Optional, Tuple
-from urllib.parse import urlparse
-from aiohttp import web
+from typing import Optional
 from aiohttp.hdrs import METH_GET
 import voluptuous as vol
 import logging
@@ -34,8 +31,6 @@ from .miot.const import (
     DEFAULT_CTRL_MODE,
     DEFAULT_INTEGRATION_LANGUAGE,
     DEFAULT_COVER_DEAD_ZONE_WIDTH,
-    MIN_COVER_DEAD_ZONE_WIDTH,
-    MAX_COVER_DEAD_ZONE_WIDTH,
     DEFAULT_NICK_NAME,
     DEFAULT_OAUTH2_API_HOST,
     DEFAULT_CLOUD_BROKER_HOST,
@@ -52,14 +47,10 @@ from .miot.const import (
 from .miot.miot_cloud import MIoTHttpClient, MIoTOauthClient
 from .miot.miot_storage import MIoTStorage, MIoTCert
 from .miot.miot_mdns import MipsService
-from .miot.web_pages import oauth_redirect_page
 from .miot.miot_error import (
-    MIoTConfigError, MIoTError, MIoTErrorCode, MIoTOauthError)
+    MIoTConfigError, MIoTError, MIoTOauthError)
 from .miot.miot_i18n import MIoTI18n
 from .miot.miot_network import MIoTNetwork
-from .miot.miot_client import MIoTClient, get_miot_instance_async
-from .miot.miot_spec import MIoTSpecParser
-from .miot.miot_lan import MIoTLan
 
 _LOGGER = logging.getLogger(__name__)
 

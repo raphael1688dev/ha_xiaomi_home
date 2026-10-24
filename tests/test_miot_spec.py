@@ -1,6 +1,6 @@
 """Test for MIoT Spec parser."""
 import pytest
-from custom_components.xiaomi_home.miot.miot_spec import MIoTSpecInstance, MIoTSpecService, MIoTSpecProperty
+from custom_components.xiaomi_home.miot.miot_spec import MIoTSpecInstance
 
 def test_miot_spec_instance_loading():
     """Test loading a basic MIoT Spec instance."""

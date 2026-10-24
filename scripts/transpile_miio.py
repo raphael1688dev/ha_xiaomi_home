@@ -1,8 +1,6 @@
 import sys
 import os
-import json
 from copy import deepcopy
-import pprint
 
 # Define the absolute path to the hass-xiaomi-miot core models
 HASS_XIAOMI_MIOT_DIR = os.environ.get("HASS_XIAOMI_MIOT_DIR", os.path.abspath(os.path.join(os.path.dirname(__file__), "../../hass-xiaomi-miot-master")))
