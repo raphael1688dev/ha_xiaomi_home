@@ -665,22 +665,20 @@ class MIoTDevice:
                         continue
 
                     # Generate expected entity_id
+                    star = '* ' if spec_item.proprietary else ''
                     if item_type == 'service':
                         if spec_item.description.lower() == platform:
                             attr_name = None
                         else:
-                            attr_name = (
-                                f'{"* "if spec_item.proprietary else ""}'
-                                f'{spec_item.description_trans}')
+                            attr_name = f'{star}{spec_item.description_trans}'
                     else:
                         attr_name = (
-                            f'{"* "if spec_item.proprietary else ""}'
-                            f'{spec_item.service.description_trans} '
+                            f'{star}{spec_item.service.description_trans} '
                             f'{spec_item.description_trans}')
 
                     domain = platform
                     if attr_name:
-                        clean_name = attr_name.replace("* ", "")
+                        clean_name = attr_name.replace('* ', '')
                         target_eid = (f"{domain}.{self.entity_id_prefix}_"
                                       f"{slugify_name(clean_name)}")
                     else:
@@ -700,7 +698,7 @@ class MIoTDevice:
                     mapping[uid] = target_eid
 
         # Device main entity, it has no fixed domain here
-        mapping[self.gen_device_unique_id()] = "unknown"
+        mapping[self.gen_device_unique_id()] = 'unknown'
 
         _add_mapping(self.entity_list, 'service', self.gen_service_unique_id,
                      True)

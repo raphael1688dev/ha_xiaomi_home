@@ -16,7 +16,7 @@ _LOGGER = logging.getLogger(__name__)
 class MIoTCloudManager:
     """Manager for handling MIoT cloud polling and sync logic."""
 
-    def __init__(self, client: "MIoTClient") -> None:
+    def __init__(self, client: 'MIoTClient') -> None:
         self.client = client
 
     async def refresh_props(self, patch_len: int = 150) -> bool:
@@ -68,9 +68,9 @@ class MIoTCloudManager:
                     or 'value' not in result
                 ):
                     continue
-                clean_request_list.pop(
-                    f'{result["did"]}|{result["siid"]}|{result["piid"]}',
-                    None)
+                did, siid, piid = (
+                    result['did'], result['siid'], result['piid'])
+                clean_request_list.pop(f'{did}|{siid}|{piid}', None)
                 self.client.on_prop_msg(params=result, ctx=None)
             if clean_request_list:
                 _LOGGER.debug(

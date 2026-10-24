@@ -10,7 +10,7 @@ _LOGGER = logging.getLogger(__name__)
 class MIoTLanManager:
     """Manager for handling MIoT LAN and GW polling and sync logic."""
 
-    def __init__(self, client: "MIoTClient") -> None:
+    def __init__(self, client: 'MIoTClient') -> None:
         self.client = client
 
     async def refresh_props_from_lan(self) -> bool:

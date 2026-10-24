@@ -88,7 +88,7 @@ class Humidifier(MIoTServiceEntity, HumidifierEntity):
         # humidifier
         super().__init__(
             miot_device=miot_device, entity_data=entity_data,
-            ha_domain="humidifier")
+            ha_domain='humidifier')
         self._attr_device_class = entity_data.device_class
         self._attr_supported_features = HumidifierEntityFeature(0)
 

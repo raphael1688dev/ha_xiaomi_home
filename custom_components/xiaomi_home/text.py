@@ -74,7 +74,7 @@ class ActionText(MIoTActionEntity, TextEntity):
 
     def __init__(self, miot_device: MIoTDevice, spec: MIoTSpecAction) -> None:
         # Notify actions are shown here in debug mode, so pin the domain
-        super().__init__(miot_device=miot_device, spec=spec, ha_domain="text")
+        super().__init__(miot_device=miot_device, spec=spec, ha_domain='text')
         self._attr_extra_state_attributes = {}
         self._attr_native_value = ''
         action_in: str = ', '.join([

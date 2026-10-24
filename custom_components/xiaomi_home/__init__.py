@@ -84,13 +84,13 @@ async def _async_migrate_legacy_entity_ids(
             try:
                 er.async_remove(entry.entity_id)
                 _LOGGER.info(
-                    "Removed legacy action entity orphan %s (old "
-                    "unique_id==entity_id format)",
+                    'Removed legacy action entity orphan %s (old '
+                    'unique_id==entity_id format)',
                     entry.entity_id,
                 )
             except Exception as err:  # pylint: disable=broad-exception-caught
                 _LOGGER.warning(
-                    "Failed to remove legacy action entity %s: %s",
+                    'Failed to remove legacy action entity %s: %s',
                     entry.entity_id, err,
                 )
 
@@ -108,7 +108,7 @@ async def _async_migrate_legacy_entity_ids(
 
         if match_id in expected_ids_map:
             target_id = expected_ids_map[match_id]
-            if target_id == "unknown":
+            if target_id == 'unknown':
                 # Main entity
                 prefix = main_entity_uids.get(match_id)
                 if prefix:
@@ -127,12 +127,12 @@ async def _async_migrate_legacy_entity_ids(
                 er.async_update_entity(entry.entity_id,
                                        new_entity_id=new_entity_id)
                 _LOGGER.info(
-                    "Migrated entity %s to modern stable format %s",
+                    'Migrated entity %s to modern stable format %s',
                     entry.entity_id, new_entity_id
                 )
             except ValueError as err:
                 _LOGGER.warning(
-                    "Failed to migrate entity %s to %s: %s",
+                    'Failed to migrate entity %s to %s: %s',
                     entry.entity_id, new_entity_id, err
                 )
 

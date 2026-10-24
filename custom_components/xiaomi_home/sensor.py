@@ -69,7 +69,7 @@ class Sensor(MIoTPropertyEntity, SensorEntity):
     def __init__(self, miot_device: MIoTDevice, spec: MIoTSpecProperty) -> None:
         """Initialize the Sensor."""
         # Binary sensor properties can also be shown here, so pin the domain
-        super().__init__(miot_device=miot_device, spec=spec, ha_domain="sensor")
+        super().__init__(miot_device=miot_device, spec=spec, ha_domain='sensor')
         self._attr_device_class = spec.device_class
 
         # Pre-build O(1) reverse lookup dict, and force str conversion to
@@ -139,14 +139,14 @@ class Sensor(MIoTPropertyEntity, SensorEntity):
             if str_val not in _opts:
                 if len(_opts) > 64:
                     _LOGGER.warning(
-                        "Device returned too many undocumented values for %s. "
+                        'Device returned too many undocumented values for %s. '
                         "Ignoring '%s'.",
                         self.entity_id, str_val)
                 else:
                     self._attr_options = list(_opts) + [str_val]
                     _LOGGER.debug(
                         "Device returned undocumented value '%s' for %s. "
-                        "Dynamically added to Enum options.",
+                        'Dynamically added to Enum options.',
                         str_val, self.entity_id)
 
             return str_val
@@ -161,14 +161,14 @@ class MIoTControlPathSensor(SensorEntity):
 
     def __init__(self, miot_device: MIoTDevice, entry_id: str) -> None:
         self.miot_device = miot_device
-        self._attr_unique_id = f"{entry_id}_{miot_device.did}_control_path"
-        self._attr_name = "Control Path"
+        self._attr_unique_id = f'{entry_id}_{miot_device.did}_control_path'
+        self._attr_name = 'Control Path'
         self._attr_entity_category = EntityCategory.DIAGNOSTIC
         self._attr_entity_registry_enabled_default = False
-        self._attr_icon = "mdi:transit-connection-variant"
+        self._attr_icon = 'mdi:transit-connection-variant'
         self._attr_has_entity_name = True
         self._attr_should_poll = True
-        self.entity_id = f"sensor.{miot_device.entity_id_prefix}_control_path"
+        self.entity_id = f'sensor.{miot_device.entity_id_prefix}_control_path'
 
     @property
     def device_info(self):
@@ -183,21 +183,21 @@ class MIoTControlPathSensor(SensorEntity):
         if self.miot_device and self.miot_device.miot_client:
             return self.miot_device.miot_client.get_device_control_path(
                 self.miot_device.did)
-        return "Unknown"
+        return 'Unknown'
 
 class MIoTIPAddressSensor(SensorEntity):
     """Diagnostic sensor to display the local IP address of the device."""
 
     def __init__(self, miot_device: MIoTDevice, entry_id: str) -> None:
         self.miot_device = miot_device
-        self._attr_unique_id = f"{entry_id}_{miot_device.did}_ip_address"
-        self._attr_name = "IP Address"
+        self._attr_unique_id = f'{entry_id}_{miot_device.did}_ip_address'
+        self._attr_name = 'IP Address'
         self._attr_entity_category = EntityCategory.DIAGNOSTIC
         self._attr_entity_registry_enabled_default = False
-        self._attr_icon = "mdi:ip-network"
+        self._attr_icon = 'mdi:ip-network'
         self._attr_has_entity_name = True
         self._attr_should_poll = True
-        self.entity_id = f"sensor.{miot_device.entity_id_prefix}_ip_address"
+        self.entity_id = f'sensor.{miot_device.entity_id_prefix}_ip_address'
 
     @property
     def device_info(self):
@@ -209,4 +209,4 @@ class MIoTIPAddressSensor(SensorEntity):
 
     @property
     def native_value(self) -> str:
-        return self.miot_device.local_ip or "Unknown"
+        return self.miot_device.local_ip or 'Unknown'

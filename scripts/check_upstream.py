@@ -208,8 +208,8 @@ def main():
                 name = commit.get("commit", {}).get("author", {}).get(
                     "name", "Unknown")
                 author = f"`{name}`"
-            commit_url = (f"https://github.com/{UPSTREAM_REPO}/commit/"
-                          f"{commit.get('sha', '')}")
+            full_sha = commit.get("sha", "")
+            commit_url = f"https://github.com/{UPSTREAM_REPO}/commit/{full_sha}"
             rf.write(f"- [`{sha}`]({commit_url}) {msg} (by {author})\n")
         if len(commits) > 25:
             rf.write(f"- ... and {len(commits) - 25} more commits.\n")

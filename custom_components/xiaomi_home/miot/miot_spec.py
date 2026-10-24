@@ -417,7 +417,7 @@ _ALLOWED_OPERATORS = {
 def safe_eval(expr_str: str, src_value: Any) -> Any:
     """Safely evaluate mathematical and comparison expressions on src_value."""
     if '__' in expr_str:
-        raise ValueError("Double underscores not allowed")
+        raise ValueError('Double underscores not allowed')
 
     node = ast.parse(expr_str.strip(), mode='eval')
 
@@ -470,7 +470,7 @@ def safe_eval(expr_str: str, src_value: Any) -> Any:
                     return round(args[0])
                 elif len(args) == 2:
                     return round(args[0], args[1])
-                raise ValueError("round takes 1 or 2 arguments")
+                raise ValueError('round takes 1 or 2 arguments')
             raise ValueError("Only 'round' function is allowed")
         elif isinstance(n, ast.Expression):
             return _eval(n.body)

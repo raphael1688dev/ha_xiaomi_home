@@ -125,7 +125,8 @@ class MIoTOauthClient:
             raise MIoTOauthError('empty http response')
 
         if res_obj.get('code', None) != 0:
-            err_desc = f'code {res_obj.get("code", None)}'
+            err_code = res_obj.get('code', None)
+            err_desc = f'code {err_code}'
             if 'result' in res_obj and isinstance(res_obj['result'], dict):
                 err_desc = res_obj['result'].get(
                     'error_description', err_desc)
