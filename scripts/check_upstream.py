@@ -57,7 +57,7 @@ def github_api_get(url: str) -> dict:
                 "variable to increase limits.",
                 file=sys.stderr)
         sys.exit(1)
-    except Exception as err:
+    except (urllib.error.URLError, OSError, ValueError) as err:
         print(f"[-] Network connection error: {err}", file=sys.stderr)
         sys.exit(1)
 

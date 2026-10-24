@@ -40,7 +40,7 @@ def scan_for_chinese(root_dir: str) -> list[tuple[str, int, str]]:
                                     violations.append(
                                         (relpath, idx, line.strip()[:80]))
                                     break
-                except Exception as err:
+                except OSError as err:
                     violations.append(
                         (relpath, 0, f"Error reading file: {err}"))
     return violations
@@ -80,7 +80,7 @@ def check_compilation() -> bool:
                 py_files.append(os.path.join(dirpath, f))
 
     cmd = [sys.executable, "-m", "py_compile"] + py_files
-    result = subprocess.run(cmd, capture_output=True, text=True)
+    result = subprocess.run(cmd, capture_output=True, text=True, check=False)
     if result.returncode != 0:
         print("      [FAILED] Compilation error:")
         print(result.stderr)
@@ -111,6 +111,7 @@ def check_unit_tests() -> bool:
     passed = True
     for name, cmd in suites:
         result = subprocess.run(cmd,
+                                check=False,
                                 cwd=WORKSPACE_ROOT,
                                 env=env,
                                 capture_output=True,

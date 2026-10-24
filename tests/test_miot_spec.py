@@ -1,6 +1,8 @@
 """Test for MIoT Spec parser."""
 import pytest
-from custom_components.xiaomi_home.miot.miot_spec import MIoTSpecInstance
+from custom_components.xiaomi_home.miot.miot_spec import (
+    MIoTSpecInstance, safe_eval)
+
 
 def test_miot_spec_instance_loading():
     """Test loading a basic MIoT Spec instance."""
@@ -36,7 +38,6 @@ def test_miot_spec_instance_loading():
 
 def test_safe_eval():
     """Test AST safe evaluator on various MIoT Spec expressions."""
-    from custom_components.xiaomi_home.miot.miot_spec import safe_eval
     assert safe_eval("(src_value*6)", 5) == 30
     assert safe_eval("(src_value!=1)", 1) is False
     assert safe_eval("(src_value!=1)", 2) is True

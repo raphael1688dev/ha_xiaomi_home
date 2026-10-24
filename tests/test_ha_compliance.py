@@ -1,16 +1,25 @@
 """Unit tests for Home Assistant 2026.10 compliance fixes."""
+# pylint: disable=protected-access
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import pytest
 
 from homeassistant.components.climate import ClimateEntity
+from homeassistant.components.event import (
+    DoorbellEventType, EventDeviceClass)
 from homeassistant.components.humidifier.const import (
     MODE_AUTO, MODE_NORMAL, MODE_SLEEP)
 from homeassistant.components.water_heater import WaterHeaterEntity
 
+from custom_components.xiaomi_home import climate, water_heater
+from custom_components.xiaomi_home.event import Event
+from custom_components.xiaomi_home.humidifier import Humidifier
+from custom_components.xiaomi_home.miot.miot_cloud import MIoTOauthClient
+from custom_components.xiaomi_home.miot.miot_error import MIoTOauthError
 from custom_components.xiaomi_home.miot.miot_spec import (
     MIoTSpecInstance, MIoTSpecService, MIoTSpecValueListItem)
+from custom_components.xiaomi_home.sensor import Sensor
 
 
 def _mock_miot_device() -> MagicMock:
@@ -50,8 +59,6 @@ def _mode_prop(items: list[tuple[str, int, str]]) -> SimpleNamespace:
 
 def test_humidifier_modes_match_slugified_chinese_names() -> None:
     """Chinese value-list names are slugified to pinyin, the map must match."""
-    from custom_components.xiaomi_home.humidifier import Humidifier
-
     prop = _mode_prop([
         ("\u6807\u51c6", 0, "Standard"),
         ("\u7761\u7720", 1, "Sleep"),
@@ -70,8 +77,6 @@ def test_humidifier_modes_match_slugified_chinese_names() -> None:
 @pytest.mark.asyncio
 async def test_humidifier_mode_collision_and_legacy_names() -> None:
     """Values must stay selectable, also by their legacy description."""
-    from custom_components.xiaomi_home.humidifier import Humidifier
-
     prop = _mode_prop([
         ("none", 0, "None"),
         ("constant_speed", 1, "Constant Speed"),
@@ -87,6 +92,7 @@ async def test_humidifier_mode_collision_and_legacy_names() -> None:
     sent: list = []
 
     async def fake_set_property_async(prop, value, **kwargs):
+        # pylint: disable=unused-argument
         sent.append(value)
 
     entity.set_property_async = fake_set_property_async
@@ -99,8 +105,6 @@ async def test_humidifier_mode_collision_and_legacy_names() -> None:
 
 def test_binary_property_shown_as_sensor_uses_sensor_domain() -> None:
     """A binary_sensor property added to the sensor platform needs sensor.*."""
-    from custom_components.xiaomi_home.sensor import Sensor
-
     instance = MIoTSpecInstance.load({
         "urn":
             "urn:miot-spec-v2:device:sensor:0000A000:test-s1:1",
@@ -155,8 +159,6 @@ def test_binary_property_shown_as_sensor_uses_sensor_domain() -> None:
 
 def test_temperature_api_matches_running_core() -> None:
     """Old cores get the legacy names, 2026.11+ the native_* names."""
-    from custom_components.xiaomi_home import climate, water_heater
-
     native = hasattr(ClimateEntity, "native_current_temperature")
     assert climate._NATIVE_TEMP_API is native
     assert water_heater._NATIVE_TEMP_API is hasattr(
@@ -169,10 +171,6 @@ def test_temperature_api_matches_running_core() -> None:
 
 def test_doorbell_event_offers_and_fires_ring() -> None:
     """Doorbell event entities must use the standard ring event type."""
-    from homeassistant.components.event import (
-        DoorbellEventType, EventDeviceClass)
-    from custom_components.xiaomi_home.event import Event
-
     instance = MIoTSpecInstance.load({
         "urn":
             "urn:miot-spec-v2:device:doorbell:0000A0A0:test-d1:1",
@@ -224,13 +222,10 @@ def test_doorbell_event_offers_and_fires_ring() -> None:
 ])
 async def test_oauth_token_errors_hide_response(body: str) -> None:
     """Token responses carry credentials and must not reach error text."""
-    from custom_components.xiaomi_home.miot.miot_cloud import MIoTOauthClient
-    from custom_components.xiaomi_home.miot.miot_error import MIoTOauthError
-
     async def text() -> str:
         return body
 
-    async def get(**kwargs):
+    async def get(**kwargs):  # pylint: disable=unused-argument
         return SimpleNamespace(status=200, text=text)
 
     client = MIoTOauthClient.__new__(MIoTOauthClient)

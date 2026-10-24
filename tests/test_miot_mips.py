@@ -1,10 +1,13 @@
 """Unit tests for MIoT MIPS local client error handling and retry resilience."""
+# pylint: disable=protected-access,redefined-outer-name
+import asyncio
 import json
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from custom_components.xiaomi_home.miot.miot_error import MIoTMipsError
-from custom_components.xiaomi_home.miot.miot_mips import MipsLocalClient
+from custom_components.xiaomi_home.miot.miot_mips import (
+    MipsLocalClient, _MipsRequest)
 
 
 @pytest.fixture
@@ -12,7 +15,7 @@ def mock_mips_local() -> MipsLocalClient:
     """Create a MipsLocalClient with its internal components stubbed."""
     with patch.object(MipsLocalClient, "__init__",
                       lambda self, *args, **kwargs: None):
-        mips = MipsLocalClient()
+        mips = MipsLocalClient()  # pylint: disable=no-value-for-parameter
         mips.log_error = MagicMock()
         mips.log_info = MagicMock()
         return mips
@@ -122,8 +125,6 @@ async def test_get_dev_list_async_standard_devlist(
 def test_on_mips_disconnect_cleans_in_flight_requests(
         mock_mips_local: MipsLocalClient) -> None:
     """Test _on_mips_disconnect aborts all in-flight requests with an error."""
-    from custom_components.xiaomi_home.miot.miot_mips import _MipsRequest
-
     mock_mips_local.log_debug = MagicMock()
     mock_mips_local.main_loop = MagicMock()
 
@@ -157,8 +158,6 @@ def test_on_mips_disconnect_cleans_in_flight_requests(
 async def test_clear_prop_queue_cancels_timer_and_resolves_futures(
         mock_mips_local: MipsLocalClient) -> None:
     """Test __clear_prop_queue cancels the timer and resolves futures."""
-    import asyncio
-
     mock_timer = MagicMock()
     mock_mips_local._get_prop_timer = mock_timer
 

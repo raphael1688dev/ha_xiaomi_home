@@ -1,6 +1,7 @@
 """Unit tests for MIoT device utility functions and common utilities."""
 from typing import Any
 from unittest.mock import MagicMock
+from custom_components.xiaomi_home.device_tracker import DeviceTracker
 from custom_components.xiaomi_home.miot.common import (
     calc_group_id,
     slugify_name,
@@ -8,6 +9,7 @@ from custom_components.xiaomi_home.miot.common import (
     MIoTMatcher,
 )
 from custom_components.xiaomi_home.miot.miot_device import MIoTDevice
+from custom_components.xiaomi_home.miot.miot_spec import MIoTSpecService
 
 
 def test_calc_group_id() -> None:
@@ -53,7 +55,7 @@ def test_miot_matcher() -> None:
 def test_unique_id_generation() -> None:
     """Test MIoTDevice unique ID generation functions using a dummy subclass."""
     class DummyDevice(MIoTDevice):
-        def __init__(self) -> None:
+        def __init__(self) -> None:  # pylint: disable=super-init-not-called
             self.did_tag = "12345_lamp"
             self._model_strs = ["xiaomi", "lamp", "v1"]
             self._uid_prefix = "12345_lamp_lamp"
@@ -81,9 +83,6 @@ def test_unique_id_generation() -> None:
 
 def test_device_tracker_extra_state_attributes() -> None:
     """Test DeviceTracker without battery_level/location_name (deprecated)."""
-    from custom_components.xiaomi_home.device_tracker import DeviceTracker
-    from custom_components.xiaomi_home.miot.miot_spec import MIoTSpecService
-
     # Overriding these logs a deprecation warning (removed in HA 2027.7)
     assert "battery_level" not in DeviceTracker.__dict__
     assert "location_name" not in DeviceTracker.__dict__
