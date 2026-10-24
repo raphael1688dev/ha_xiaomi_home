@@ -1,4 +1,12 @@
 # CHANGELOG
+## Unreleased
+### Fixed
+- Security: OAuth token refresh no longer logs the new credentials, and token endpoint and user profile errors no longer embed the raw response body (tokens, personal data) that could reach logs and diagnostics. Contributed by @Wuty-zju (XiaoMi/ha_xiaomi_home#1835), extended to the remaining error paths of this fork.
+- Doorbell event entities declare and fire the standard `ring` event type, which Home Assistant requires from 2027.4. Automations matching the old event type name (e.g. `Doorbell Ring`) need to use `ring`. Contributed by @reginaldalfret (XiaoMi/ha_xiaomi_home#1815).
+- Device filter instructions described the subtraction in the wrong order; the result is the included set minus the excluded set. Contributed by @0xSixtos (XiaoMi/ha_xiaomi_home#1838).
+- `uwize.plug.yzs01`: power consumption was reported 100 times too high. Contributed by @xuilen (XiaoMi/ha_xiaomi_home#1825).
+- `miaomiaoce.airm.co2`: CO2 readings were rounded to 100 ppm steps. Contributed by @Wuty-zju (XiaoMi/ha_xiaomi_home#1812).
+
 ## v0.5.2 (Mod)
 ### Fixed
 - Fix integration setup failing for devices converted as a whole-device entity (robot vacuums, speakers, TVs, TV boxes, air conditioners, and others): `set.union()` raised `TypeError` on the `frozenset` action sets of `SPEC_DEVICE_TRANS_MAP`, and the entity filter and entity ID migration accessed `need_filter` / `iid` on `MIoTSpecInstance`, raising `AttributeError`. Contributed by @theodorx7.
