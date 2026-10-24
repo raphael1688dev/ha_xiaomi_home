@@ -147,7 +147,12 @@ MIoT Specification Version 2 defines device capabilities using Services, Propert
 
 ## 📝 Release History & Changelog
 
-### Version 20261024r36 (v0.5.3 Mod) — Latest
+### Version 20261024r37 (v0.5.4 Mod) — Latest
+- **Cloud Devices With `#` in Their ID**: These devices can subscribe to property, event and state updates again. Contributed by @Blueve.
+- **Steadier MQTT Reconnects**: One failed attempt schedules one retry, transient losses stay at DEBUG, and a lasting outage warns after 120 seconds and logs its recovery. Contributed by @Wuty-zju; disconnect codes are now classified by their actual meaning.
+- **Long String Values**: Sensor and text entities keep the full value of strings over 255 characters in a `value` attribute, excluded from the recorder. Contributed by @MGrin.
+
+### Version 20261024r36 (v0.5.3 Mod)
 - **Security**: OAuth token refresh no longer logs credentials, and token and user profile errors no longer embed raw responses that could reach logs and diagnostics. Contributed by @Wuty-zju, extended in this fork.
 - **Doorbell Events**: Doorbell event entities declare and fire the standard `ring` event type required from Home Assistant 2027.4. Automations matching the old event type name need to use `ring`. Contributed by @reginaldalfret.
 - **Device Fixes**: `uwize.plug.yzs01` power consumption is no longer 100 times too high (contributed by @xuilen), and `miaomiaoce.airm.co2` CO2 readings are no longer rounded to 100 ppm (contributed by @Wuty-zju).

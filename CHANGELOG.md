@@ -1,5 +1,5 @@
 # CHANGELOG
-## Unreleased
+## v0.5.4 (Mod)
 ### Fixed
 - Cloud devices whose ID contains a literal `#` can subscribe again: the Xiaomi cloud client accepts the hash inside the device ID segment of its topic filters, while all other MQTT validation stays unchanged. Contributed by @Blueve (XiaoMi/ha_xiaomi_home#1823).
 - MQTT reconnects are coalesced: two failure callbacks for one attempt no longer replace the scheduled retry and double the backoff, and a connection exception no longer falls through to an unrelated error. Transient connection losses log at DEBUG, a lasting outage warns after 120 seconds (at most every 30 minutes) and its recovery is logged once. Contributed by @Wuty-zju (XiaoMi/ha_xiaomi_home#1836).
