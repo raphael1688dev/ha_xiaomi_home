@@ -228,8 +228,20 @@ class Light(MIoTServiceEntity, LightEntity):
         Shall set attributes in kwargs if applicable.
         """
         # 1. Ensure light is on (prevents device from ignoring property commands
-        # when off)
-        if self._prop_on and not self.is_on:
+        # when off). A plain turn on always sends it, in case the cached state
+        # is stale.
+        if self._prop_on and (
+            not self.is_on
+            or not any(
+                attr in kwargs
+                for attr in (
+                    ATTR_BRIGHTNESS,
+                    ATTR_COLOR_TEMP_KELVIN,
+                    ATTR_RGB_COLOR,
+                    ATTR_EFFECT,
+                )
+            )
+        ):
             value_on = True if self._prop_on.format_ == bool else 1
             await self.set_property_async(
                 prop=self._prop_on, value=value_on, write_ha_state=False)
