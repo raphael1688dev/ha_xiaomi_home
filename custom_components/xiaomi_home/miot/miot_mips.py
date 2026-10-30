@@ -645,9 +645,10 @@ class _MipsClient(ABC):
                 self._internal_loop.add_writer(
                     self._mqtt_fd, self.__mqtt_write_handler)
         except Exception as err:  # pylint: disable=broad-exception-caught
-            # Catch all exception
+            # Catch all exception. Do not re-raise: this runs as a loop
+            # callback, so the loop would only log it again as
+            # 'Exception in callback'. __mips_try_reconnect() recovers.
             self.log_error(f'__mqtt_loop_handler, {err}')
-            raise err
 
     def __mips_loop_thread(self) -> None:
         self.log_info('mips_loop_thread start')
