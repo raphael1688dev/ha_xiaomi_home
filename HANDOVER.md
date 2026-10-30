@@ -37,13 +37,13 @@ To prevent the codebase from regressing into a buggy, laggy state, observe these
 ---
 *Signed, Raphael & Antigravity (May 2026)*
 
-## October 2026 Update (v0.5.1 to v0.5.5)
+## October 2026 Update (v0.5.1 to v0.5.6)
 
 Maintenance of the fork was handed over to Claude Code on 2026-10-16. Decisions and conventions since then:
 
 ### Decisions
 - **English only**: `INTEGRATION_LANGUAGES` contains only `en`; the Chinese translation and i18n files are gone and `bool_trans.yaml` / `multi_lang.json` keep English only. Config entries created with another language are migrated to English in `async_setup_entry` (entity IDs are kept). Do not re-add languages without updating `test/check_rule_format.py::test_miot_lang_integrity`.
-- **Upstream PRs**: open upstream pull requests are ported once reviewed here, with the author kept and credited in the changelog and release notes. Upstream has no release after v0.5.0 (2026-09-28); its open fixes up to #1838 are in v0.5.3 and v0.5.4.
+- **Upstream PRs**: open upstream pull requests are ported once reviewed here, with the author kept and credited in the changelog and release notes. Upstream has no release after v0.5.0 (2026-09-28); its open fixes up to #1838 are in v0.5.3 and v0.5.4, and #1842 to #1844 are in v0.5.6. When the fork's code has diverged, the change is rewritten onto the fork with the PR author as commit author and the source PR named in the body. Reviewed and not ported: #1809 and #1841 (the owner declined them), #1840 (not needed: the fork never resubscribes an unchanged subscription source, and `MipsLocalClient` replays its subscriptions on reconnect), #1824 (another language), #1811 and #1813 (large new features). Do not propose these again unless something changes.
 - **Entity init loops stay**: the `for prop in entity_data.props` dispatch loops in cover, humidifier, media_player, vacuum, water_heater and device_tracker run once per entity. Replacing them with `get_prop()` would change last-match to first-match for duplicate property names, so they are kept on purpose.
 - **Supported cores**: `hacs.json` declares Home Assistant 2026.5.0+. APIs introduced later (for example `async_get_device_by_identifier`, the HA 2026.11 `native_*` temperature properties, the `DeviceInfo` dataclass) are used through feature detection with a fallback, never unconditionally.
 - **License wording**: `LICENSE.md` is Xiaomi's own license, which allows use, modification and distribution only for non-commercial use with Home Assistant. Never describe the project as Apache 2.0 or open source (the README did until v0.5.5). Any change to the license or its description needs the owner's confirmation.
@@ -61,7 +61,7 @@ Maintenance of the fork was handed over to Claude Code on 2026-10-16. Decisions 
 ### Workflow
 - Quality gate: `python3 scripts/quality_audit.py` (Chinese character policy, compilation, `tests/`, the offline `test/` suite and `test/check_rule_format.py`).
 - Branch, commit, fast-forward merge into `main`, push. Contributor PRs are cherry-picked with their authorship kept, then closed with a comment.
-- Releases: tag `YYYYMMDDrNN`, title `<tag> (vX.Y.Z Mod)`, notes taken from `CHANGELOG.md`. Publishing a release triggers `release.yaml`, which uploads `xiaomi_home.zip`.
+- Releases: tag `YYYYMMDDrNN`, title `<tag> (vX.Y.Z Mod)`, notes taken from `CHANGELOG.md`. Publishing a release triggers `release.yaml`, which uploads `xiaomi_home.zip`. Claude Code's auto mode blocks `gh release create`, so after CI is green hand the owner the complete command (full target SHA, notes file) to run, then verify the zip.
 - Repository layout: `tests/` holds this fork's unit tests (run against Home Assistant), `test/` is upstream's suite and stays as is so upstream changes cherry-pick cleanly. Finished plans and analyses from earlier work live in `docs/history/`.
 - Cloud MQTT outages: the broker name `<region>-ha.mqtt.io.mi.com` (`cn`, `de`, `i2`, `ru`, `sg`, `us`) resolves to several nodes. To diagnose, resolve it and run a TLS handshake against each address on port 8883 with the broker name as SNI. In October 2026 one `sg` node (`47.236.195.180`) dropped every handshake, which led to the failover in v0.5.5.
 - CI is fully green since 2026-10-24 and must stay that way: pylint reports zero findings (deliberate catch-all handlers carry an inline `# pylint: disable=broad-exception-caught`, as upstream does), and the HACS license check is skipped with `ignore: license` because `LICENSE.md` is Xiaomi's custom license without an SPDX identifier.
