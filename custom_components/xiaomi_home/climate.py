@@ -2,6 +2,7 @@
 """
 Climate entities for Xiaomi Home.
 """
+from decimal import Decimal
 import logging
 from typing import Any, Optional
 
@@ -207,16 +208,19 @@ class FeatureFanMode(MIoTServiceEntity, ClimateEntity):
         if prop := entity_data.get_prop('fan-level',
                                         'fan-control') or entity_data.get_prop(
                                             'fan-level', 'thermostat'):
-            if not prop.value_list:
-                _LOGGER.error('invalid fan-level value_list, %s',
+            if prop.value_list:
+                self._fan_mode_map = prop.value_list.to_map()
+            elif prop.value_range:
+                self._fan_mode_map = self.__fan_mode_map_from_range(prop)
+            if not self._fan_mode_map:
+                _LOGGER.error('invalid fan-level specification, %s',
                               self.entity_id)
             else:
-                self._fan_mode_map = prop.value_list.to_map()
                 # Optimized: Pre-build O(1) lookup dictionary
                 self._fan_mode_reverse_map = {
                     v: k for k, v in self._fan_mode_map.items()
                 }
-                self._attr_fan_modes = prop.value_list.descriptions
+                self._attr_fan_modes = list(self._fan_mode_map.values())
                 self._attr_supported_features |= ClimateEntityFeature.FAN_MODE
                 self._prop_fan_level = prop
 
@@ -229,6 +233,22 @@ class FeatureFanMode(MIoTServiceEntity, ClimateEntity):
                 self._attr_fan_modes = [FAN_ON, FAN_OFF]
             else:
                 self._attr_fan_modes.append(FAN_OFF)
+
+    @staticmethod
+    def __fan_mode_map_from_range(prop: MIoTSpecProperty) -> dict[Any, str]:
+        """Map each step of a fan-level value range to a fan mode name."""
+        value_range = prop.value_range
+        if (value_range is None or value_range.step <= 0
+                or value_range.max_ < value_range.min_):
+            return {}
+        # Count the steps in decimal, so a float endpoint is not dropped.
+        count = int((Decimal(str(value_range.max_)) -
+                     Decimal(str(value_range.min_))) /
+                    Decimal(str(value_range.step))) + 1
+        values = [
+            prop.value_precision(value_range.min_ + i * value_range.step)
+            for i in range(count)]
+        return {value: str(value) for value in values}
 
     async def async_set_fan_mode(self, fan_mode):
         """Set the target fan mode."""
