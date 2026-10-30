@@ -1,4 +1,10 @@
 # CHANGELOG
+## Unreleased
+### Fixed
+- Climate entities whose `fan-level` property uses a value range instead of a value list (e.g. `opple.bhf_light.fhbath`) get fan modes again: each step of the range is a fan mode, and float steps keep their last value. Contributed by @gaofeng21cn (XiaoMi/ha_xiaomi_home#1843).
+- Adjusting the brightness, color temperature, color or effect of a light that is already on no longer sends the on command first, so lights that beep on every on command stay silent. A plain turn on is always sent, in case the known state is out of date. Contributed by @jackjinke (XiaoMi/ha_xiaomi_home#1844).
+- An error in the MQTT loop handler is logged once instead of being raised again from the loop callback. Contributed by @rz467fzs7d (XiaoMi/ha_xiaomi_home#1842).
+
 ## v0.5.5 (Mod)
 ### Fixed
 - The cloud MQTT connection no longer stays down when one node behind the broker name fails the TLS handshake (seen on `sg-ha.mqtt.io.mi.com`, which logged `UNEXPECTED_EOF_WHILE_READING`): every resolved address is tried, least recently failed first, with SNI and certificate checks still on the broker name.
