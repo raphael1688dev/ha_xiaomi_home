@@ -1,5 +1,5 @@
 # CHANGELOG
-## Unreleased
+## v0.5.6 (Mod)
 ### Fixed
 - Climate entities whose `fan-level` property uses a value range instead of a value list (e.g. `opple.bhf_light.fhbath`) get fan modes again: each step of the range is a fan mode, and float steps keep their last value. Contributed by @gaofeng21cn (XiaoMi/ha_xiaomi_home#1843).
 - Adjusting the brightness, color temperature, color or effect of a light that is already on no longer sends the on command first, so lights that beep on every on command stay silent. A plain turn on is always sent, in case the known state is out of date. Contributed by @jackjinke (XiaoMi/ha_xiaomi_home#1844).

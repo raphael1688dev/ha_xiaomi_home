@@ -176,7 +176,12 @@ Report problems in the [issue tracker](https://github.com/raphael1688dev/ha_xiao
 
 The most recent releases are listed below. Older versions are in the [CHANGELOG](./CHANGELOG.md) and on the [Releases](https://github.com/raphael1688dev/ha_xiaomi_home/releases) page.
 
-### Version 20261024r38 (v0.5.5 Mod) — Latest
+### Version 20261030r39 (v0.5.6 Mod) — Latest
+- **Climate Fan Modes From a Range**: Climate entities whose fan level is a numeric range, such as some bathroom heaters, offer each step as a fan mode. Contributed by @gaofeng21cn.
+- **Quieter Light Adjustments**: Changing the brightness, color temperature, color or effect of a light that is on no longer sends the on command again, so lights that beep on it stay silent. Contributed by @jackjinke.
+- **MQTT Loop Errors**: An error in the MQTT loop is logged once instead of being raised again. Contributed by @rz467fzs7d.
+
+### Version 20261024r38 (v0.5.5 Mod)
 - **Cloud Broker Failover**: When one node behind the cloud MQTT broker name fails the TLS handshake (seen on the Singapore broker as `UNEXPECTED_EOF_WHILE_READING`), the integration connects through the next address instead of staying offline.
 - **Clearer Outage Logs**: Connection errors during an outage log at DEBUG, and the single "connection remains unavailable" warning names the last error. Subscribing while disconnected is no longer reported as an error.
 - **README**: Rewritten to match the current fork, with troubleshooting tips and a corrected license description.
@@ -221,7 +226,7 @@ The most recent releases are listed below. Older versions are in the [CHANGELOG]
 
 ## 🙏 Credits
 
-Thanks to the people whose fixes were reviewed and merged here, many of them first proposed upstream: @theodorx7, @Wuty-zju, @Blueve, @MGrin, @reginaldalfret, @xuilen and @0xSixtos, and to the Xiaomi team for the original integration.
+Thanks to the people whose fixes were reviewed and merged here, many of them first proposed upstream: @theodorx7, @Wuty-zju, @Blueve, @MGrin, @reginaldalfret, @xuilen, @0xSixtos, @gaofeng21cn, @jackjinke and @rz467fzs7d, and to the Xiaomi team for the original integration.
 
 ## 📄 License & Attribution
 
