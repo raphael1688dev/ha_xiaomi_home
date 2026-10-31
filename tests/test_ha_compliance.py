@@ -1,7 +1,8 @@
 """Unit tests for Home Assistant 2026.10 compliance fixes."""
 # pylint: disable=protected-access
+import importlib
 from types import SimpleNamespace
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -11,11 +12,16 @@ from homeassistant.components.event import (
 from homeassistant.components.humidifier.const import (
     MODE_AUTO, MODE_NORMAL, MODE_SLEEP)
 from homeassistant.components.water_heater import WaterHeaterEntity
+from homeassistant.helpers.entity import Entity
 
 from custom_components.xiaomi_home import climate, water_heater
+from custom_components.xiaomi_home.button import Button
 from custom_components.xiaomi_home.event import Event
 from custom_components.xiaomi_home.humidifier import Humidifier
+from custom_components.xiaomi_home.light import Light
 from custom_components.xiaomi_home.miot.miot_cloud import MIoTOauthClient
+from custom_components.xiaomi_home.miot.miot_device import (
+    MIoTActionEntity, MIoTEventEntity, MIoTPropertyEntity, MIoTServiceEntity)
 from custom_components.xiaomi_home.miot.miot_error import MIoTOauthError
 from custom_components.xiaomi_home.miot.miot_spec import (
     MIoTSpecInstance, MIoTSpecService, MIoTSpecValueListItem)
@@ -249,3 +255,61 @@ def test_long_string_value_kept_in_unrecorded_attribute(entity_cls) -> None:
     assert entity.extra_state_attributes is None
     # Large and frequently changing, keep it out of the recorder database
     assert "value" in entity_cls._Entity__combined_unrecorded_attributes
+
+
+_ENTITY_PLATFORMS = (
+    "binary_sensor", "button", "climate", "cover", "device_tracker", "event",
+    "fan", "humidifier", "light", "media_player", "notify", "number",
+    "select", "sensor", "switch", "text", "vacuum", "water_heater")
+_ADD_REMOVE_METHODS = (
+    "async_prepare_to_add_to_hass", "async_added_to_hass",
+    "async_will_remove_from_hass")
+
+
+def _integration_entity_classes() -> list[type]:
+    for platform in _ENTITY_PLATFORMS:
+        importlib.import_module(f"custom_components.xiaomi_home.{platform}")
+    found, todo = set(), list(Entity.__subclasses__())
+    while todo:
+        cls = todo.pop()
+        if cls in found:
+            continue
+        found.add(cls)
+        todo.extend(cls.__subclasses__())
+    return [cls for cls in found
+            if cls.__module__.startswith("custom_components.xiaomi_home")]
+
+
+def test_entity_classes_opt_in_to_in_place_entity_id_change() -> None:
+    """Every entity must take the HA 2026.11 in-place entity_id change.
+
+    Mirrors core's _entity_class_requires_readd: a class of ours that
+    defines an add or remove hook is only covered when it, or a subclass of
+    it, also defines async_entity_id_changed. Otherwise core removes and
+    re-adds the entity on rename (deprecated, removed in 2027.11).
+    """
+    classes = _integration_entity_classes()
+    assert len(classes) > 30
+    for entity_cls in classes:
+        mro = [cls for cls in entity_cls.__mro__
+               if not cls.__module__.startswith("homeassistant.")]
+        owners = [cls for cls in mro
+                  if "async_entity_id_changed" in cls.__dict__]
+        for cls in mro:
+            if any(method in cls.__dict__ for method in _ADD_REMOVE_METHODS):
+                assert any(issubclass(owner, cls) for owner in owners), (
+                    f"{entity_cls.__name__}: {cls.__name__} defines an add "
+                    "or remove hook without async_entity_id_changed")
+
+
+@pytest.mark.parametrize("entity_cls, base_cls", [
+    (Light, MIoTServiceEntity), (Sensor, MIoTPropertyEntity),
+    (Event, MIoTEventEntity), (Button, MIoTActionEntity)])
+def test_entity_id_changed_calls_base_class(entity_cls, base_cls) -> None:
+    """The opt-in passes the call on, core moves its own bookkeeping there."""
+    assert "async_entity_id_changed" in base_cls.__dict__
+    entity = entity_cls.__new__(entity_cls)
+    with patch.object(
+            Entity, "async_entity_id_changed", create=True) as base_hook:
+        entity.async_entity_id_changed("sensor.old_id")
+    base_hook.assert_called_once_with("sensor.old_id")

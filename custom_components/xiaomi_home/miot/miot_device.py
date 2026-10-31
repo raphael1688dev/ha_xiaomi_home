@@ -6,6 +6,7 @@ from typing import Any, Callable, Optional
 from functools import cached_property
 import logging
 
+from homeassistant.core import callback
 from homeassistant.helpers.entity import Entity
 from homeassistant.const import (
     DEGREE,
@@ -1193,6 +1194,15 @@ class MIoTServiceEntity(Entity):
                 self.miot_device.unsub_event(
                     siid=event.service.iid, eiid=event.iid, sub_id=sub_id)
 
+    @callback
+    def async_entity_id_changed(self, old_entity_id: str) -> None:
+        """Opt in to in-place entity_id changes (HA 2026.11+).
+
+        Subscriptions are keyed by did/siid/iid, not by entity_id, so there
+        is nothing to redo. Older cores never call this method.
+        """
+        super().async_entity_id_changed(old_entity_id)
+
     def get_map_value(
         self, map_: Optional[dict[int, Any]], key: int
     ) -> Any:
@@ -1466,6 +1476,15 @@ class MIoTPropertyEntity(Entity):
             siid=self.service.iid, piid=self.spec.iid,
             sub_id=self._value_sub_id)
 
+    @callback
+    def async_entity_id_changed(self, old_entity_id: str) -> None:
+        """Opt in to in-place entity_id changes (HA 2026.11+).
+
+        Subscriptions are keyed by did/siid/iid, not by entity_id, so there
+        is nothing to redo. Older cores never call this method.
+        """
+        super().async_entity_id_changed(old_entity_id)
+
     def get_vlist_description(self, value: Any) -> Optional[str]:
         if not self._value_list:
             return None
@@ -1638,6 +1657,15 @@ class MIoTEventEntity(Entity):
             siid=self.service.iid, eiid=self.spec.iid,
             sub_id=self._value_sub_id)
 
+    @callback
+    def async_entity_id_changed(self, old_entity_id: str) -> None:
+        """Opt in to in-place entity_id changes (HA 2026.11+).
+
+        Subscriptions are keyed by did/siid/iid, not by entity_id, so there
+        is nothing to redo. Older cores never call this method.
+        """
+        super().async_entity_id_changed(old_entity_id)
+
     @abstractmethod
     def on_event_occurred(
         self, name: str, arguments: dict[str, Any] | None = None
@@ -1756,6 +1784,15 @@ class MIoTActionEntity(Entity):
         self.miot_device.unsub_device_state(
             key=f'a.{ self.service.iid}.{self.spec.iid}',
             sub_id=self._state_sub_id)
+
+    @callback
+    def async_entity_id_changed(self, old_entity_id: str) -> None:
+        """Opt in to in-place entity_id changes (HA 2026.11+).
+
+        Subscriptions are keyed by did/siid/iid, not by entity_id, so there
+        is nothing to redo. Older cores never call this method.
+        """
+        super().async_entity_id_changed(old_entity_id)
 
     async def action_async(
         self, in_list: Optional[list] = None
