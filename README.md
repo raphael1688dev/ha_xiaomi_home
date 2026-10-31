@@ -176,7 +176,11 @@ Report problems in the [issue tracker](https://github.com/raphael1688dev/ha_xiao
 
 The most recent releases are listed below. Older versions are in the [CHANGELOG](./CHANGELOG.md) and on the [Releases](https://github.com/raphael1688dev/ha_xiaomi_home/releases) page.
 
-### Version 20261030r39 (v0.5.6 Mod) — Latest
+### Version 20261031r40 (v0.5.7 Mod) — Latest
+- **Home Assistant 2026.11 Entity ID Renames**: Renaming an entity ID updates the entity in place, keeping its subscriptions and state, instead of removing and adding it again.
+- **Marketplace Category**: The integration is listed under Smart home hubs in the Home Assistant Marketplace, which replaces HACS in 2026.11.
+
+### Version 20261030r39 (v0.5.6 Mod)
 - **Climate Fan Modes From a Range**: Climate entities whose fan level is a numeric range, such as some bathroom heaters, offer each step as a fan mode. Contributed by @gaofeng21cn.
 - **Quieter Light Adjustments**: Changing the brightness, color temperature, color or effect of a light that is on no longer sends the on command again, so lights that beep on it stay silent. Contributed by @jackjinke.
 - **MQTT Loop Errors**: An error in the MQTT loop is logged once instead of being raised again. Contributed by @rz467fzs7d.
