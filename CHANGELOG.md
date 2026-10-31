@@ -1,4 +1,9 @@
 # CHANGELOG
+## v0.5.7 (Mod)
+### Changed
+- Home Assistant 2026.11: renaming an entity ID now updates the entity in place. Its subscriptions and state carry over, instead of the entity being removed and added again, the legacy path that Home Assistant 2027.11 removes. Older Home Assistant versions are unaffected.
+- `manifest.json` lists the `hubs_protocols.smart_home_hubs` category, which the Home Assistant Marketplace (replacing HACS in 2026.11) uses to browse integrations.
+
 ## v0.5.6 (Mod)
 ### Fixed
 - Climate entities whose `fan-level` property uses a value range instead of a value list (e.g. `opple.bhf_light.fhbath`) get fan modes again: each step of the range is a fan mode, and float steps keep their last value. Contributed by @gaofeng21cn (XiaoMi/ha_xiaomi_home#1843).
