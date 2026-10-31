@@ -1,6 +1,9 @@
 {
     "domain": "xiaomi_home",
     "name": "Xiaomi Home(Mod)",
+    "categories": [
+        "hubs_protocols.smart_home_hubs"
+    ],
     "codeowners": [
         "@raphael1688dev"
     ],
