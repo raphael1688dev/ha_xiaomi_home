@@ -1,4 +1,8 @@
 # CHANGELOG
+## Unreleased
+### Fixed
+- `chint1.valve.lcd` (CHINT ZTY2002 smart power controller): voltage was reported 10 times too high, and current and power consumption 100 times too high. Reported in XiaoMi/ha_xiaomi_home#1851.
+
 ## v0.5.7 (Mod)
 ### Changed
 - Home Assistant 2026.11: renaming an entity ID now updates the entity in place. Its subscriptions and state carry over, instead of the entity being removed and added again, the legacy path that Home Assistant 2027.11 removes. Older Home Assistant versions are unaffected.
