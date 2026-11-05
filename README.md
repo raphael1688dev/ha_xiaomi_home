@@ -176,7 +176,11 @@ Report problems in the [issue tracker](https://github.com/raphael1688dev/ha_xiao
 
 The most recent releases are listed below. Older versions are in the [CHANGELOG](./CHANGELOG.md) and on the [Releases](https://github.com/raphael1688dev/ha_xiaomi_home/releases) page.
 
-### Version 20261031r40 (v0.5.7 Mod) — Latest
+### Version 20261105r41 (v0.5.8 Mod) — Latest
+- **CHINT Power Readings**: The CHINT ZTY2002 smart power controller (`chint1.valve.lcd`) shows its voltage, current and power consumption at the right scale; they were 10 and 100 times too high.
+- **Home Assistant 2026.11**: Tested on the 2026.11.0 release; no further changes were needed.
+
+### Version 20261031r40 (v0.5.7 Mod)
 - **Home Assistant 2026.11 Entity ID Renames**: Renaming an entity ID updates the entity in place, keeping its subscriptions and state, instead of removing and adding it again.
 - **Marketplace Category**: The integration is listed under Smart home hubs in the Home Assistant Marketplace, which replaces HACS in 2026.11.
 

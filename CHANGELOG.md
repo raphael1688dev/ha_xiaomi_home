@@ -1,5 +1,5 @@
 # CHANGELOG
-## Unreleased
+## v0.5.8 (Mod)
 ### Fixed
 - `chint1.valve.lcd` (CHINT ZTY2002 smart power controller): voltage was reported 10 times too high, and current and power consumption 100 times too high. Reported in XiaoMi/ha_xiaomi_home#1851.
 
