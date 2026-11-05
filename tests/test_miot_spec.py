@@ -1,7 +1,7 @@
 """Test for MIoT Spec parser."""
 import pytest
 from custom_components.xiaomi_home.miot.miot_spec import (
-    MIoTSpecInstance, safe_eval)
+    MIoTSpecInstance, _SpecModify, safe_eval)
 
 
 def test_miot_spec_instance_loading():
@@ -99,3 +99,28 @@ def test_value_precision():
     assert prop.value_precision(15) == 15
     assert prop.value_precision(16.1) == 17
     assert prop.value_precision(None) is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("siid, piid, raw, expected", [
+    (3, 1, 12345, 123.45),  # power consumption, kWh
+    (3, 2, 523, 5.23),  # electric current, A
+    (3, 3, 2201, 220.1),  # voltage, V
+])
+async def test_chint_valve_power_values_are_scaled(
+        siid: int, piid: int, raw: int, expected: float) -> None:
+    """chint1.valve.lcd reports these values without their decimal point."""
+    modify = _SpecModify()
+    await modify.init_async()
+    await modify.set_spec_async(
+        urn="urn:miot-spec-v2:device:electronic-valve:0000A0A7:chint1-lcd:1")
+
+    assert modify.get_prop_format(siid=siid, piid=piid) == "float"
+    assert safe_eval(
+        modify.get_prop_expr(siid=siid, piid=piid), raw) == expected
+    # Sensors check the range after the expression; the largest raw value
+    # of the original integer format must stay in range
+    low, high, _ = modify.get_prop_value_range(siid=siid, piid=piid)
+    max_raw = 999999999 if piid == 1 else 65535
+    assert low <= safe_eval(
+        modify.get_prop_expr(siid=siid, piid=piid), max_raw) <= high

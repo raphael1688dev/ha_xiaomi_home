@@ -242,6 +242,28 @@ urn:miot-spec-v2:device:dehumidifier:0000A02D:xiaomi-lite:1:
     - -30
     - 100
     - 0.1
+urn:miot-spec-v2:device:electronic-valve:0000A0A7:chint1-lcd:1:
+  prop.3.1:
+    format: float
+    value-range:
+    - 0
+    - 9999999.99
+    - 0.01
+    expr: round(src_value/100, 2)
+  prop.3.2:
+    format: float
+    value-range:
+    - 0
+    - 655.35
+    - 0.01
+    expr: round(src_value/100, 2)
+  prop.3.3:
+    format: float
+    value-range:
+    - 0
+    - 6553.5
+    - 0.1
+    expr: round(src_value/10, 1)
 urn:miot-spec-v2:device:electronic-valve:0000A0A7:lxzn-02:1:0000C833:
   prop.3.1:
     format: float
