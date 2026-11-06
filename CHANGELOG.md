@@ -1,5 +1,5 @@
 # CHANGELOG
-## Unreleased
+## v0.5.9 (Mod)
 ### Fixed
 - Adding the integration again no longer logs `load_pem_x509_certificate failed, invalid COMMON_NAME` as an error. Each setup uses a new virtual device, so the certificate left by an earlier attempt does not match and is replaced; this is now logged at INFO. The error was misleading when setup failed for an unrelated reason (XiaoMi/ha_xiaomi_home#1853).
 

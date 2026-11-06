@@ -176,7 +176,10 @@ Report problems in the [issue tracker](https://github.com/raphael1688dev/ha_xiao
 
 The most recent releases are listed below. Older versions are in the [CHANGELOG](./CHANGELOG.md) and on the [Releases](https://github.com/raphael1688dev/ha_xiaomi_home/releases) page.
 
-### Version 20261105r41 (v0.5.8 Mod) — Latest
+### Version 20261107r42 (v0.5.9 Mod) — Latest
+- **Quieter Setup Retries**: Adding the integration again no longer logs a misleading `invalid COMMON_NAME` certificate error; the certificate from the earlier attempt is replaced, as before.
+
+### Version 20261105r41 (v0.5.8 Mod)
 - **CHINT Power Readings**: The CHINT ZTY2002 smart power controller (`chint1.valve.lcd`) shows its voltage, current and power consumption at the right scale; they were 10 and 100 times too high.
 - **Home Assistant 2026.11**: Tested on the 2026.11.0 release; no further changes were needed.
 
