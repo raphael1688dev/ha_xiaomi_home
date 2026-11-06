@@ -577,7 +577,12 @@ class MIoTCert:
                 did and cert_info['CN'] !=
                     f'mips.{self._uid}.{self.__did_hash(did=did)}.2'
             ):
-                raise MIoTCertError('invalid COMMON_NAME')
+                # Each config flow has a new virtual did, so the cert left by
+                # an earlier attempt does not match and is simply replaced
+                _LOGGER.info(
+                    'user cert was issued for another virtual device, '
+                    'requesting a new one, %s', self._uid)
+                return 0
             if 'C' not in cert_info or cert_info['C'] != 'CN':
                 raise MIoTCertError('invalid COUNTRY_NAME')
             if 'O' not in cert_info or cert_info['O'] != 'Mijia Device':
