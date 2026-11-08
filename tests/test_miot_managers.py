@@ -2,6 +2,7 @@
 import asyncio
 import pytest
 from unittest.mock import AsyncMock, MagicMock
+from custom_components.xiaomi_home.miot.const import PROP_MSG_POLLED
 from custom_components.xiaomi_home.miot.miot_lan_manager import MIoTLanManager
 from custom_components.xiaomi_home.miot.miot_cloud_manager import MIoTCloudManager
 
@@ -89,3 +90,37 @@ async def test_cloud_manager_timeout_handling() -> None:
         "siid": 2,
         "piid": 1
     }
+
+
+def _refresh_client() -> MagicMock:
+    client = MagicMock()
+    client.miot_lan.init_done = True
+    client.miot_network.network_status = True
+    client.device_list_lan = {"dev1": {"ip": "192.168.1.100"}}
+    client.device_list_gateway = {"dev1": {"group_id": "g1"}}
+    client.refresh_props_list = {
+        "dev1|2|1": {"did": "dev1", "siid": 2, "piid": 1}}
+    return client
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("source", ["cloud", "gateway", "lan"])
+async def test_refreshed_values_are_marked_as_polled(source: str) -> None:
+    """Entities tell a poll from a device push by this marker."""
+    client = _refresh_client()
+    if source == "cloud":
+        client.miot_http.get_props_async = AsyncMock(return_value=[
+            {"did": "dev1", "siid": 2, "piid": 1, "value": 100}])
+        assert await MIoTCloudManager(client).refresh_props()
+    elif source == "gateway":
+        mips_gw = MagicMock()
+        mips_gw.get_prop_async = AsyncMock(return_value=100)
+        client.mips_local = {"g1": mips_gw}
+        assert await MIoTLanManager(client).refresh_props_from_gw()
+    else:
+        client.miot_lan.get_prop_async = AsyncMock(return_value=100)
+        assert await MIoTLanManager(client).refresh_props_from_lan()
+
+    params = client.on_prop_msg.call_args.kwargs["params"]
+    assert params == {"did": "dev1", "siid": 2, "piid": 1, "value": 100,
+                      PROP_MSG_POLLED: True}

@@ -3,6 +3,8 @@ import asyncio
 import logging
 from typing import TYPE_CHECKING
 
+from .const import PROP_MSG_POLLED
+
 if TYPE_CHECKING:
     from .miot_client import MIoTClient
 
@@ -57,7 +59,8 @@ class MIoTLanManager:
                     'did': param['did'],
                     'siid': param['siid'],
                     'piid': param['piid'],
-                    'value': result},
+                    'value': result,
+                    PROP_MSG_POLLED: True},
                 ctx=None)
             succeed_once = True
 
@@ -116,7 +119,8 @@ class MIoTLanManager:
                     'did': param['did'],
                     'siid': param['siid'],
                     'piid': param['piid'],
-                    'value': result},
+                    'value': result,
+                    PROP_MSG_POLLED: True},
                 ctx=None)
             succeed_once = True
 

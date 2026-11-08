@@ -113,6 +113,12 @@ MIHOME_CA_CERT_STR: str = '-----BEGIN CERTIFICATE-----\n' \
 MIHOME_CA_CERT_SHA256: str = \
     '8b7bf306be3632e08b0ead308249e5f2b2520dc921ad143872d5fcc7c68d6759'
 
+# Key set to True in property messages that come from a refresh (a poll of
+# the cloud, gateway or LAN) instead of a push from the device. Entities
+# ignore such values right after their own write, because a poll can still
+# return the value from before the write.
+PROP_MSG_POLLED: str = 'polled'
+
 # Connect types that support LAN (local network) control.
 # Used in miot_client.py, miot_device.py, and sensor.py to determine
 # whether a device can be reached over the local network.

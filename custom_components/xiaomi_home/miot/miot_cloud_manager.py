@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 import aiohttp
 
+from .const import PROP_MSG_POLLED
 from .miot_error import MIoTClientError, MIoTErrorCode
 
 if TYPE_CHECKING:
@@ -72,7 +73,8 @@ class MIoTCloudManager:
                 did, siid, piid = (
                     result['did'], result['siid'], result['piid'])
                 clean_request_list.pop(f'{did}|{siid}|{piid}', None)
-                self.client.on_prop_msg(params=result, ctx=None)
+                self.client.on_prop_msg(
+                    params={**result, PROP_MSG_POLLED: True}, ctx=None)
             if clean_request_list:
                 _LOGGER.debug(
                     'refresh props failed, cloud, %s',

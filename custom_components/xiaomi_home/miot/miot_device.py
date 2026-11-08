@@ -44,7 +44,7 @@ from .specs.specv2entity import (
     SPEC_SERVICE_TRANS_MAP
 )
 from .common import slugify_name, slugify_did
-from .const import DOMAIN, LAN_CAPABLE_CONNECT_TYPES
+from .const import DOMAIN, LAN_CAPABLE_CONNECT_TYPES, PROP_MSG_POLLED
 from .miot_client import MIoTClient
 from .miot_error import MIoTClientError, MIoTDeviceError
 from .miot_mips import MIoTDeviceState
@@ -60,10 +60,11 @@ from .miot_spec import (
 
 _LOGGER = logging.getLogger(__name__)
 
-# Home Assistant polls a polled entity right after each command. A read that
-# soon can return the value from before the write (the cloud learns about a
-# LAN command later), which would flip the state back for a moment, so that
-# poll is skipped; the device's own push confirms the write.
+# A read soon after a command can return the value from before the write (the
+# cloud learns about a LAN command later), which would flip the state back for
+# a moment. For this long after a successful write, an entity skips the poll
+# Home Assistant runs right after each command and ignores values from any
+# other refresh; the device's own push still applies and confirms the write.
 _POLL_SKIP_AFTER_WRITE: float = 2.0
 
 # =========================================================
@@ -1321,6 +1322,10 @@ class MIoTServiceEntity(Entity):
 
     def __on_properties_changed(self, params: dict, ctx: Any) -> None:
         _LOGGER.debug('properties changed, %s', params)
+        if params.get(PROP_MSG_POLLED) and self.__written_recently():
+            _LOGGER.debug('ignore polled value right after a write, %s',
+                          params)
+            return
         for prop in self.entity_data.props:
             if (
                 prop.iid != params['piid']
@@ -1384,10 +1389,13 @@ class MIoTServiceEntity(Entity):
         self._pending_write_ha_state_timer = None
         self.async_write_ha_state()
 
+    def __written_recently(self) -> bool:
+        return (self._main_loop.time() - self._last_write_time
+                < _POLL_SKIP_AFTER_WRITE)
+
     async def async_update(self) -> None:
         """Update the entity state by polling the device."""
-        if self._main_loop.time() - self._last_write_time < (
-                _POLL_SKIP_AFTER_WRITE):
+        if self.__written_recently():
             return
         self.__refresh_props_value()
 
@@ -1558,6 +1566,10 @@ class MIoTPropertyEntity(Entity):
 
     def __on_value_changed(self, params: dict, ctx: Any) -> None:
         _LOGGER.debug('property changed, %s', params)
+        if params.get(PROP_MSG_POLLED) and self.__written_recently():
+            _LOGGER.debug('ignore polled value right after a write, %s',
+                          params)
+            return
         value: Any = self.spec.value_format(params['value'])
         value = self.spec.eval_expr(value)
         self._value = self.spec.value_precision(value)
@@ -1589,10 +1601,13 @@ class MIoTPropertyEntity(Entity):
         self._pending_write_ha_state_timer = None
         self.async_write_ha_state()
 
+    def __written_recently(self) -> bool:
+        return (self._main_loop.time() - self._last_write_time
+                < _POLL_SKIP_AFTER_WRITE)
+
     async def async_update(self) -> None:
         """Update the entity state by polling the device."""
-        if self._main_loop.time() - self._last_write_time < (
-                _POLL_SKIP_AFTER_WRITE):
+        if self.__written_recently():
             return
         self.__request_refresh_prop()
 

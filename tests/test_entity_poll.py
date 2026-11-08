@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from custom_components.xiaomi_home.climate import FeatureFanMode
+from custom_components.xiaomi_home.miot.const import PROP_MSG_POLLED
 from custom_components.xiaomi_home.miot.miot_error import MIoTClientError
 from custom_components.xiaomi_home.switch import Switch
 
@@ -95,3 +96,56 @@ async def test_failed_command_does_not_skip_the_poll() -> None:
         await entity.async_turn_on()
     await entity.async_update()
     assert _refreshes(miot_device) == 1
+
+
+def _prop_msg(prop, value: int, polled: bool) -> dict:
+    params = {"did": "123", "siid": prop.service.iid, "piid": prop.iid,
+              "value": value}
+    if polled:
+        params[PROP_MSG_POLLED] = True
+    return params
+
+
+@pytest.mark.asyncio
+async def test_service_entity_ignores_a_stale_poll_after_a_write() -> None:
+    """#4 after a restart: another refresh returned the old value at 1.3 s.
+
+    Any polled value is ignored right after the entity's own write, while
+    the device's push applies at once.
+    """
+    miot_device, now = _lan_device()
+    prop = _prop("fan-level", "fan-control", "uint8", [1, 4, 1])
+    entity_data = _mock_service_entity_data("fan-control", [prop])
+    entity_data.get_prop = lambda name, service=None: None
+    entity = FeatureFanMode(miot_device=miot_device, entity_data=entity_data)
+    entity.async_write_ha_state = MagicMock()
+    on_changed = entity._MIoTServiceEntity__on_properties_changed
+
+    await entity.set_property_async(prop=prop, value=3, write_ha_state=False)
+    now[0] += 1.3
+    on_changed(_prop_msg(prop, 1, polled=True), None)  # stale poll
+    assert entity.get_prop_value(prop=prop) == 3
+    on_changed(_prop_msg(prop, 4, polled=False), None)  # device push
+    assert entity.get_prop_value(prop=prop) == 4
+
+    now[0] += 30
+    on_changed(_prop_msg(prop, 2, polled=True), None)  # later poll applies
+    assert entity.get_prop_value(prop=prop) == 2
+
+
+@pytest.mark.asyncio
+async def test_property_entity_ignores_a_stale_poll_after_a_write() -> None:
+    miot_device, now = _lan_device()
+    entity = _switch(miot_device)
+    on_changed = entity._MIoTPropertyEntity__on_value_changed
+
+    await entity.async_turn_on()
+    now[0] += 1.3
+    on_changed(_prop_msg(entity.spec, 0, polled=True), None)
+    assert entity.is_on
+    on_changed(_prop_msg(entity.spec, 0, polled=False), None)
+    assert entity.is_on is False
+
+    now[0] += 30
+    on_changed(_prop_msg(entity.spec, 1, polled=True), None)
+    assert entity.is_on
