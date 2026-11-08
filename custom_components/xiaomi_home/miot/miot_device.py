@@ -60,6 +60,12 @@ from .miot_spec import (
 
 _LOGGER = logging.getLogger(__name__)
 
+# Home Assistant polls a polled entity right after each command. A read that
+# soon can return the value from before the write (the cloud learns about a
+# LAN command later), which would flip the state back for a moment, so that
+# poll is skipped; the device's own push confirms the write.
+_POLL_SKIP_AFTER_WRITE: float = 2.0
+
 # =========================================================
 # GLOBALS MAPS: Optimized for O(1) Lookup
 # =========================================================
@@ -1037,6 +1043,7 @@ class MIoTServiceEntity(Entity):
         MIoTSpecProperty, Callable[[MIoTSpecProperty, Any], None]]
 
     _pending_write_ha_state_timer: Optional[asyncio.TimerHandle]
+    _last_write_time: float
 
     def __init__(
         self,
@@ -1100,6 +1107,7 @@ class MIoTServiceEntity(Entity):
         self._event_occurred_handler = None
         self._prop_changed_subs = {}
         self._pending_write_ha_state_timer = None
+        self._last_write_time = 0.0
         _LOGGER.info(
             'new miot service entity, %s, %s, %s, %s, entity_id: %s',
             self.miot_device.name, self._attr_name, self.entity_data.spec.name,
@@ -1263,6 +1271,7 @@ class MIoTServiceEntity(Entity):
         except MIoTClientError as e:
             raise RuntimeError(
                 f'{e}, {self.name}, {prop.name}') from e
+        self._last_write_time = self._main_loop.time()
         if update_value:
             self._prop_value_map[prop] = value
         if write_ha_state:
@@ -1377,6 +1386,9 @@ class MIoTServiceEntity(Entity):
 
     async def async_update(self) -> None:
         """Update the entity state by polling the device."""
+        if self._main_loop.time() - self._last_write_time < (
+                _POLL_SKIP_AFTER_WRITE):
+            return
         self.__refresh_props_value()
 
 
@@ -1397,6 +1409,7 @@ class MIoTPropertyEntity(Entity):
     _value_sub_id: int
 
     _pending_write_ha_state_timer: Optional[asyncio.TimerHandle]
+    _last_write_time: float
 
     def __init__(
         self,
@@ -1416,6 +1429,7 @@ class MIoTPropertyEntity(Entity):
         self._state_sub_id = 0
         self._value_sub_id = 0
         self._pending_write_ha_state_timer = None
+        self._last_write_time = 0.0
 
         # Unique ID assignment
         self._attr_unique_id = self.miot_device.gen_prop_unique_id(
@@ -1523,6 +1537,7 @@ class MIoTPropertyEntity(Entity):
         except MIoTClientError as e:
             raise RuntimeError(
                 f'{e}, {self.name}') from e
+        self._last_write_time = self._main_loop.time()
         self._value = value
         self.async_write_ha_state()
         return True
@@ -1576,6 +1591,9 @@ class MIoTPropertyEntity(Entity):
 
     async def async_update(self) -> None:
         """Update the entity state by polling the device."""
+        if self._main_loop.time() - self._last_write_time < (
+                _POLL_SKIP_AFTER_WRITE):
+            return
         self.__request_refresh_prop()
 
 
