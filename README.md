@@ -176,7 +176,10 @@ Report problems in the [issue tracker](https://github.com/raphael1688dev/ha_xiao
 
 The most recent releases are listed below. Older versions are in the [CHANGELOG](./CHANGELOG.md) and on the [Releases](https://github.com/raphael1688dev/ha_xiaomi_home/releases) page.
 
-### Version 20261107r42 (v0.5.9 Mod) — Latest
+### Version 20261108r43 (v0.5.10 Mod) — Latest
+- **No State Flicker After Commands**: Devices controlled over LAN, such as fans and lights, no longer flip back to the previous state for a moment about one second after a command.
+
+### Version 20261107r42 (v0.5.9 Mod)
 - **Quieter Setup Retries**: Adding the integration again no longer logs a misleading `invalid COMMON_NAME` certificate error; the certificate from the earlier attempt is replaced, as before.
 
 ### Version 20261105r41 (v0.5.8 Mod)

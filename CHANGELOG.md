@@ -1,5 +1,5 @@
 # CHANGELOG
-## Unreleased
+## v0.5.10 (Mod)
 ### Fixed
 - Devices controlled over LAN no longer flip back to the previous state for a moment about one second after a command (seen on `zhimi.fan.za5` and `zhimi.fan.fb1` for speed and on/off). Home Assistant polls these entities right after each command, and that read could return the value from before the command; the poll is now skipped for two seconds after a successful write, and the device's own report confirms the new value. Regular polling is unchanged (raphael1688dev/ha_xiaomi_home#4).
 
