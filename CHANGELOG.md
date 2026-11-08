@@ -1,5 +1,5 @@
 # CHANGELOG
-## Unreleased
+## v0.5.11 (Mod)
 ### Fixed
 - The state flicker after a command could still happen once, for example on the first command after a restart, when another refresh landed right after the command. For two seconds after a successful write, an entity now ignores values read by any poll of the cloud, the central hub gateway or LAN; values the device pushes still apply at once (raphael1688dev/ha_xiaomi_home#4).
 
