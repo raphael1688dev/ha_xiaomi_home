@@ -1,4 +1,8 @@
 # CHANGELOG
+## Unreleased
+### Fixed
+- Devices controlled over LAN no longer flip back to the previous state for a moment about one second after a command (seen on `zhimi.fan.za5` and `zhimi.fan.fb1` for speed and on/off). Home Assistant polls these entities right after each command, and that read could return the value from before the command; the poll is now skipped for two seconds after a successful write, and the device's own report confirms the new value. Regular polling is unchanged (raphael1688dev/ha_xiaomi_home#4).
+
 ## v0.5.9 (Mod)
 ### Fixed
 - Adding the integration again no longer logs `load_pem_x509_certificate failed, invalid COMMON_NAME` as an error. Each setup uses a new virtual device, so the certificate left by an earlier attempt does not match and is replaced; this is now logged at INFO. The error was misleading when setup failed for an unrelated reason (XiaoMi/ha_xiaomi_home#1853).
