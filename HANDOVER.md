@@ -37,7 +37,7 @@ To prevent the codebase from regressing into a buggy, laggy state, observe these
 ---
 *Signed, Raphael & Antigravity (May 2026)*
 
-## October 2026 Update (v0.5.1 to v0.5.9)
+## October 2026 Update (v0.5.1 to v0.5.10)
 
 Maintenance of the fork was handed over to Claude Code on 2026-10-16. Decisions and conventions since then:
 
@@ -62,6 +62,7 @@ Maintenance of the fork was handed over to Claude Code on 2026-10-16. Decisions 
 12. **Failures the integration recovers from on its own are not errors**: log retried connection attempts and subscriptions made while offline (they are replayed on connect) at DEBUG. A lasting outage gets one WARNING that names the last error, and its recovery is logged. Keep ERROR for problems that need the user. The same goes for the user certificate: each config flow has a new random virtual did, so on a retried setup the certificate from the earlier attempt fails the COMMON_NAME check and is renewed; that is logged at INFO since v0.5.9 (#1853 showed the old ERROR misleading users).
 13. **Every entity class keeps the in-place entity_id opt-in**: the four base classes in `miot/miot_device.py` define `async_entity_id_changed`, because they define `async_added_to_hass` / `async_will_remove_from_hass`. A class that defines one of those hooks (or `async_prepare_to_add_to_hass`) without the opt-in on itself or a subclass falls back to remove and re-add on rename, which HA removes in 2027.11. Subscriptions are keyed by did/siid/iid; anything new keyed by `entity_id` must be re-keyed in `async_entity_id_changed`. `tests/test_ha_compliance.py` applies core's rule to every entity class.
 14. **Manifest categories must be valid values**: the HACS action fails on an unknown category. Take values from the Home Assistant category list; the integration uses `hubs_protocols.smart_home_hubs`.
+15. **Writes go through `set_property_async`, and the post-command poll stays skipped**: LAN-capable entities are polled, so Home Assistant calls `async_update` right after every command. A read that soon can return the value from before the write (the cloud learns about a LAN command later), and the 1 s pending state write used to publish it, so the state flipped back for a moment (#4). `MIoTServiceEntity` and `MIoTPropertyEntity` record the time of each successful write and skip `async_update` for `_POLL_SKIP_AFTER_WRITE` (2 s). A platform that writes another way would lose this; `tests/test_entity_poll.py` covers both base classes.
 
 ### Workflow
 - Quality gate: `python3 scripts/quality_audit.py` (Chinese character policy, compilation, `tests/`, the offline `test/` suite and `test/check_rule_format.py`).
@@ -72,6 +73,8 @@ Maintenance of the fork was handed over to Claude Code on 2026-10-16. Decisions 
 - Repository layout: `tests/` holds this fork's unit tests (run against Home Assistant), `test/` is upstream's suite and stays as is so upstream changes cherry-pick cleanly. Finished plans and analyses from earlier work live in `docs/history/`.
 - Cloud MQTT outages: the broker name `<region>-ha.mqtt.io.mi.com` (`cn`, `de`, `i2`, `ru`, `sg`, `us`) resolves to several nodes. To diagnose, resolve it and run a TLS handshake against each address on port 8883 with the broker name as SNI. In October 2026 one `sg` node (`47.236.195.180`) dropped every handshake, which led to the failover in v0.5.5.
 - CI is fully green since 2026-10-24 and must stay that way: pylint reports zero findings (deliberate catch-all handlers carry an inline `# pylint: disable=broad-exception-caught`, as upstream does), and the HACS license check is skipped with `ignore: license` because `LICENSE.md` is Xiaomi's custom license without an SPDX identifier.
+- If a push triggers no CI run, check `gh run list --commit <sha>` and try `gh workflow run Tests` / `gh workflow run Validate`. An HTTP 422 "Actions has been disabled for this repository" is a repository or account setting for the owner, even when the permissions API still reports Actions as enabled (this happened on 2026-11-08 and the owner re-enabled it). Do not publish a release until CI has run on its target.
+- Fork issues: comments and closing need the owner's go-ahead. A fix that has not been checked on a real device is released with the issue left open and a comment asking for verification (#4).
 
 ---
 *Updated by Claude Code (October 2026)*
