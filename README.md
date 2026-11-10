@@ -176,7 +176,10 @@ Report problems in the [issue tracker](https://github.com/raphael1688dev/ha_xiao
 
 The most recent releases are listed below. Older versions are in the [CHANGELOG](./CHANGELOG.md) and on the [Releases](https://github.com/raphael1688dev/ha_xiaomi_home/releases) page.
 
-### Version 20261110r45 (v0.5.12 Mod) — Latest
+### Version 20261110r46 (v0.5.13 Mod) — Latest
+- **Stable Mode Lists**: Updating the conversion rules no longer changes the internal names of customized mode lists, which could make a standard mode such as `auto` disappear. If a device lost a mode this way, update the conversion rules once more.
+
+### Version 20261110r45 (v0.5.12 Mod)
 - **Humidifier Air-Dry Mode**: The Xiaomi evaporative humidifiers `xiaomi.humidifier.600ek` and `xiaomi.humidifier.600` show and offer their air-dry mode on spec version 1, as Xiaomi's spec version 2 does.
 
 ### Version 20261108r44 (v0.5.11 Mod)

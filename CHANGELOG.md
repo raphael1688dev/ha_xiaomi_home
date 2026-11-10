@@ -1,5 +1,5 @@
 # CHANGELOG
-## Unreleased
+## v0.5.13 (Mod)
 ### Fixed
 - Updating the conversion rules from the integration options no longer changes the internal names of customized mode lists. A second parse in the same Home Assistant session took the names from the translated descriptions, which could drop standard modes such as `auto` (for example on `qdhkl.airc.a42`) and affected `opple.bhf_light.acmoto`, `linp.magnet.m1` and `xiaomi.humidifier.600ek`. If a device lost a mode after updating the conversion rules, update them once more on this version.
 
