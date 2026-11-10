@@ -1,4 +1,8 @@
 # CHANGELOG
+## Unreleased
+### Fixed
+- `xiaomi.humidifier.600ek` and `xiaomi.humidifier.600` with spec version 1: air-dry mode (value 3) is now a humidifier mode. These devices report it during the air-dry cycle, but spec version 1 lists only modes 0 to 2, so the mode showed as empty. The mode list now matches Xiaomi's spec version 2. Reported in XiaoMi/ha_xiaomi_home#1855.
+
 ## v0.5.11 (Mod)
 ### Fixed
 - The state flicker after a command could still happen once, for example on the first command after a restart, when another refresh landed right after the command. For two seconds after a successful write, an entity now ignores values read by any poll of the cloud, the central hub gateway or LAN; values the device pushes still apply at once (raphael1688dev/ha_xiaomi_home#4).
