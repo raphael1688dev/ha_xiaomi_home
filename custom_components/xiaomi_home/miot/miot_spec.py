@@ -8,6 +8,7 @@ import platform
 import time
 import ast
 import operator
+from copy import deepcopy
 from typing import Any, Optional, Type, Union
 from functools import cached_property
 import logging
@@ -1031,7 +1032,8 @@ class _SpecAdd:
             return await self.set_spec_async(urn=self._selected)
 
     def get_service_add(self) -> Optional[list[dict]]:
-        return self._selected
+        # The parser edits what it gets, hand out a copy
+        return deepcopy(self._selected)
 
 
 class _SpecModify:
@@ -1117,7 +1119,9 @@ class _SpecModify:
                                           key='value-list')
         if not isinstance(value_list, list):
             return None
-        return value_list
+        # The parser overwrites name and description of each item, and the
+        # loaded file is shared, so a second parse must not see those edits
+        return deepcopy(value_list)
 
     def __get_prop_item(self, siid: int, piid: int, key: str) -> Optional[str]:
         if not self._selected:

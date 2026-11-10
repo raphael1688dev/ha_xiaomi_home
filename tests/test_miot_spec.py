@@ -1,7 +1,7 @@
 """Test for MIoT Spec parser."""
 import pytest
 from custom_components.xiaomi_home.miot.miot_spec import (
-    MIoTSpecInstance, _SpecModify, safe_eval)
+    MIoTSpecInstance, _SpecAdd, _SpecModify, safe_eval)
 
 
 def test_miot_spec_instance_loading():
@@ -141,3 +141,36 @@ async def test_humidifier_600_v1_lists_air_dry_mode(urn: str) -> None:
     assert [(v["value"], v["description"]) for v in value_list] == [
         (0, "Constant Humidity"), (1, "Sleep"), (2, "Strong"),
         (3, "Air-dry")]
+
+
+@pytest.mark.asyncio
+async def test_spec_customization_lists_are_handed_out_as_copies() -> None:
+    """The parser renames value-list items in place; a later parse in the
+    same Home Assistant process (updating the conversion rules, or a second
+    urn sharing the entry) used to see the names of the first one."""
+    urn = "urn:miot-spec-v2:device:air-conditioner:0000A004:qdhkl-a42:1"
+    modify = _SpecModify()
+    await modify.init_async()
+    await modify.set_spec_async(urn=urn)
+    first = modify.get_prop_value_list(siid=2, piid=2)
+    original = [dict(item) for item in first]
+    for item in first:  # what MIoTSpecParser does with each item
+        item["name"] = item["description"]
+        item["description"] = "translated"
+
+    assert modify.get_prop_value_list(siid=2, piid=2) == original
+    # A new instance shares the loaded file and must not see the edits either
+    other = _SpecModify()
+    await other.init_async()
+    await other.set_spec_async(urn=urn)
+    assert other.get_prop_value_list(siid=2, piid=2) == original
+
+    add = _SpecAdd()
+    await add.init_async()
+    await add.set_spec_async(
+        urn="urn:miot-spec-v2:device:thermostat:0000A031:tofan-wk01:1:"
+        "0000C822")
+    services = add.get_service_add()
+    assert services
+    services[0]["description"] = "edited"
+    assert add.get_service_add()[0]["description"] != "edited"
