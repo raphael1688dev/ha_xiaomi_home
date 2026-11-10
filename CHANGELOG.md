@@ -1,4 +1,8 @@
 # CHANGELOG
+## Unreleased
+### Fixed
+- Updating the conversion rules from the integration options no longer changes the internal names of customized mode lists. A second parse in the same Home Assistant session took the names from the translated descriptions, which could drop standard modes such as `auto` (for example on `qdhkl.airc.a42`) and affected `opple.bhf_light.acmoto`, `linp.magnet.m1` and `xiaomi.humidifier.600ek`. If a device lost a mode after updating the conversion rules, update them once more on this version.
+
 ## v0.5.12 (Mod)
 ### Fixed
 - `xiaomi.humidifier.600ek` and `xiaomi.humidifier.600` with spec version 1: air-dry mode (value 3) is now a humidifier mode. These devices report it during the air-dry cycle, but spec version 1 lists only modes 0 to 2, so the mode showed as empty. The mode list now matches Xiaomi's spec version 2. Reported in XiaoMi/ha_xiaomi_home#1855.
