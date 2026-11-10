@@ -1,5 +1,5 @@
 # CHANGELOG
-## Unreleased
+## v0.5.12 (Mod)
 ### Fixed
 - `xiaomi.humidifier.600ek` and `xiaomi.humidifier.600` with spec version 1: air-dry mode (value 3) is now a humidifier mode. These devices report it during the air-dry cycle, but spec version 1 lists only modes 0 to 2, so the mode showed as empty. The mode list now matches Xiaomi's spec version 2. Reported in XiaoMi/ha_xiaomi_home#1855.
 

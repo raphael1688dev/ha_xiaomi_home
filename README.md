@@ -176,7 +176,10 @@ Report problems in the [issue tracker](https://github.com/raphael1688dev/ha_xiao
 
 The most recent releases are listed below. Older versions are in the [CHANGELOG](./CHANGELOG.md) and on the [Releases](https://github.com/raphael1688dev/ha_xiaomi_home/releases) page.
 
-### Version 20261108r44 (v0.5.11 Mod) — Latest
+### Version 20261110r45 (v0.5.12 Mod) — Latest
+- **Humidifier Air-Dry Mode**: The Xiaomi evaporative humidifiers `xiaomi.humidifier.600ek` and `xiaomi.humidifier.600` show and offer their air-dry mode on spec version 1, as Xiaomi's spec version 2 does.
+
+### Version 20261108r44 (v0.5.11 Mod)
 - **No State Flicker After Restart**: The flicker fixed in v0.5.10 could still appear once, for example on the first command after a restart. Values read by any poll are now ignored for two seconds after a command; values the device pushes still apply at once.
 
 ### Version 20261108r43 (v0.5.10 Mod)
