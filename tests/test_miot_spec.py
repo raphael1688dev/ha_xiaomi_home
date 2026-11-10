@@ -124,3 +124,20 @@ async def test_chint_valve_power_values_are_scaled(
     max_raw = 999999999 if piid == 1 else 65535
     assert low <= safe_eval(
         modify.get_prop_expr(siid=siid, piid=piid), max_raw) <= high
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("urn", [
+    "urn:miot-spec-v2:device:humidifier:0000A00E:xiaomi-600ek:1:0000D061",
+    "urn:miot-spec-v2:device:humidifier:0000A00E:xiaomi-600:1:0000D061",
+])
+async def test_humidifier_600_v1_lists_air_dry_mode(urn: str) -> None:
+    """Spec v1 lacks mode 3 the device reports in air-dry (#1855); v2 has it."""
+    modify = _SpecModify()
+    await modify.init_async()
+    await modify.set_spec_async(urn=urn)
+
+    value_list = modify.get_prop_value_list(siid=2, piid=3)
+    assert [(v["value"], v["description"]) for v in value_list] == [
+        (0, "Constant Humidity"), (1, "Sleep"), (2, "Strong"),
+        (3, "Air-dry")]

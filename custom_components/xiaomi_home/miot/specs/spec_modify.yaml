@@ -404,6 +404,18 @@ urn:miot-spec-v2:device:hood:0000A01B:cykj-jyj22:3:
     name: on-ventilation
 urn:miot-spec-v2:device:hood:0000A01B:cykj-jyj22:4: urn:miot-spec-v2:device:hood:0000A01B:cykj-jyj22:3
 urn:miot-spec-v2:device:hood:0000A01B:cykj-jyj22:5: urn:miot-spec-v2:device:hood:0000A01B:cykj-jyj22:3
+urn:miot-spec-v2:device:humidifier:0000A00E:xiaomi-600:1:0000D061: urn:miot-spec-v2:device:humidifier:0000A00E:xiaomi-600ek:1:0000D061
+urn:miot-spec-v2:device:humidifier:0000A00E:xiaomi-600ek:1:0000D061:
+  prop.2.3:
+    value-list:
+    - value: 0
+      description: Constant Humidity
+    - value: 1
+      description: Sleep
+    - value: 2
+      description: Strong
+    - value: 3
+      description: Air-dry
 urn:miot-spec-v2:device:humidifier:0000A00E:zhimi-ca4:2:
   prop.2.7:
     unit: percentage
