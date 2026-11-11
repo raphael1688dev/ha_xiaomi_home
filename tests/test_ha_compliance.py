@@ -1,8 +1,10 @@
 """Unit tests for Home Assistant 2026.10 compliance fixes."""
 # pylint: disable=protected-access
 import importlib
+import inspect
+import json
 from types import SimpleNamespace
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -14,7 +16,10 @@ from homeassistant.components.humidifier.const import (
 from homeassistant.components.water_heater import WaterHeaterEntity
 from homeassistant.helpers.entity import Entity
 
-from custom_components.xiaomi_home import climate, water_heater
+from custom_components.xiaomi_home import (
+    async_remove_entry, async_setup_entry, async_unload_entry, climate,
+    water_heater)
+from custom_components.xiaomi_home.miot.const import DOMAIN
 from custom_components.xiaomi_home.button import Button
 from custom_components.xiaomi_home.event import Event
 from custom_components.xiaomi_home.humidifier import Humidifier
@@ -313,3 +318,27 @@ def test_entity_id_changed_calls_base_class(entity_cls, base_cls) -> None:
             Entity, "async_entity_id_changed", create=True) as base_hook:
         entity.async_entity_id_changed("sensor.old_id")
     base_hook.assert_called_once_with("sensor.old_id")
+
+
+@pytest.mark.asyncio
+async def test_entry_methods_return_none() -> None:
+    """Home Assistant 2026.11 expects None; a boolean is only tolerated
+    from custom integrations. The minimum core is 2026.11 for this reason."""
+    with open("hacs.json", encoding="utf-8") as hacs_file:
+        minimum = json.load(hacs_file)["homeassistant"]
+    assert tuple(int(part) for part in minimum.split(".")[:2]) >= (2026, 11)
+
+    miot_client = MagicMock()
+    miot_client.deinit_async = AsyncMock()
+    hass = MagicMock()
+    hass.config_entries.async_unload_platforms = AsyncMock(return_value=True)
+    hass.data = {DOMAIN: {
+        "devices": {"entry1": []}, "miot_clients": {"entry1": miot_client}}}
+
+    result = await async_unload_entry(hass, SimpleNamespace(entry_id="entry1"))
+
+    assert result is None
+    miot_client.deinit_async.assert_awaited_once()
+    assert hass.data[DOMAIN] == {"devices": {}, "miot_clients": {}}
+    for method in (async_setup_entry, async_unload_entry, async_remove_entry):
+        assert inspect.signature(method).return_annotation is None

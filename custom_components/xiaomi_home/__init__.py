@@ -191,7 +191,7 @@ async def _async_remove_deleted_devices(
 
 async def async_setup_entry(
     hass: HomeAssistant, config_entry: ConfigEntry
-) -> bool:
+) -> None:
     """Set up an entry."""
     def ha_persistent_notify(
         notify_id: str, title: Optional[str] = None,
@@ -404,12 +404,10 @@ async def async_setup_entry(
             await miot_client.deinit_async()
         raise err
 
-    return True
-
 
 async def async_unload_entry(
     hass: HomeAssistant, config_entry: ConfigEntry
-) -> bool:
+) -> None:
     """Unload the entry."""
     entry_id = config_entry.entry_id
     # Unload the platform
@@ -423,12 +421,11 @@ async def async_unload_entry(
     if miot_client:
         await miot_client.deinit_async()
     del miot_client
-    return True
 
 
 async def async_remove_entry(
     hass: HomeAssistant, config_entry: ConfigEntry
-) -> bool:
+) -> None:
     """Remove the entry."""
     entry_data = dict(config_entry.data)
     uid: str = entry_data['uid']
@@ -446,7 +443,6 @@ async def async_remove_entry(
     # Clean cert file
     await miot_cert.remove_user_cert_async()
     await miot_cert.remove_user_key_async()
-    return True
 
 
 async def async_remove_config_entry_device(

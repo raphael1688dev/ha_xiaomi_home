@@ -1,7 +1,7 @@
 # Xiaomi Home Integration (Mod) for Home Assistant
 
 [![GitHub Release](https://img.shields.io/github/v/release/raphael1688dev/ha_xiaomi_home?style=flat-square)](https://github.com/raphael1688dev/ha_xiaomi_home/releases)
-[![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2026.5%2B-blue?style=flat-square)](https://www.home-assistant.io/)
+[![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2026.11%2B-blue?style=flat-square)](https://www.home-assistant.io/)
 [![HACS](https://img.shields.io/badge/HACS-Custom-orange?style=flat-square)](https://hacs.xyz/)
 [![License](https://img.shields.io/badge/License-Xiaomi%20non--commercial-lightgrey?style=flat-square)](./LICENSE.md)
 
@@ -14,7 +14,7 @@ The official repository has had no release since v0.5.0; this fork has carried o
 ## 🚀 Key Mod Features
 
 ### 1. Current Home Assistant Compliance
-- **Follows Home Assistant 2026.5+ practice**: entity naming with `has_entity_name`, entity IDs that match their domain (mismatches are rejected from 2027.5), `DeviceInfo`, config entry only setup, and standard event types such as the doorbell `ring`.
+- **Follows Home Assistant 2026.11 practice**: entity naming with `has_entity_name`, entity IDs that match their domain (mismatches are rejected from 2027.5), `DeviceInfo`, config entry only setup, and standard event types such as the doorbell `ring`.
 - **Ready for announced deprecations**: climate and water heater entities use the `native_*` temperature properties on cores that have them (Home Assistant 2026.11), and the device tracker no longer uses `location_name` (removed in 2027.7).
 - **Python 3.14 safe**: background asyncio tasks are kept referenced so they are not garbage collected before they finish.
 - **Recorder friendly**: large, frequently changing attributes (such as the full value of long strings) are kept out of the history database.
@@ -50,7 +50,7 @@ The official repository has had no release since v0.5.0; this fork has carried o
 
 ## 📦 Installation
 
-> **Requirements**: Home Assistant 2026.5.0 or later (tested on 2026.10).
+> **Requirements**: Home Assistant 2026.11.0 or later (tested on 2026.11.1).
 
 ### Method 1: HACS (Recommended)
 
