@@ -20,12 +20,6 @@ from .miot.miot_spec import MIoTSpecProperty
 
 _LOGGER = logging.getLogger(__name__)
 
-# HA 2026.11 renamed the water heater temperature properties to native_* (the
-# old names log a warning and are removed in 2027.11). Implement whichever API
-# the running core provides, so older cores keep working.
-_NATIVE_TEMP_API: bool = hasattr(
-    WaterHeaterEntity, 'native_current_temperature')
-
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -116,12 +110,8 @@ class WaterHeater(MIoTServiceEntity, WaterHeaterEntity):
                 self._prop_mode = prop
 
         # temperature_unit is required by the water heater entity
-        if _NATIVE_TEMP_API:
-            self._attr_native_temperature_unit = (
-                temperature_unit or UnitOfTemperature.CELSIUS)
-        else:
-            self._attr_temperature_unit = (
-                temperature_unit or UnitOfTemperature.CELSIUS)
+        self._attr_native_temperature_unit = (
+            temperature_unit or UnitOfTemperature.CELSIUS)
 
         if not self._attr_operation_list:
             self._attr_operation_list = [STATE_ON]
@@ -161,7 +151,8 @@ class WaterHeater(MIoTServiceEntity, WaterHeaterEntity):
                                               write_ha_state=False)
             await self.set_property_async(prop=self._prop_mode, value=mode_val)
 
-    def _get_current_temperature(self) -> Optional[float]:
+    @property
+    def native_current_temperature(self) -> Optional[float]:
         """The current temperature."""
         if not self._prop_temp:
             return None
@@ -169,20 +160,14 @@ class WaterHeater(MIoTServiceEntity, WaterHeaterEntity):
         # Optimization: strictly convert to float
         return float(val) if val is not None else None
 
-    def _get_target_temperature(self) -> Optional[float]:
+    @property
+    def native_target_temperature(self) -> Optional[float]:
         """The target temperature."""
         if not self._prop_target_temp:
             return None
         val = self.get_prop_value(prop=self._prop_target_temp)
         # Optimization: strictly convert to float
         return float(val) if val is not None else None
-
-    if _NATIVE_TEMP_API:
-        native_current_temperature = property(_get_current_temperature)
-        native_target_temperature = property(_get_target_temperature)
-    else:
-        current_temperature = property(_get_current_temperature)
-        target_temperature = property(_get_target_temperature)
 
     @property
     def current_operation(self) -> Optional[str]:

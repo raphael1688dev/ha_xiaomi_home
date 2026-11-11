@@ -16,6 +16,7 @@ from homeassistant.components.humidifier.const import (
 from homeassistant.components.water_heater import WaterHeaterEntity
 from homeassistant.helpers.entity import Entity
 
+import custom_components.xiaomi_home as xiaomi_home
 from custom_components.xiaomi_home import (
     async_remove_entry, async_setup_entry, async_unload_entry, climate,
     water_heater)
@@ -169,16 +170,44 @@ def test_binary_property_shown_as_sensor_uses_sensor_domain() -> None:
     assert entity.entity_id == "sensor.xiaomi_test_contact_contact_state"
 
 
-def test_temperature_api_matches_running_core() -> None:
-    """Old cores get the legacy names, 2026.11+ the native_* names."""
-    native = hasattr(ClimateEntity, "native_current_temperature")
-    assert climate._NATIVE_TEMP_API is native
-    assert water_heater._NATIVE_TEMP_API is hasattr(
-        WaterHeaterEntity, "native_current_temperature")
+def test_temperature_uses_the_native_api() -> None:
+    """The old names log a warning on 2026.11 and are removed in 2027.11."""
+    assert "native_target_temperature" in (
+        climate.FeatureTargetTemperature.__dict__)
+    assert "native_current_temperature" in climate.FeatureTemperature.__dict__
+    for name in ("native_current_temperature", "native_target_temperature"):
+        assert name in water_heater.WaterHeater.__dict__
+    for entity_cls in (climate.FeatureTargetTemperature,
+                       climate.FeatureTemperature, water_heater.WaterHeater):
+        for legacy in ("current_temperature", "target_temperature",
+                       "temperature_unit"):
+            assert legacy not in entity_cls.__dict__
+    # Core itself must provide the native API, the minimum is 2026.11
+    assert hasattr(ClimateEntity, "native_current_temperature")
+    assert hasattr(WaterHeaterEntity, "native_current_temperature")
 
-    name = "native_current_temperature" if native else "current_temperature"
-    assert name in climate.FeatureTemperature.__dict__
-    assert name in water_heater.WaterHeater.__dict__
+
+@pytest.mark.asyncio
+async def test_deleted_devices_are_looked_up_by_identifier() -> None:
+    """async_get_device is deprecated (removed in 2027.8)."""
+    registry = MagicMock()
+    registry.async_get_device_by_identifier.return_value = SimpleNamespace(
+        id="device1")
+    miot_client = MagicMock()
+    miot_client.miot_storage.load_user_config_async = AsyncMock(
+        return_value={"devices_remove": ["123"]})
+    miot_client.miot_storage.update_user_config_async = AsyncMock()
+
+    with patch("custom_components.xiaomi_home.device_registry.async_get",
+               return_value=registry):
+        await xiaomi_home._async_remove_deleted_devices(
+            MagicMock(), "entry1", {"uid": "u1", "cloud_server": "cn"},
+            miot_client)
+
+    registry.async_get_device_by_identifier.assert_called_once_with(
+        (DOMAIN, "cn_123"), config_entry_id="entry1")
+    registry.async_get_device.assert_not_called()
+    registry.async_remove_device.assert_called_once_with(device_id="device1")
 
 
 def test_doorbell_event_offers_and_fires_ring() -> None:
