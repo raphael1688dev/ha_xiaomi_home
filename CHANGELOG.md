@@ -1,5 +1,5 @@
 # CHANGELOG
-## Unreleased
+## v0.5.14 (Mod)
 ### Changed
 - The minimum Home Assistant version is now 2026.11.0 (was 2026.5.0). Setting up and unloading an entry no longer return a boolean, which Home Assistant 2026.11 only tolerates from custom integrations and older versions require. Stay on v0.5.13 with an older Home Assistant.
 

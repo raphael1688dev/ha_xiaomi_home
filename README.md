@@ -176,7 +176,10 @@ Report problems in the [issue tracker](https://github.com/raphael1688dev/ha_xiao
 
 The most recent releases are listed below. Older versions are in the [CHANGELOG](./CHANGELOG.md) and on the [Releases](https://github.com/raphael1688dev/ha_xiaomi_home/releases) page.
 
-### Version 20261110r46 (v0.5.13 Mod) — Latest
+### Version 20261111r47 (v0.5.14 Mod) — Latest
+- **Home Assistant 2026.11 Required**: The minimum Home Assistant version is now 2026.11.0. The integration follows the 2026.11 rules for setting up and unloading entries, and the code paths for older versions are gone. Stay on v0.5.13 with an older Home Assistant.
+
+### Version 20261110r46 (v0.5.13 Mod)
 - **Stable Mode Lists**: Updating the conversion rules no longer changes the internal names of customized mode lists, which could make a standard mode such as `auto` disappear. If a device lost a mode this way, update the conversion rules once more.
 
 ### Version 20261110r45 (v0.5.12 Mod)
