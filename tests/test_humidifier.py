@@ -37,6 +37,7 @@ async def test_enumerated_target_humidity_is_bound_and_snapped() -> None:
 
     assert entity._prop_target_humidity is not None
     assert (entity.min_humidity, entity.max_humidity) == (30, 70)
+    assert entity.target_humidity_step == 10
 
     for requested, expected in ((44, 40), (46, 50), (45, 40), (70, 70)):
         await entity.async_set_humidity(requested)
@@ -60,3 +61,13 @@ def test_target_humidity_without_range_or_list_is_not_bound() -> None:
 
     assert entity._prop_target_humidity is None
     assert entity.target_humidity is None
+
+
+def test_unevenly_spaced_targets_get_no_step() -> None:
+    entity = _humidifier(_prop(
+        "target-humidity", "dehumidifier", "uint8", value_list=[
+            {"name": f"h{value}", "value": value, "description": str(value)}
+            for value in (30, 40, 60)]))
+
+    assert (entity.min_humidity, entity.max_humidity) == (30, 60)
+    assert entity.target_humidity_step is None

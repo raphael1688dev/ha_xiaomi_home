@@ -124,6 +124,10 @@ class Humidifier(MIoTServiceEntity, HumidifierEntity):
                     self._target_humidity_values = values
                     self._attr_min_humidity = values[0]
                     self._attr_max_humidity = values[-1]
+                    # Evenly spaced values give the slider its step
+                    steps = {b - a for a, b in zip(values, values[1:])}
+                    if len(steps) == 1:
+                        self._attr_target_humidity_step = steps.pop()
                 else:
                     _LOGGER.error(
                         'invalid target-humidity value_range format, %s',
