@@ -176,7 +176,10 @@ Report problems in the [issue tracker](https://github.com/raphael1688dev/ha_xiao
 
 The most recent releases are listed below. Older versions are in the [CHANGELOG](./CHANGELOG.md) and on the [Releases](https://github.com/raphael1688dev/ha_xiaomi_home/releases) page.
 
-### Version 20261111r47 (v0.5.14 Mod) — Latest
+### Version 20261112r48 (v0.5.15 Mod) — Latest
+- **Listed Target Humidities**: Humidifiers and dehumidifiers that list their allowed target humidities, such as `nwt.derh.330ef`, can show and set the target humidity again, with a slider that moves in the device's own steps. Contributed by @lidicn.
+
+### Version 20261111r47 (v0.5.14 Mod)
 - **Home Assistant 2026.11 Required**: The minimum Home Assistant version is now 2026.11.0. The integration follows the 2026.11 rules for setting up and unloading entries, and the code paths for older versions are gone. Stay on v0.5.13 with an older Home Assistant.
 
 ### Version 20261110r46 (v0.5.13 Mod)
@@ -252,7 +255,7 @@ The most recent releases are listed below. Older versions are in the [CHANGELOG]
 
 ## 🙏 Credits
 
-Thanks to the people whose fixes were reviewed and merged here, many of them first proposed upstream: @theodorx7, @Wuty-zju, @Blueve, @MGrin, @reginaldalfret, @xuilen, @0xSixtos, @gaofeng21cn, @jackjinke and @rz467fzs7d, and to the Xiaomi team for the original integration.
+Thanks to the people whose fixes were reviewed and merged here, many of them first proposed upstream: @theodorx7, @Wuty-zju, @Blueve, @MGrin, @reginaldalfret, @xuilen, @0xSixtos, @gaofeng21cn, @jackjinke, @rz467fzs7d and @lidicn, and to the Xiaomi team for the original integration.
 
 ## 📄 License & Attribution
 

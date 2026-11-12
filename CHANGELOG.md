@@ -1,5 +1,5 @@
 # CHANGELOG
-## Unreleased
+## v0.5.15 (Mod)
 ### Fixed
 - Humidifiers and dehumidifiers that list their allowed target humidities instead of giving a range (for example `nwt.derh.330ef`, 30 to 70 % in steps of 10) can show and set the target humidity again. The integration logged `invalid target-humidity value_range format` and left the target unavailable. A requested value is set to the closest listed one, and evenly spaced lists give the slider the same step. Contributed by @lidicn (XiaoMi/ha_xiaomi_home#1856).
 
