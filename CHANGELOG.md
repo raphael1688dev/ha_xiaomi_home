@@ -1,4 +1,8 @@
 # CHANGELOG
+## Unreleased
+### Fixed
+- Humidifiers and dehumidifiers that list their allowed target humidities instead of giving a range (for example `nwt.derh.330ef`, 30 to 70 % in steps of 10) can show and set the target humidity again. The integration logged `invalid target-humidity value_range format` and left the target unavailable. A requested value is set to the closest listed one, and evenly spaced lists give the slider the same step. Contributed by @lidicn (XiaoMi/ha_xiaomi_home#1856).
+
 ## v0.5.14 (Mod)
 ### Changed
 - The minimum Home Assistant version is now 2026.11.0 (was 2026.5.0). Setting up and unloading an entry no longer return a boolean, which Home Assistant 2026.11 only tolerates from custom integrations and older versions require. Stay on v0.5.13 with an older Home Assistant.
