@@ -1,4 +1,17 @@
 # CHANGELOG
+## Unreleased
+### Fixed
+- Lights whose brightness is a list of levels instead of a range no longer fail every state update while on; the levels stay available as effects.
+- Fans whose speed is a value range can select their lowest speed again: on a 1 to 3 range, 33 % sent 0, below the range. Percentages now map onto the range's own steps, like Home Assistant's own fans.
+- Bath heaters without an off or idle mode are added again; their entity used to fail with an error when it was created.
+- Sensors that have a device class but no unit from the device get a stable default unit (seconds for durations, Celsius for temperatures). The unit could change between restarts, which broke long-term statistics.
+- A command or property refresh that was in flight when a central hub gateway or LAN connection went away now ends with an error instead of waiting forever. That could stop property polling for good in local control mode, or with local polling first.
+- A failed unload of one platform no longer reports the entry as unloaded, which made the next reload fail until Home Assistant restarted.
+- Refreshing the Xiaomi login token or the gateway certificate retries after a network error, timeout or server error, from one minute up to 30 minutes, instead of stopping and asking you to log in again. A rejected login still asks.
+- Device tokens, the OAuth code and the gateway certificate are no longer written to the log.
+- Disconnecting from the cloud or a gateway, and the network check in the configuration and options flows, no longer block Home Assistant while a connection attempt is hanging.
+- The integration now depends on `webhook`, which the login redirect needs; without `default_config` the login never completed.
+
 ## v0.5.15 (Mod)
 ### Fixed
 - Humidifiers and dehumidifiers that list their allowed target humidities instead of giving a range (for example `nwt.derh.330ef`, 30 to 70 % in steps of 10) can show and set the target humidity again. The integration logged `invalid target-humidity value_range format` and left the target unavailable. A requested value is set to the closest listed one, and evenly spaced lists give the slider the same step. Contributed by @lidicn (XiaoMi/ha_xiaomi_home#1856).
