@@ -198,7 +198,7 @@ User data is isolated per region. Integration supports multiple regions in same 
 - Spec mappings: `custom_components/xiaomi_home/miot/specs/specv2entity.py`
 - Spec filters: `custom_components/xiaomi_home/miot/specs/spec_filter.yaml`
 - Translations: `custom_components/xiaomi_home/translations/` and `custom_components/xiaomi_home/miot/i18n/`
-- Tests: `test/`
+- Tests: `test/` (upstream suite) and `tests/` (the fork's unit tests)
 
 ## Fork-specific behavior to keep
 
