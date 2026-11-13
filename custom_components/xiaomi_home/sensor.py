@@ -10,13 +10,32 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.components.sensor import SensorEntity, SensorDeviceClass
 from homeassistant.components.sensor import DEVICE_CLASS_UNITS
-from homeassistant.const import EntityCategory
+from homeassistant.const import (
+    EntityCategory, UnitOfTemperature, UnitOfTime)
 
 from .miot.miot_device import MIoTDevice, MIoTPropertyEntity
 from .miot.miot_spec import MIoTSpecProperty
 from .miot.const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
+
+# Units for device classes whose MIoT properties come without one. MIoT gives
+# durations in seconds; other classes take their first unit in sorted order,
+# so the unit stays the same across restarts (a set has no stable order).
+_DEFAULT_UNITS: dict[SensorDeviceClass, str] = {
+    SensorDeviceClass.DURATION: UnitOfTime.SECONDS,
+    SensorDeviceClass.TEMPERATURE: UnitOfTemperature.CELSIUS,
+}
+
+
+def _default_unit(device_class: Optional[SensorDeviceClass]) -> Optional[str]:
+    """Return a stable default unit for a device class."""
+    if device_class in _DEFAULT_UNITS:
+        return _DEFAULT_UNITS[device_class]
+    units = DEVICE_CLASS_UNITS.get(device_class)  # type: ignore[arg-type]
+    if not units:
+        return None
+    return sorted(units, key=str)[0]
 
 
 async def async_setup_entry(
@@ -95,10 +114,8 @@ class Sensor(MIoTPropertyEntity, SensorEntity):
             else:
                 # device_class is not empty but unit is empty.
                 # Set the default unit according to device_class.
-                unit_sets = DEVICE_CLASS_UNITS.get(
-                    self._attr_device_class, None)  # type: ignore
-                self._attr_native_unit_of_measurement = list(
-                    unit_sets)[0] if unit_sets else None
+                self._attr_native_unit_of_measurement = _default_unit(
+                    self._attr_device_class)
 
             # Set suggested precision
             if spec.format_ == float:
