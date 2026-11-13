@@ -1,4 +1,5 @@
 """Diagnostics must help to troubleshoot without leaking the account."""
+# pylint: disable=protected-access
 import json
 from types import SimpleNamespace
 from unittest.mock import MagicMock
@@ -8,6 +9,8 @@ from homeassistant.components.diagnostics import REDACTED
 
 from custom_components.xiaomi_home import diagnostics
 from custom_components.xiaomi_home.miot.const import DOMAIN
+from custom_components.xiaomi_home.miot.miot_client import MIoTClient
+from custom_components.xiaomi_home.miot.miot_mips import MipsCloudClient
 
 _SECRETS = ("tok-secret", "192.168.1.23", "HomeWiFi", "aa:bb:cc",
             "Living room fan", "did-123", "1234567", "Raphael",
@@ -36,6 +39,7 @@ def _client() -> SimpleNamespace:
         cloud_server="cn",
         auth_rejected=False,
         miot_network=SimpleNamespace(network_status=True),
+        mips_cloud=SimpleNamespace(mips_state=True, mips_failure_reason=None),
         mips_local={"g1": SimpleNamespace(mips_state=True)},
         device_list_lan={"did-123": {}},
         device_list_gateway={},
@@ -71,10 +75,40 @@ async def test_entry_diagnostics_hide_the_account_and_devices() -> None:
     assert data["entry"]["data"]["ctrl_mode"] == "auto"
     assert data["client"]["devices_by_control_path"] == {"LAN": 1}
     assert data["client"]["gateways_connected"] == [True]
+    assert data["client"]["cloud_mqtt_connected"] is True
+    assert data["client"]["cloud_mqtt_failure_reason"] is None
     assert data["devices"] == [{
         "model": "zhimi.fan.za5", "urn": "urn:miot-spec-v2:device:fan:1",
         "connect_type": 0, "online": True, "fw_version": "2.1.2",
         "rssi": -50, "voice_ctrl": None, "control_path": "LAN"}]
+
+
+@pytest.mark.asyncio
+async def test_entry_diagnostics_show_why_the_cloud_mqtt_is_down() -> None:
+    client = _client()
+    client.mips_cloud = SimpleNamespace(
+        mips_state=False, mips_failure_reason="Not authorized")
+    data = await diagnostics.async_get_config_entry_diagnostics(
+        _hass(client), _entry())
+    assert data["client"]["cloud_mqtt_connected"] is False
+    assert data["client"]["cloud_mqtt_failure_reason"] == "Not authorized"
+
+    client.mips_cloud = None  # init_async has not created it yet
+    data = await diagnostics.async_get_config_entry_diagnostics(
+        _hass(client), _entry())
+    assert data["client"]["cloud_mqtt_connected"] is None
+
+
+def test_client_and_mips_expose_the_cloud_state() -> None:
+    """Diagnostics read these public properties of the real classes."""
+    mips = object.__new__(MipsCloudClient)
+    mips._mips_failure_reason = "Not authorized"
+    mips._mqtt = None
+    assert mips.mips_failure_reason == "Not authorized"
+    assert mips.mips_state is False
+    client = object.__new__(MIoTClient)
+    client._mips_cloud = mips
+    assert client.mips_cloud is mips
 
 
 @pytest.mark.asyncio

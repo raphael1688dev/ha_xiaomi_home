@@ -572,6 +572,11 @@ class MIoTClient:
         return self._mips_local
 
     @property
+    def mips_cloud(self) -> Optional[MipsCloudClient]:
+        """The cloud MQTT client, None before init_async creates it."""
+        return self._mips_cloud
+
+    @property
     def refresh_props_list(self) -> dict:
         return self._refresh_props_list
 

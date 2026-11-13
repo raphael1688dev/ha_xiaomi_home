@@ -1,4 +1,8 @@
 # CHANGELOG
+## Unreleased
+### Added
+- Entry diagnostics show whether the cloud MQTT connection is up. If it keeps failing, they also show why, for example "Not authorized" from the broker or the network error. Before, only the central hub gateway connections were shown.
+
 ## v0.5.19 (Mod)
 ### Fixed
 - Devices whose model ends in an uppercase letter (for example `xiaomi.watch.band1A` and `band1S`) no longer make Home Assistant report invalid entity IDs, and the integration no longer logs a failed entity ID migration for them on every start. Their entity IDs stay as they are. From Home Assistant 2027.2, these entities would not have been added. Entity IDs of other devices do not change.

@@ -63,10 +63,15 @@ def _client_summary(miot_client: MIoTClient) -> dict[str, Any]:
     for did in miot_client.device_list:
         path = miot_client.get_device_control_path(did)
         paths[path] = paths.get(path, 0) + 1
+    mips_cloud = miot_client.mips_cloud
     return {
         'cloud_server': miot_client.cloud_server,
         'auth_rejected': miot_client.auth_rejected,
         'network_online': miot_client.miot_network.network_status,
+        'cloud_mqtt_connected': (
+            mips_cloud.mips_state if mips_cloud else None),
+        'cloud_mqtt_failure_reason': (
+            mips_cloud.mips_failure_reason if mips_cloud else None),
         'gateways_connected': sorted(
             mips.mips_state for mips in miot_client.mips_local.values()),
         'lan_devices': len(miot_client.device_list_lan),

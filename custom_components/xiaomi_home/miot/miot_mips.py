@@ -349,6 +349,12 @@ class _MipsClient(ABC):
 
     @final
     @property
+    def mips_failure_reason(self) -> Optional[str]:
+        """Why connecting fails, until the next successful connect."""
+        return self._mips_failure_reason
+
+    @final
+    @property
     def mips_state(self) -> bool:
         """mips connect state.
 
