@@ -7,9 +7,25 @@ from typing import Set, Tuple
 from urllib.parse import urlparse
 import logging
 
+from paho.mqtt import client as mqtt_client
 
+from .miot.const import DEFAULT_CLOUD_BROKER_HOST
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _check_mqtt_broker(cloud_server: str, uid: str) -> None:
+    """Connect to the cloud MQTT broker once, raise if it fails.
+
+    Blocking (DNS, TCP connect): run it in the executor.
+    """
+    client = mqtt_client.Client(
+        client_id=f'ha.{uid}', protocol=mqtt_client.MQTTv5)  # type: ignore
+    if client.connect(
+            host=f'{cloud_server}-{DEFAULT_CLOUD_BROKER_HOST}',
+            port=8883) != 0:
+        raise RuntimeError('mqtt connect error')
+    client.disconnect()
 
 
 def _handle_network_detect_addr(

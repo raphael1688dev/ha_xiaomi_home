@@ -388,7 +388,7 @@ class MIoTClient:
         # Cloud mips
         self._mips_cloud.unsub_mips_state(
             key=f'{self._uid}-{self._cloud_server}')
-        self._mips_cloud.deinit()
+        await self._mips_cloud.deinit_async()
         # Cancel refresh cloud devices
         if self._refresh_cloud_devices_timer:
             self._refresh_cloud_devices_timer.cancel()
@@ -401,7 +401,7 @@ class MIoTClient:
                 for mips in self._mips_local.values():
                     mips.on_dev_list_changed = None
                     mips.unsub_mips_state(key=mips.group_id)
-                    mips.deinit()
+                    await mips.deinit_async()
                 if self._mips_local_state_changed_timers:
                     for timer_item in (
                             self._mips_local_state_changed_timers.values()):
@@ -1170,7 +1170,7 @@ class MIoTClient:
                 self._refresh_cloud_devices_timer.cancel()
                 self._refresh_cloud_devices_timer = None
             # Disconnect cloud mips
-            self._mips_cloud.disconnect()
+            await self._mips_cloud.disconnect_async()
 
     @final
     async def __on_mips_service_state_change(
@@ -1187,11 +1187,11 @@ class MIoTClient:
                 and mips.port == data['port']
             ):
                 return
-            mips.disconnect()
+            await mips.disconnect_async()
 
             # MEMORY LEAK FIX: Explicitly unsubscribe and deinitialize
             mips.unsub_mips_state(key=group_id)
-            mips.deinit()
+            await mips.deinit_async()
 
             self._mips_local.pop(group_id, None)
 

@@ -2,6 +2,7 @@
 # pylint: disable=protected-access
 import asyncio
 import json
+import time
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -128,3 +129,23 @@ async def test_refresh_handler_survives_a_raising_refresh_path() -> None:
     assert client._refresh_props_retry_count == 1
     assert client._main_loop.call_later.call_args.args[0] == (
         REFRESH_PROPS_RETRY_DELAY)
+
+
+@pytest.mark.asyncio
+async def test_disconnect_async_does_not_block_the_event_loop() -> None:
+    """disconnect() joins the MQTT thread, which can be stuck in a blocking
+    connect; called on the loop it froze Home Assistant meanwhile."""
+    mips = _mips()
+    started = time.monotonic()
+    mips.disconnect = lambda: time.sleep(0.3)  # a slow thread join
+    ticks = 0
+
+    async def tick() -> None:
+        nonlocal ticks
+        while time.monotonic() - started < 0.25:
+            ticks += 1
+            await asyncio.sleep(0.01)
+
+    await asyncio.gather(mips.disconnect_async(), tick())
+
+    assert ticks >= 10

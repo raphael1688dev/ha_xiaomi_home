@@ -19,7 +19,7 @@ def _fan(value_range: list, level: int) -> tuple[Fan, list]:
     fan._prop_value_map = {on: True, fan_level: level}
     sent: list = []
 
-    async def fake_set_property_async(prop, value, **kwargs):
+    async def fake_set_property_async(prop, value, **_kwargs):
         sent.append(value)
         fan._prop_value_map[prop] = value
         return True

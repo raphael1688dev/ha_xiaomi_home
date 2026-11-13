@@ -38,7 +38,8 @@ def test_lan_device_sync_logs_no_token(caplog) -> None:
 
 def test_no_known_secret_logging_left() -> None:
     """The log calls that printed device records, codes or certs."""
-    root = pathlib.Path(__file__).parent.parent / "custom_components/xiaomi_home"
+    root = (pathlib.Path(__file__).parent.parent
+            / "custom_components/xiaomi_home")
     source = {p.name: p.read_text() for p in root.rglob("*.py")}
     assert "'webhook code: %s', data['code']" not in source["oauth.py"]
     assert "'update_user_cert_async, %s', crt_str" not in source[

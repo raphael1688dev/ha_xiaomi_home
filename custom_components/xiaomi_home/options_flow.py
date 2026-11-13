@@ -46,7 +46,8 @@ from .miot.miot_network import MIoTNetwork
 from .miot.miot_client import MIoTClient, get_miot_instance_async
 from .miot.miot_spec import MIoTSpecParser
 from .miot.miot_lan import MIoTLan
-from .network import _handle_network_detect_addr, _handle_devices_filter
+from .network import (
+    _check_mqtt_broker, _handle_devices_filter, _handle_network_detect_addr)
 from .oauth import _handle_oauth_webhook
 
 _LOGGER = logging.getLogger(__name__)
@@ -979,18 +980,10 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                         'device']):
                 return await self.__show_network_detect_config_form(
                     reason='unreachable_spec_host')
-            # MQTT Broker
-            # pylint: disable=import-outside-toplevel
+            # MQTT Broker, blocking: off the event loop
             try:
-                from paho.mqtt import client
-                mqtt_client = client.Client(
-                    client_id=f'ha.{self._uid}',
-                    protocol=client.MQTTv5)  # type: ignore
-                if mqtt_client.connect(
-                    host=f'{self._cloud_server}-{DEFAULT_CLOUD_BROKER_HOST}',
-                    port=8883) != 0:
-                    raise RuntimeError('mqtt connect error')
-                mqtt_client.disconnect()
+                await self.hass.async_add_executor_job(
+                    _check_mqtt_broker, self._cloud_server, self._uid)
             except Exception:  # pylint: disable=broad-exception-caught
                 _LOGGER.error('try connect mqtt broker error, %s',
                               traceback.format_exc())

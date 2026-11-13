@@ -163,7 +163,7 @@ async def test_value_list_brightness_is_an_effect_not_a_brightness() -> None:
             {"name": "high", "value": 2, "description": "High"}]))
     sent: list = []
 
-    async def fake_set_property_async(prop, value, **kwargs):
+    async def fake_set_property_async(prop, value, **_kwargs):
         sent.append((prop.name, value))
         return True
     light.set_property_async = fake_set_property_async
@@ -175,7 +175,7 @@ async def test_value_list_brightness_is_an_effect_not_a_brightness() -> None:
     assert light.state_attributes["effect"] == "Brightness: High"
 
     await light.async_turn_on(**{ATTR_BRIGHTNESS: 128})
-    assert sent == []
+    assert not sent
     await light.async_turn_on(**{ATTR_EFFECT: "Brightness: Low"})
     assert sent == [("brightness", 1)]
 

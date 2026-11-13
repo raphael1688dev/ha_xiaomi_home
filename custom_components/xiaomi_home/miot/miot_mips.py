@@ -384,9 +384,12 @@ class _MipsClient(ABC):
         self._internal_loop.close()
 
     async def disconnect_async(self) -> None:
-        """mips disconnect async."""
-        self.disconnect()
-        await self._event_disconnect.wait()
+        """mips disconnect, without blocking the event loop.
+
+        disconnect() joins the MQTT thread, which may be in the middle of a
+        blocking connect (DNS, TCP, TLS handshake): run it in the executor.
+        """
+        await asyncio.get_running_loop().run_in_executor(None, self.disconnect)
 
     @final
     def deinit(self) -> None:
