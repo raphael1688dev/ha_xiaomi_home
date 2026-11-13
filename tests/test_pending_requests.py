@@ -149,3 +149,23 @@ async def test_disconnect_async_does_not_block_the_event_loop() -> None:
     await asyncio.gather(mips.disconnect_async(), tick())
 
     assert ticks >= 10
+
+
+def test_ack_without_handler_is_not_kept_as_pending() -> None:
+    """Acks used the device's message id and were never answered: the map
+    grew with every push, and a later push with that id was dropped."""
+    lan = _lan()
+    lan._pending_requests = {}
+    lan._internal_loop = MagicMock()
+    lan._MIoTLan__sendto = MagicMock()
+
+    lan._MIoTLan__make_request(
+        msg_id=42, msg=bytearray(b"ack"), if_name="en0", ip="1.2.3.4",
+        handler=None)
+    assert not lan._pending_requests
+    lan._MIoTLan__sendto.assert_called_once()
+
+    lan._MIoTLan__make_request(
+        msg_id=43, msg=bytearray(b"call"), if_name="en0", ip="1.2.3.4",
+        handler=lambda msg, ctx: None, timeout_ms=1000)
+    assert list(lan._pending_requests) == [43]

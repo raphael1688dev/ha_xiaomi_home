@@ -1140,7 +1140,11 @@ class MIoTLan:
             timer = self._internal_loop.call_later(
                 timeout_ms/1000, request_timeout_handler, request_data)
             request_data.timeout = timer
-        self._pending_requests[msg_id] = request_data
+        if handler is not None or timer is not None:
+            # Acks to device pushes expect no reply: keeping them grew the
+            # map forever, and a later push with the same id was taken for
+            # their reply and dropped
+            self._pending_requests[msg_id] = request_data
         self.__sendto(if_name=if_name, data=msg, address=ip, port=self.OT_PORT)
 
     def broadcast_device_state(self, did: str, state: dict) -> None:
