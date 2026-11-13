@@ -675,7 +675,8 @@ class PtcBathHeater(FeatureTargetTemperature, FeatureTemperature,
 
         super().__init__(miot_device=miot_device, entity_data=entity_data)
         self._attr_icon = 'mdi:hvac'
-        # hvac modes
+        # hvac modes; ClimateEntity has no default, so it is always set
+        self._attr_hvac_modes = [HVACMode.AUTO]
         if prop := entity_data.get_prop('mode', 'ptc-bath-heater'):
             if not prop.value_list:
                 _LOGGER.error('invalid mode value_list, %s', self.entity_id)
@@ -710,14 +711,15 @@ class PtcBathHeater(FeatureTargetTemperature, FeatureTemperature,
     @property
     def hvac_mode(self) -> Optional[HVACMode]:
         """The current hvac mode."""
-        if not self._prop_mode or not self._hvac_mode_map:
+        if not self._prop_mode:
             return None
         current_mode = self.get_prop_value(prop=self._prop_mode)
         if current_mode is None:
             return None
-
-        mode_value = self._hvac_mode_map.get(current_mode)
-        return HVACMode.OFF if mode_value == HVACMode.OFF else HVACMode.AUTO
+        if (self._hvac_mode_map
+                and self._hvac_mode_map.get(current_mode) == HVACMode.OFF):
+            return HVACMode.OFF
+        return HVACMode.AUTO
 
 
 class Thermostat(FeatureOnOff, FeatureTargetTemperature, FeatureTemperature,
