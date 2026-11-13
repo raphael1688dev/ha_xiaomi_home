@@ -1,4 +1,17 @@
 # CHANGELOG
+## Unreleased
+### Fixed
+- A failed login in the configuration flow can be retried with "Next"; it used to show the same error again until the dialog was closed.
+- Removing an entry that was not set up since Home Assistant started now deletes its stored login, certificate and device list; it failed with an error and left them on disk. A failed setup reports its real error, and a device of an entry that is not loaded can be deleted when the entry no longer has it.
+- Configuration and options flow errors show translated messages instead of raw identifiers or "Unknown error", and the "Polling priority" field has a label.
+- `climate.set_temperature` with an `hvac_mode` sets the mode too. Air conditioners no longer list Off twice, and climate fans with an on/off switch show Off while off and turn on when a speed is picked.
+- Failed device commands show their message in Home Assistant instead of "Unknown error" with a stack trace in the log, and invalid input to text and notify actions is reported to the caller instead of being ignored.
+- Storage files are written atomically, so a power loss during a write no longer leaves a device list that fails to load, and two writes to one file no longer run at once.
+- LAN control no longer keeps every acknowledgement it sends, which grew memory over time and could drop a later device message.
+
+### Changed
+- The unused `ffmpeg` dependency and the `construct` and `numpy` requirements are removed. Home Assistant no longer sets up its ffmpeg integration for this integration.
+
 ## v0.5.16 (Mod)
 ### Fixed
 - Lights whose brightness is a list of levels instead of a range no longer fail every state update while on; the levels stay available as effects.
