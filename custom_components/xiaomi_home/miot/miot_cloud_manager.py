@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 import aiohttp
 
 from .const import PROP_MSG_POLLED
-from .miot_error import MIoTClientError, MIoTErrorCode
+from .miot_error import MIoTClientError, MIoTErrorCode, MIoTHttpError
 
 if TYPE_CHECKING:
     from .miot_client import MIoTClient
@@ -87,7 +87,9 @@ class MIoTCloudManager:
                 'refresh props failed, cloud network/timeout: %s', err_msg)
             self.client.refresh_props_list.update(clean_request_list)
             return False
-        except MIoTClientError as err:
+        # MIoTHttpError is not a MIoTClientError: without it here, a 401 or
+        # 5xx from the cloud fell through to the generic ERROR with a trace
+        except (MIoTClientError, MIoTHttpError) as err:
             err_str = str(err).lower()
             err_code = getattr(err, 'code', None)
             if (err_code == MIoTErrorCode.CODE_HTTP_INVALID_ACCESS_TOKEN

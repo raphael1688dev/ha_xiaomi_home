@@ -1,8 +1,11 @@
 """Unit tests for MIoTLanManager and MIoTCloudManager refresh handling."""
 import asyncio
+import logging
 import pytest
 from unittest.mock import AsyncMock, MagicMock
 from custom_components.xiaomi_home.miot.const import PROP_MSG_POLLED
+from custom_components.xiaomi_home.miot.miot_error import (
+    MIoTErrorCode, MIoTHttpError)
 from custom_components.xiaomi_home.miot.miot_lan_manager import MIoTLanManager
 from custom_components.xiaomi_home.miot.miot_cloud_manager import MIoTCloudManager
 
@@ -124,3 +127,25 @@ async def test_refreshed_values_are_marked_as_polled(source: str) -> None:
     params = client.on_prop_msg.call_args.kwargs["params"]
     assert params == {"did": "dev1", "siid": 2, "piid": 1, "value": 100,
                       PROP_MSG_POLLED: True}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("error,message", [
+    (MIoTHttpError("mihome api get failed, unauthorized(401)",
+                   MIoTErrorCode.CODE_HTTP_INVALID_ACCESS_TOKEN),
+     "unauthorized(401)"),
+    (MIoTHttpError("mihome api post failed, 503, /app/v2/miotspec/prop/get"),
+     "server error (5xx)"),
+])
+async def test_cloud_http_errors_are_warnings(error, message, caplog) -> None:
+    """MIoTHttpError is not a MIoTClientError, so these fell through to an
+    ERROR with a stack trace on every poll."""
+    client = _refresh_client()
+    client.miot_http.get_props_async = AsyncMock(side_effect=error)
+
+    with caplog.at_level(logging.WARNING):
+        assert await MIoTCloudManager(client).refresh_props() is False
+
+    assert message in caplog.text
+    assert not [r for r in caplog.records if r.levelno >= logging.ERROR]
+    assert "dev1|2|1" in client.refresh_props_list
