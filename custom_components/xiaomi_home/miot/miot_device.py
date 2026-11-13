@@ -581,7 +581,22 @@ class MIoTDevice:
     @cached_property
     def entity_id_prefix(self) -> str:
         """Stable prefix for entity_id generation, e.g. 779521713_lamp30"""
-        return f'{self.did_tag}_{self._model_strs[-1][:20]}'
+        return slugify_name(f'{self.did_tag}_{self._model_strs[-1][:20]}')
+
+    def gen_entity_id(self, domain: str, name: Optional[str] = None) -> str:
+        """entity_id for an entity of this device, always a valid ID.
+
+        Home Assistant reports an invalid entity_id set by an entity and
+        stops adding the entity in 2027.2. The object ID goes through the
+        slugify the entity registry applies to a suggested ID: a valid ID
+        stays as it is, and an invalid one (an uppercase model such as
+        xiaomi.watch.band1A) becomes the ID the registry already holds.
+        """
+        object_id = self.entity_id_prefix
+        if name:
+            suffix = slugify_name(name.replace('* ', ''))
+            object_id = slugify_name(f'{object_id}_{suffix}')
+        return f'{domain}.{object_id}'
 
     def gen_device_unique_id(self) -> str:
         return self._uid_prefix
@@ -662,13 +677,7 @@ class MIoTDevice:
                             f'{star}{spec_item.service.description_trans} '
                             f'{spec_item.description_trans}')
 
-                    domain = platform
-                    if attr_name:
-                        clean_name = attr_name.replace('* ', '')
-                        target_eid = (f"{domain}.{self.entity_id_prefix}_"
-                                      f"{slugify_name(clean_name)}")
-                    else:
-                        target_eid = f"{domain}.{self.entity_id_prefix}"
+                    target_eid = self.gen_entity_id(platform, attr_name)
 
                     # Handle collisions gracefully to maintain stability
                     original_target_eid = target_eid
@@ -1075,13 +1084,8 @@ class MIoTServiceEntity(Entity):
 
         # Override entity_id explicitly to bypass HA's slugification of device
         # name
-        domain = ha_domain or self.entity_data.platform
-        if self._attr_name:
-            clean_name = self._attr_name.replace("* ", "")
-            self.entity_id = (f"{domain}.{miot_device.entity_id_prefix}_"
-                              f"{slugify_name(clean_name)}")
-        else:
-            self.entity_id = f"{domain}.{miot_device.entity_id_prefix}"
+        self.entity_id = miot_device.gen_entity_id(
+            ha_domain or self.entity_data.platform, self._attr_name)
 
         self._event_occurred_handler = None
         self._prop_changed_subs = {}
@@ -1434,10 +1438,8 @@ class MIoTPropertyEntity(Entity):
 
         # Override entity_id explicitly to bypass HA's slugification of device
         # name
-        clean_name = self._attr_name.replace("* ", "")
-        self.entity_id = (
-            f"{ha_domain or spec.platform}.{miot_device.entity_id_prefix}_"
-            f"{slugify_name(clean_name)}")
+        self.entity_id = miot_device.gen_entity_id(
+            ha_domain or spec.platform, self._attr_name)
 
         _LOGGER.info(
             'new miot property entity, %s, %s, %s, %s, %s, entity_id: %s',
@@ -1627,9 +1629,8 @@ class MIoTEventEntity(Entity):
 
         # Override entity_id explicitly to bypass HA's slugification of device
         # name
-        clean_name = self._attr_name.replace("* ", "")
-        self.entity_id = (f"{spec.platform}.{miot_device.entity_id_prefix}_"
-                          f"{slugify_name(clean_name)}")
+        self.entity_id = miot_device.gen_entity_id(
+            spec.platform, self._attr_name)
 
         self._arguments_map = {}
         for prop in spec.argument:
@@ -1761,10 +1762,8 @@ class MIoTActionEntity(Entity):
 
         # Override entity_id explicitly to bypass HA's slugification of device
         # name
-        clean_name = self._attr_name.replace("* ", "")
-        self.entity_id = (
-            f"{ha_domain or spec.platform}.{miot_device.entity_id_prefix}_"
-            f"{slugify_name(clean_name)}")
+        self.entity_id = miot_device.gen_entity_id(
+            ha_domain or spec.platform, self._attr_name)
 
         self._in_map = {}
         for prop in spec.in_:

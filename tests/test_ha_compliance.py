@@ -3,6 +3,7 @@
 import importlib
 import inspect
 import json
+from functools import partial
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -28,6 +29,7 @@ from custom_components.xiaomi_home.humidifier import Humidifier
 from custom_components.xiaomi_home.light import Light
 from custom_components.xiaomi_home.miot.miot_cloud import MIoTOauthClient
 from custom_components.xiaomi_home.miot.miot_device import (
+    MIoTDevice,
     MIoTActionEntity, MIoTEventEntity, MIoTPropertyEntity, MIoTServiceEntity)
 from custom_components.xiaomi_home.miot.miot_error import MIoTOauthError
 from custom_components.xiaomi_home.miot.miot_spec import (
@@ -39,6 +41,7 @@ from custom_components.xiaomi_home.text import Text
 def _mock_miot_device() -> MagicMock:
     miot_device = MagicMock()
     miot_device.entity_id_prefix = "xiaomi_test"
+    miot_device.gen_entity_id = partial(MIoTDevice.gen_entity_id, miot_device)
     miot_device.is_lan_capable = False
     miot_device.online = True
     return miot_device
