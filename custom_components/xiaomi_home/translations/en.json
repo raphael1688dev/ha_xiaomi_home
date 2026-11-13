@@ -67,6 +67,10 @@
                     "device_list": "Device List",
                     "statistics_logic": "Statistics Logic"
                 }
+            },
+            "reauth_confirm": {
+                "title": "Log in to Xiaomi again",
+                "description": "Xiaomi rejected the stored login of **{nick_name}** ({cloud_server}). Cloud control stops until you log in again; local control through the central hub gateway or LAN keeps working. Click SUBMIT to log in."
             }
         },
         "progress": {
@@ -103,7 +107,8 @@
             "already_configured": "Configuration for this user is already completed. Please go to the integration page and click the CONFIGURE button for modifications.",
             "invalid_auth_info": "Authentication information has expired. Please go to the integration page and click the CONFIGURE button to re-authenticate.",
             "config_flow_error": "Integration configuration error: {error}.",
-            "storage_error": "Integration storage module exception. Please try again or re-add the integration: {error}"
+            "storage_error": "Integration storage module exception. Please try again or re-add the integration: {error}",
+            "reauth_account_mismatch": "You logged in with a different Xiaomi account. Log in with the account of this integration entry."
         }
     },
     "options": {

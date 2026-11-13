@@ -30,6 +30,8 @@ def _client(refresh_error: Exception) -> MIoTClient:
     client._MIoTClient__show_client_error_notify = MagicMock()
     client._MIoTClient__request_refresh_auth_info = MagicMock()
     client._MIoTClient__request_refresh_user_cert = MagicMock()
+    client._on_auth_rejected = MagicMock()
+    client.auth_rejected = False
     return client
 
 
@@ -53,6 +55,9 @@ async def test_transient_token_failure_retries_with_backoff(error) -> None:
     assert delays == [60, 120, 240, 480, 960, 1800, 1800]
     assert max(delays) == REFRESH_AUTH_RETRY_DELAY_MAX
     client._MIoTClient__show_client_error_notify.assert_not_called()
+    # Not a reason to log in again
+    client._on_auth_rejected.assert_not_called()
+    assert client.auth_rejected is False
 
 
 @pytest.mark.asyncio
@@ -67,6 +72,9 @@ async def test_rejected_token_asks_the_user_and_does_not_retry(error) -> None:
 
     client._MIoTClient__request_refresh_auth_info.assert_not_called()
     client._MIoTClient__show_client_error_notify.assert_called_once()
+    # Starts Home Assistant's reauthentication
+    client._on_auth_rejected.assert_called_once()
+    assert client.auth_rejected is True
 
 
 @pytest.mark.asyncio

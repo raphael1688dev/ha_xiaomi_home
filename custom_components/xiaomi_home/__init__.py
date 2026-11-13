@@ -3,6 +3,7 @@
 The Xiaomi Home integration Init File.
 """
 import logging
+from functools import partial
 from typing import Optional
 
 from homeassistant.config_entries import ConfigEntry
@@ -221,6 +222,13 @@ async def async_setup_entry(
             hass=hass, entry_id=entry_id,
             entry_data=entry_data,
             persistent_notify=ha_persistent_notify)
+        # Xiaomi rejected the stored login: ask for a new one through Home
+        # Assistant's reauthentication. The entry stays loaded, local control
+        # through the gateway or LAN keeps working meanwhile.
+        miot_client.on_auth_rejected = partial(
+            config_entry.async_start_reauth, hass)
+        if miot_client.auth_rejected:
+            config_entry.async_start_reauth(hass)
         # Spec parser
         spec_parser = MIoTSpecParser(
             lang=entry_data.get(

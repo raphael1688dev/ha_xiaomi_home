@@ -226,6 +226,8 @@ class MIoTClient:
         self._refresh_props_retry_count = 0
 
         self._persistence_notify = None
+        self._on_auth_rejected = None
+        self.auth_rejected = False
         self._show_devices_changed_notify_timer = None
 
         self._cloud_manager = MIoTCloudManager(self)
@@ -581,6 +583,22 @@ class MIoTClient:
     def persistent_notify(self, func) -> None:
         self._persistence_notify = func
 
+    @property
+    def on_auth_rejected(self) -> Optional[Callable[[], None]]:
+        """Called when Xiaomi rejects the stored login."""
+        return self._on_auth_rejected
+
+    @on_auth_rejected.setter
+    def on_auth_rejected(self, func: Optional[Callable[[], None]]) -> None:
+        self._on_auth_rejected = func
+
+    def __auth_rejected(self) -> None:
+        # The setup reads auth_rejected after init, the callback covers
+        # later refreshes; both start Home Assistant's reauthentication
+        self.auth_rejected = True
+        if self._on_auth_rejected:
+            self._on_auth_rejected()
+
     @final
     async def refresh_oauth_info_async(self) -> bool:
         try:
@@ -622,6 +640,7 @@ class MIoTClient:
                 if refresh_time <= 0:
                     raise MIoTClientError('invalid expires time')
             self.__show_client_error_notify(None, 'oauth_info')
+            self.auth_rejected = False
             self._refresh_token_retry_delay = REFRESH_AUTH_RETRY_DELAY_MIN
             self.__request_refresh_auth_info(refresh_time)
 
@@ -649,6 +668,7 @@ class MIoTClient:
                 'refresh oauth info failed (%s, %s): %s (user needs to '
                 're-auth)',
                 self._uid, self._cloud_server, err)
+            self.__auth_rejected()
             return False
         except Exception as err:  # pylint: disable=broad-exception-caught
             self.__show_client_error_notify(
@@ -658,6 +678,8 @@ class MIoTClient:
             _LOGGER.error(
                 'refresh oauth info error (%s, %s), %s, %s',
                 self._uid, self._cloud_server, err, traceback.format_exc())
+            # Missing or broken stored login: logging in again fixes it
+            self.__auth_rejected()
             return False
 
     async def refresh_user_cert_async(self) -> bool:

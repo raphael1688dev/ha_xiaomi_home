@@ -7,7 +7,8 @@ import hashlib
 import json
 import secrets
 import traceback
-from typing import Optional
+from collections.abc import Mapping
+from typing import Any, Optional
 from aiohttp.hdrs import METH_GET
 import voluptuous as vol
 import logging
@@ -463,7 +464,10 @@ class XiaomiMihomeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             if self._miot_oauth:
                 await self._miot_oauth.deinit_async()
                 self._miot_oauth = None
-            return self.async_show_progress_done(next_step_id='homes_select')
+            return self.async_show_progress_done(
+                next_step_id='reauth_done'
+                if self.source == config_entries.SOURCE_REAUTH
+                else 'homes_select')
         # pylint: disable=unexpected-keyword-arg
         return self.async_show_progress(
             step_id='oauth',
@@ -633,6 +637,10 @@ class XiaomiMihomeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         # TASK 2: Get access_token and user_info from miot_oauth
         await self._cc_fetch_tokens(oauth_code)
 
+        if self.source == config_entries.SOURCE_REAUTH:
+            await self.__finish_reauth_login_async()
+            return
+
         # TASK 3: Get home info
         await self._cc_fetch_home_info()
 
@@ -671,6 +679,69 @@ class XiaomiMihomeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         fut = (flow_data or {}).get('fut_oauth_code')
         if fut is not None and not fut.done():
             fut.cancel()
+
+    async def async_step_reauth(self, entry_data: Mapping[str, Any]):
+        """Log in again after Xiaomi rejected the stored login."""
+        self.hass.data.setdefault(DOMAIN, {})
+        self._virtual_did = entry_data['virtual_did']
+        self.hass.data[DOMAIN].setdefault(self._virtual_did, {})
+        self._storage_path = entry_data['storage_path']
+        self._miot_storage = self.hass.data[DOMAIN].get('miot_storage', None)
+        if not self._miot_storage:
+            self._miot_storage = MIoTStorage(
+                root_path=self._storage_path, loop=self._main_loop)
+            self.hass.data[DOMAIN]['miot_storage'] = self._miot_storage
+        self._cloud_server = entry_data['cloud_server']
+        self._uuid = entry_data['uuid']
+        self._uid = entry_data['uid']
+        self._nick_name = entry_data.get('nick_name', self._nick_name)
+        # Stored with the webhook path, as the redirect of the first login
+        self._oauth_redirect_url_full = entry_data['oauth_redirect_url']
+        self._integration_language = entry_data.get(
+            'integration_language', DEFAULT_INTEGRATION_LANGUAGE)
+        self._miot_i18n = MIoTI18n(
+            lang=self._integration_language, loop=self._main_loop)
+        await self._miot_i18n.init_async()
+        return await self.async_step_reauth_confirm()
+
+    async def async_step_reauth_confirm(
+        self, user_input: Optional[dict] = None
+    ):
+        """Ask the user to log in to Xiaomi again."""
+        if user_input is None:
+            return self.async_show_form(
+                step_id='reauth_confirm',
+                data_schema=vol.Schema({}),
+                description_placeholders={
+                    'nick_name': self._nick_name,
+                    'cloud_server': CLOUD_SERVERS[self._cloud_server],
+                },
+                last_step=False,
+            )
+        return await self.async_step_oauth()
+
+    async def __finish_reauth_login_async(self) -> None:
+        """Store the new login, if it is the account of the entry."""
+        if not self._miot_http:
+            raise MIoTConfigError('http_client_error')
+        uid = await self._miot_http.get_uid_async()
+        await self.async_set_unique_id(f'{self._cloud_server}{uid}')
+        # Checked before anything is stored: another account's login must
+        # not end up in this entry
+        self._abort_if_unique_id_mismatch(reason='reauth_account_mismatch')
+        if not await self._miot_storage.update_user_config_async(
+                uid=self._uid, cloud_server=self._cloud_server,
+                config={'auth_info': self._auth_info}):
+            raise AbortFlow(reason='storage_error', description_placeholders={
+                'error': 'save login error'})
+        await self._cc_get_mihome_cert()
+        webhook_async_unregister(self.hass, webhook_id=self._virtual_did)
+        await self._miot_http.deinit_async()
+        self._miot_http = None
+
+    async def async_step_reauth_done(self, user_input=None):
+        """Reload the entry, it picks up the new login."""
+        return self.async_update_reload_and_abort(self._get_reauth_entry())
 
     # Show setup error message
     async def async_step_oauth_error(self, user_input=None):
