@@ -5,6 +5,7 @@ Fan entities for Xiaomi Home.
 from typing import Any, Optional
 import logging
 import asyncio
+import math
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -236,9 +237,7 @@ class Fan(MIoTServiceEntity, FanEntity):
             else:
                 await self.set_property_async(
                     prop=self._prop_fan_level,
-                    value=int(percentage_to_ranged_value(
-                        low_high_range=(self._speed_min, self._speed_max),
-                        percentage=percentage)))
+                    value=self.__percentage_to_level(percentage))
         else:
             await self.set_property_async(prop=self._prop_on, value=False)
 
@@ -308,9 +307,23 @@ class Fan(MIoTServiceEntity, FanEntity):
                                                        speed_str)
             return None
         else:
+            index = round((fan_level - self._speed_min) / self._speed_step)
+            index = max(0, min(self._attr_speed_count - 1, index))
             return ranged_value_to_percentage(
-                low_high_range=(self._speed_min, self._speed_max),
-                value=fan_level)
+                low_high_range=(1, self._attr_speed_count), value=index + 1)
+
+    def __percentage_to_level(self, percentage: float) -> int:
+        """Map a percentage to a level of the fan-level value range.
+
+        Like FanEntity's own speed steps: speed n of N covers percentages up
+        to n * 100 / N. The level is then taken from the range's own step,
+        so it is always one the device accepts.
+        """
+        index = math.ceil(percentage_to_ranged_value(
+            low_high_range=(1, self._attr_speed_count),
+            percentage=percentage))
+        index = max(1, min(self._attr_speed_count, index))
+        return self._speed_min + (index - 1) * self._speed_step
 
     @property
     def oscillating(self) -> Optional[bool]:
