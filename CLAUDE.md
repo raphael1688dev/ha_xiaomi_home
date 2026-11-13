@@ -13,13 +13,14 @@ Xiaomi Home Integration is an official Home Assistant integration for controllin
 # Install to Home Assistant config directory
 ./install.sh /path/to/config
 
-# Install test dependencies
-pip install pytest pytest-asyncio pytest-dependency zeroconf paho.mqtt psutil cryptography slugify
+# Install the upstream suite's test dependencies
+pip install pytest pytest-asyncio pytest-dependency zeroconf paho.mqtt psutil cryptography slugify aiohttp
 ```
 
 ### Testing
+There are two suites, and the Tests workflow runs both. `test/` is the upstream suite. `tests/` holds the fork's unit tests; they import Home Assistant, so run them locally with the venv `test_env/` (Home Assistant 2026.11.1, the version CI installs).
 ```bash
-# Run all tests
+# Upstream suite
 pytest -v -s -m github ./test/
 
 # Run specific test files
@@ -29,6 +30,12 @@ pytest -v -s ./test/test_lan.py
 
 # Check rule format
 pytest -v -s -m github ./test/check_rule_format.py
+
+# Fork unit tests
+test_env/bin/python -m pytest tests/
+
+# Local gate: no Chinese characters, py_compile, both test suites, manifest version
+test_env/bin/python scripts/quality_audit.py
 ```
 
 ### Code Quality
@@ -61,7 +68,7 @@ The integration is built around the `miot/` core package:
 
 **miot_mips.py**: Message bus (MQTT) for subscribing to device property changes and events. Implements both cloud (MipsCloudClient) and local (MipsLocalClient) message handling.
 
-**miot_device.py**: Device entity class. Each MIoT device creates multiple MIoTDevice instances (one per Home Assistant entity). Handles property updates, action execution, and event processing.
+**miot_device.py**: `MIoTDevice`, one per Xiaomi device, which turns its spec into entity data, and the entity base classes the platforms subclass (`MIoTServiceEntity`, `MIoTPropertyEntity`, `MIoTEventEntity`, `MIoTActionEntity`). Handles property updates, action execution, and event processing.
 
 **miot_spec.py**: MIoT-Spec-V2 parser. Parses device specifications (URN-based type system) from cloud or local cache. Each spec defines services, properties, events, and actions.
 
@@ -73,7 +80,7 @@ The integration is built around the `miot/` core package:
 
 **miot_network.py**: Network status monitoring and IP address detection.
 
-**miot_i18n.py**: Translations for entity names and integration messages. This fork ships English only (`INTEGRATION_LANGUAGES = {"en"}`); entries created with another language are migrated to English on setup.
+**miot_i18n.py**: Translations for entity names and integration messages. This fork ships English only (`INTEGRATION_LANGUAGES` lists only `en`); entries created with another language are migrated to English on setup.
 
 ### Entity Conversion (specs/specv2entity.py)
 
@@ -97,7 +104,7 @@ Conversion priority: Device > Service > Property > General rules
 
 **bool_trans.yaml**: Boolean value translation mappings.
 
-After editing spec files, you MUST update conversion rules via Integration CONFIGURE page in Home Assistant.
+The YAML spec files are read once per Home Assistant process (`load_yaml_file` in `miot/common.py` is cached), so after editing them, restart Home Assistant, then update the conversion rules from the integration's CONFIGURE page.
 
 ### Platform Files (custom_components/xiaomi_home/)
 
@@ -160,7 +167,7 @@ Body: Detailed description (mandatory except for docs type).
 
 Follow [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html). Use the provided `.pylintrc` for linting.
 
-**Important Rule:** All future code modifications MUST comply with the Home Assistant 2026.11.0 specifications and best practices. Additionally, always analyze and anticipate specifications that Home Assistant plans to deprecate in 2027.
+Code changes follow the rules and best practices of Home Assistant 2026.11, the minimum version in `hacs.json`, and avoid APIs that Home Assistant has announced it will deprecate or remove in 2027.
 
 ## Debugging
 
@@ -175,13 +182,13 @@ logger:
 ## Control Modes
 
 - **Cloud Control**: MQTT message subscription + HTTP command API
-- **Local Control**: Via Xiaomi Central Hub Gateway (firmware 3.3.0_0023+) or LAN control (IP devices only, may be unstable)
+- **Local Control**: Via Xiaomi Central Hub Gateway (firmware 3.3.0_0023+, China region only: `SUPPORT_CENTRAL_GATEWAY_CTRL` in `miot/const.py`) or LAN control (IP devices only, may be unstable)
 
 Central gateway local control takes priority over LAN control when both are available.
 
 ## Multi-Region Support
 
-Regions: China (cn), Europe (eu), India (in), Russia (ru), Singapore (sg), USA (us)
+Regions (`CLOUD_SERVERS` in `miot/const.py`): China (cn), Europe (de), India (i2), Russia (ru), Singapore (sg), USA (us)
 
 User data is isolated per region. Integration supports multiple regions in same Home Assistant instance.
 
@@ -193,36 +200,22 @@ User data is isolated per region. Integration supports multiple regions in same 
 - Translations: `custom_components/xiaomi_home/translations/` and `custom_components/xiaomi_home/miot/i18n/`
 - Tests: `test/`
 
-## Recent Architectural Evolutions (May 2026)
+## Fork-specific behavior to keep
 
-### 1. Native Python MIIO Local Control (Zero-Delay)
-Implemented a pure Python native transpilation layer that bypasses legacy Node.js dependencies for local execution. To guarantee zero technical debt, this is strictly whitelisted to 19 core devices:
-- **Yeelight**: `yeelink.light.lamp*` (Desk/Floor lamps), `yeelink.light.bslamp*` (Bedside lamps)
-- **Smartmi / Dmaker**: All `zhimi.fan.*` and `dmaker.fan.*` series
-These devices now enjoy instant, local execution without cloud polling lag.
-- **Dynamic Context Injection**: The MIIO lambda execution engine (`miot_lan.py`) now receives full state context (`props` dict and `max_val`), enabling complex, dynamic property translations (e.g. `["auto_delay_off", int(props.get("bright", 100)), value]`) instead of hardcoded fallbacks.
+### 1. Native MIIO local control
+LAN control translates MIoT property writes into MIIO commands in Python, but only for the models keyed in `miot/miio_specs.py`: Yeelight desk, floor and bedside lamps (`yeelink.light.lamp*`, `yeelink.light.bslamp*`), `dmaker.fan.p5`, and `zhimi.fan.sa1`, `v2`, `v3`, `za1`, `za3` and `za4`. Other fans of the same brands, such as `zhimi.fan.za5`, use standard MIoT control. The translation lambdas in `miot_lan.py` receive the device's current properties (`props`) and the property's maximum (`max_val`), so a translation can depend on state (e.g. `["auto_delay_off", int(props.get("bright", 100)), value]`).
 
-### 2. Entity ID Migration & Auto-Recovery
-Fixed severe upstream logic bugs in HA registry unique_id migration:
-- **Migration Script**: `__init__.py` seamlessly handles legacy entity updates by stripping `xiaomi_home.` and platform prefixes appropriately, matching modern `unique_id` generation schemes.
-- **Auto-Recovery**: If a duplicate `_2` entity was erroneously created during a beta boot, the script actively detects the collision, deletes the duplicate, and re-binds the legacy entity ID to preserve user automations.
-- **Case Sensitivity & Slugify**: Enforced strict lowercase mapping and `slugify_description=True` to perfectly match legacy HA registry entries, notably for Service entities like `indicator_light`.
+### 2. Entity ID migration
+`__init__.py` moves legacy registry entries to the current IDs: it strips the `xiaomi_home.` and platform prefixes from old unique IDs, and when an earlier boot left a duplicate `_2` entity, it removes the duplicate and gives the legacy entity its ID back, so automations keep working. Service unique IDs are lowercase and built with `slugify_description=True` to match existing registry entries (for example `indicator_light`).
 
-### 3. Core Logic Bug Sweeps (17 Critical Fixes Total)
-Conducted a massive cleanup of logical errors inherited from upstream:
-- **Crash Prevention**: Fixed critical `TypeError`s (`create_task(await ...)` and `not result`) during API disconnects.
-- **Local Control & Caching**: Corrected Local-mode properties routing to poll `Gateway` before `LAN`, and fixed `remove_device_async` to actively pop devices from memory to prevent deleted entity resurrection.
-- **Spec & Auth Safety**: Hardened device parsing (`miot_device.py`) to reject malformed optional services. Overhauled OAuth token refresh to gracefully handle expired tokens (`error 96009`) instead of crashing the Options Flow with massive stack traces.
-- **Light (`light.py`)**: Unified colliding `mode` and `brightness` states into a single `_effect_map`, restoring access to maximum modes and preventing state overwrites.
-- **Fan (`fan.py`)**: Implemented strict Mutex flags (`_is_turning_on`) to prevent race conditions and duplicate `on=True` spamming, resolving device lag and crashes under network congestion.
-- **Sensor (`sensor.py`)**:
-  - Capped unbounded dynamic enum growth (`_attr_options`) at 64 items to protect Home Assistant from OOM memory leaks.
-  - Replaced blind value clamping with graceful `None` (Unavailable) returns when sensors report out-of-bounds metrics, preserving historical chart integrity and exposing true hardware faults.
-  - Isolated Diagnostic sensor `unique_id`s with `entry_id` to prevent multi-gateway IP clashes, and configured them to be disabled by default for HA UI cleanliness.
+### 3. Behavior that fixes depend on
+- Local-mode property polling asks the central hub gateway before LAN.
+- `remove_device_async` also removes the device from memory, so a deleted device does not come back.
+- `miot_device.py` rejects malformed optional services.
+- `light.py` keeps modes and brightness levels in one `_effect_map`, so neither overwrites the other.
+- `fan.py` uses the `_is_turning_on` flag, so concurrent commands do not send power-on twice.
+- `sensor.py` caps dynamic enum options at 64, returns `None` (unavailable) for out-of-range values instead of clamping them, and gives diagnostic sensors unique IDs that include the `entry_id`; they are disabled by default.
 
-### 4. Codebase Performance Optimizations & "Code Diet"
-Across all major entity platforms (`climate.py`, `vacuum.py`, `cover.py`, `water_heater.py`, `select.py`, `humidifier.py`, `fan.py`, `light.py`), we overhauled the data structures:
+### 4. Data structures
 - **Single-pass initialization**: Platforms that look up a few known properties use `get_prop()`. Platforms that inspect every property (cover, humidifier, media_player, vacuum, water_heater, device_tracker) keep one `for prop in entity_data.props:` dispatch loop in `__init__`: it runs once per entity, and it keeps the last-match semantics for duplicate property names across services, which `get_prop()` (first match) would change.
-- **O(1) Lazy Cache Architecture**: Re-architected `MIoTEntityData` with an intelligent, lazy-loading dictionary cache (`props_map`, `events_map`, `actions_map` via `get_prop()`). This transforms all property lookups into instantaneous $O(1)$ operations, drastically shrinking boilerplate code and improving readability.
-- Replaced $O(N)$ linear array scans (`get_map_key`) with pre-computed $O(1)$ dictionary lookups (`_val_to_desc` and `_desc_to_val`) for `MIoTSpecValueList` mapping.
-- Enforced strict Type Safety (`float`, `bool`) and robust `None` guards before returning states to HA Core.
+- `MIoTEntityData` builds its name lookups (`get_prop()`, `get_event()`, `get_action()`) as dictionaries on first use, and `MIoTSpecValueList` keeps value-to-description and description-to-value dictionaries (`_val_to_desc`, `_desc_to_val`).
