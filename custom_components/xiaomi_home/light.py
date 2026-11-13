@@ -162,7 +162,8 @@ class Light(MIoTServiceEntity, LightEntity):
                 _LOGGER.info('invalid mode format, %s', self.entity_id)
 
         if not self._attr_supported_color_modes:
-            if self._prop_brightness:
+            # A value-list brightness is offered as effects, it has no scale
+            if self._brightness_scale:
                 self._attr_supported_color_modes.add(ColorMode.BRIGHTNESS)
                 self._attr_color_mode = ColorMode.BRIGHTNESS
             elif self._prop_on:
@@ -182,6 +183,8 @@ class Light(MIoTServiceEntity, LightEntity):
     @property
     def brightness(self) -> Optional[int]:
         """Return the brightness."""
+        if not self._brightness_scale:
+            return None
         brightness_value = self.get_prop_value(prop=self._prop_brightness)
         if brightness_value is None:
             return None
@@ -251,7 +254,7 @@ class Light(MIoTServiceEntity, LightEntity):
         tasks = []
 
         # brightness
-        if ATTR_BRIGHTNESS in kwargs and self._prop_brightness:
+        if ATTR_BRIGHTNESS in kwargs and self._brightness_scale:
             brightness = brightness_to_value(
                 self._brightness_scale, kwargs[ATTR_BRIGHTNESS])
             tasks.append(self.set_property_async(
