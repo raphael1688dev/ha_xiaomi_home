@@ -402,3 +402,15 @@ def test_manifest_lists_the_integrations_the_flows_use() -> None:
         dependencies = json.load(manifest_file)["dependencies"]
     for used in ("http", "webhook", "zeroconf"):
         assert used in dependencies
+
+
+def test_manifest_has_no_unused_dependencies() -> None:
+    """ffmpeg, construct and numpy were listed since the first upstream
+    commit but never used; ffmpeg made Home Assistant set up its ffmpeg
+    integration and run ffmpeg at startup."""
+    with open("custom_components/xiaomi_home/manifest.json",
+              encoding="utf-8") as manifest_file:
+        manifest = json.load(manifest_file)
+    assert "ffmpeg" not in manifest["dependencies"]
+    assert not [r for r in manifest["requirements"]
+                if r.startswith(("construct", "numpy"))]

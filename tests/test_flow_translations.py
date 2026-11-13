@@ -29,7 +29,8 @@ def _used_keys(source: str) -> set[str]:
     (config_flow, "config"), (options_flow, "options")])
 def test_flow_keys_have_strings(module, section) -> None:
     """Missing keys showed raw identifiers, e.g. devices_storage_failed."""
-    source = (ROOT / f"{module.__name__.rsplit('.', 1)[1]}.py").read_text()
+    file_name = module.__name__.rsplit(".", 1)[1] + ".py"
+    source = (ROOT / file_name).read_text()
     known = (set(STRINGS[section]["error"]) | set(STRINGS[section]["abort"])
              | {"already_configured"})  # translated by Home Assistant
     known_keys = module._OAUTH_ERROR_KEYS | {"oauth_failed"}

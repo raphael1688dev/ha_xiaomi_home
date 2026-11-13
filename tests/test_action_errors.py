@@ -11,7 +11,7 @@ from custom_components.xiaomi_home.notify import Notify
 
 
 def _notify() -> Notify:
-    entity = Notify.__new__(Notify)
+    entity = object.__new__(Notify)
     entity.spec = SimpleNamespace(in_=[SimpleNamespace(
         iid=1, format_=str, description_trans="Text")])
     entity.entity_id = "notify.speaker_play_text"
