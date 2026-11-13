@@ -1824,7 +1824,14 @@ class MIoTClient:
                 ]
 
         for handler in handlers:
-            handled = await handler()
+            try:
+                handled = await handler()
+            except Exception as err:  # pylint: disable=broad-exception-caught
+                # Leaving here would keep _refresh_props_timer set and stop
+                # every later refresh; count it as a failed attempt instead
+                _LOGGER.warning('refresh props failed, %s, %r',
+                                getattr(handler, '__name__', handler), err)
+                handled = False
             if handled:
                 break
 

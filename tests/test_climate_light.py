@@ -7,10 +7,13 @@ from unittest.mock import MagicMock
 import pytest
 
 from homeassistant.components.climate import (
-    FAN_OFF, ClimateEntityFeature)
-from homeassistant.components.light import ATTR_BRIGHTNESS, ATTR_EFFECT
+    FAN_OFF, ClimateEntityFeature, HVACMode)
+from homeassistant.util.unit_system import METRIC_SYSTEM
+from homeassistant.components.light import (
+    ATTR_BRIGHTNESS, ATTR_EFFECT, ColorMode)
 
-from custom_components.xiaomi_home.climate import FeatureFanMode
+from custom_components.xiaomi_home.climate import (
+    FeatureFanMode, PtcBathHeater)
 from custom_components.xiaomi_home.light import Light
 from custom_components.xiaomi_home.miot.miot_spec import MIoTSpecProperty
 
@@ -137,3 +140,81 @@ async def test_light_turn_on_sends_on_only_when_needed(
     await light.async_turn_on(**kwargs)
     assert sent == expected
     light.async_write_ha_state.assert_called_once()
+
+
+def _built_light(brightness: MIoTSpecProperty) -> Light:
+    props = [_prop("on", "light", "bool"), brightness]
+    entity_data = _mock_service_entity_data("light", props)
+    entity_data.get_prop = lambda name, service=None: next(
+        (p for p in props if p.name == name), None)
+    light = Light(miot_device=_mock_miot_device(), entity_data=entity_data)
+    light.async_write_ha_state = MagicMock()
+    light._prop_value_map = {props[0]: True, brightness: 2}
+    return light
+
+
+@pytest.mark.asyncio
+async def test_value_list_brightness_is_an_effect_not_a_brightness() -> None:
+    """It has no scale: claiming ColorMode.BRIGHTNESS made every state write
+    raise TypeError while the light was on."""
+    light = _built_light(_prop(
+        "brightness", "light", "uint8", value_list=[
+            {"name": "low", "value": 1, "description": "Low"},
+            {"name": "high", "value": 2, "description": "High"}]))
+    sent: list = []
+
+    async def fake_set_property_async(prop, value, **kwargs):
+        sent.append((prop.name, value))
+        return True
+    light.set_property_async = fake_set_property_async
+
+    assert light.supported_color_modes == {ColorMode.ONOFF}
+    assert light.color_mode == ColorMode.ONOFF
+    assert light.brightness is None
+    assert light.effect == "Brightness: High"
+    assert light.state_attributes["effect"] == "Brightness: High"
+
+    await light.async_turn_on(**{ATTR_BRIGHTNESS: 128})
+    assert sent == []
+    await light.async_turn_on(**{ATTR_EFFECT: "Brightness: Low"})
+    assert sent == [("brightness", 1)]
+
+
+def test_ranged_brightness_keeps_brightness_mode() -> None:
+    light = _built_light(_prop(
+        "brightness", "light", "uint8", value_range=[1, 100, 1]))
+    assert light.supported_color_modes == {ColorMode.BRIGHTNESS}
+    assert light.brightness == 5
+
+
+def _bath_heater(*items) -> tuple[PtcBathHeater, MIoTSpecProperty]:
+    mode = _prop("mode", "ptc-bath-heater", "uint8", value_list=[
+        {"value": value, "description": name.title(), "name": name}
+        for value, name in items])
+    entity_data = _mock_service_entity_data("ptc-bath-heater", [mode])
+    entity_data.get_prop = lambda name, service=None: (
+        mode if name == "mode" else None)
+    heater = PtcBathHeater(
+        miot_device=_mock_miot_device(), entity_data=entity_data)
+    heater.hass = MagicMock()
+    heater.hass.config.units = METRIC_SYSTEM
+    return heater, mode
+
+
+def test_bath_heater_without_off_mode_can_be_added() -> None:
+    """hvac_modes was never set without an off/idle item: AttributeError on
+    the first state write, so the entity was not added."""
+    heater, mode = _bath_heater((1, "heat"), (2, "ventilate"))
+    assert heater.hvac_modes == [HVACMode.AUTO]
+    heater._prop_value_map = {mode: 2}
+    assert heater.hvac_mode == HVACMode.AUTO
+    assert "hvac_modes" in heater.capability_attributes
+
+
+def test_bath_heater_with_idle_mode_reports_off() -> None:
+    heater, mode = _bath_heater((0, "idle"), (1, "heat"))
+    assert heater.hvac_modes == [HVACMode.AUTO, HVACMode.OFF]
+    heater._prop_value_map = {mode: 0}
+    assert heater.hvac_mode == HVACMode.OFF
+    heater._prop_value_map = {mode: 1}
+    assert heater.hvac_mode == HVACMode.AUTO

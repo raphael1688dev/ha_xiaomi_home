@@ -36,6 +36,12 @@ from .miot_error import MIoTErrorCode, MIoTMipsError
 
 _LOGGER = logging.getLogger(__name__)
 
+# Reply given to requests still pending when a gateway connection goes away
+_MIPS_DISCONNECTED_REPLY = (
+    '{"error":{"code":-10001, "message":"mips disconnected"}}')
+# Seconds a caller waits beyond a request's own timeout before giving up
+_REQUEST_TIMEOUT_MARGIN = 5
+
 # Broker reason codes that mean the credentials were rejected
 _MQTT_AUTH_REASONS = frozenset({
     'Bad user name or password', 'Bad username or password', 'Not authorized'})
@@ -1275,9 +1281,17 @@ class MipsLocalClient(_MipsClient):
     @final
     def disconnect(self) -> None:
         super().disconnect()
+        # The loop has stopped, so _on_mips_disconnect, which answers pending
+        # requests, did not run: answer them here or their callers wait forever
         for req in list(self._request_map.values()):
             if req.timer:
                 req.timer.cancel()
+            if req.on_reply:
+                try:
+                    req.on_reply(_MIPS_DISCONNECTED_REPLY, req.on_reply_ctx)
+                except Exception as err:  # pylint: disable=broad-exception-caught
+                    self.log_debug(
+                        'error invoking on_reply during disconnect: %s', err)
         self._request_map.clear()
         self._msg_matcher = MIoTMatcher()
         self.main_loop.call_soon_threadsafe(self.__clear_prop_queue)
@@ -1663,9 +1677,7 @@ class MipsLocalClient(_MipsClient):
             if req.on_reply:
                 try:
                     req.on_reply(
-                        '{"error":{"code":-10001, "message":"mips '
-                        'disconnected"}}',
-                        req.on_reply_ctx)
+                        _MIPS_DISCONNECTED_REPLY, req.on_reply_ctx)
                 except Exception as err:  # pylint: disable=broad-exception-caught
                     self.log_debug(
                         'error invoking on_reply during disconnect: %s', err)
@@ -1797,7 +1809,13 @@ class MipsLocalClient(_MipsClient):
             if not fut_handler.done():
                 fut_handler.set_result('internal request error')
 
-        result = await fut_handler
+        try:
+            # The internal timeout answers first; this one only guards against
+            # a request that was dropped (e.g. the internal loop stopped)
+            result = await asyncio.wait_for(
+                fut_handler, timeout_ms / 1000 + _REQUEST_TIMEOUT_MARGIN)
+        except TimeoutError:
+            result = '{"error":{"code":-10006, "message":"timeout"}}'
         try:
             return json.loads(result)
         except json.JSONDecodeError:

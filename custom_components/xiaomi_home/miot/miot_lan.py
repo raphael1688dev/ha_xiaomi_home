@@ -32,6 +32,15 @@ except ImportError:
 
 _LOGGER = logging.getLogger(__name__)
 
+# Seconds a caller waits beyond a request's own timeout before giving up
+_REQUEST_TIMEOUT_MARGIN = 5
+
+
+def _set_future_result(fut: asyncio.Future, result: Any) -> None:
+    """Resolve fut unless its caller already gave up on it."""
+    if not fut.done():
+        fut.set_result(result)
+
 
 @dataclass
 class _MIoTLanGetDevListData:
@@ -978,8 +987,7 @@ class MIoTLan:
             return {}
 
         def get_device_list_handler(msg: dict, fut: asyncio.Future):
-            self._main_loop.call_soon_threadsafe(
-                fut.set_result, msg)
+            self._main_loop.call_soon_threadsafe(_set_future_result, fut, msg)
 
         fut: asyncio.Future = self._main_loop.create_future()
         self._internal_loop.call_soon_threadsafe(
@@ -988,19 +996,29 @@ class MIoTLan:
                 handler=get_device_list_handler,
                 handler_ctx=fut,
                 timeout_ms=timeout_ms))
-        return await fut
+        try:
+            return await asyncio.wait_for(
+                fut, timeout_ms / 1000 + _REQUEST_TIMEOUT_MARGIN)
+        except TimeoutError:
+            return {}
 
     async def __call_api_async(
         self, did: str, msg: dict, timeout_ms: int = 10000
     ) -> dict:
         def call_api_handler(msg: dict, fut: asyncio.Future):
-            self._main_loop.call_soon_threadsafe(
-                fut.set_result, msg)
+            self._main_loop.call_soon_threadsafe(_set_future_result, fut, msg)
 
         fut: asyncio.Future = self._main_loop.create_future()
         self._internal_loop.call_soon_threadsafe(
             self.__call_api, did, msg, call_api_handler, fut, timeout_ms)
-        return await fut
+        try:
+            # The LAN thread's own timeout answers first; this one only guards
+            # against a request that was dropped (e.g. the LAN loop stopped)
+            return await asyncio.wait_for(
+                fut, timeout_ms / 1000 + _REQUEST_TIMEOUT_MARGIN)
+        except TimeoutError:
+            return {'code': MIoTErrorCode.CODE_TIMEOUT.value,
+                    'error': 'timeout'}
 
     async def __on_network_info_change_external_async(
         self,
@@ -1274,6 +1292,15 @@ class MIoTLan:
             if req_data.timeout:
                 req_data.timeout.cancel()
                 req_data.timeout = None
+            # Answer it, or its caller waits until its own timeout
+            if req_data.handler:
+                try:
+                    req_data.handler({
+                        'code': MIoTErrorCode.CODE_TIMEOUT.value,
+                        'error': 'lan control stopped'},
+                        req_data.handler_ctx)
+                except Exception as err:  # pylint: disable=broad-exception-caught
+                    _LOGGER.debug('error answering a pending request, %s', err)
         self._pending_requests.clear()
         for timer in self._reply_msg_buffer.values():
             timer.cancel()
