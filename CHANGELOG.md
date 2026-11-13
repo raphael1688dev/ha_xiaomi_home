@@ -1,5 +1,5 @@
 # CHANGELOG
-## Unreleased
+## v0.5.18 (Mod)
 ### Added
 - When Xiaomi rejects the stored login, Home Assistant asks you to re-authenticate the entry under Settings. Logging in there with the same Xiaomi account updates the login and reloads the entry, keeping its devices and settings. Before, you had to remove the entry and add it again. Logging in with another account is refused and nothing is changed.
 - Diagnostics for an entry and for each device (Download diagnostics). They show the control path (cloud, gateway or LAN), connection states, models, firmware versions and entity counts. They leave out the account, home and device names, device IDs and tokens, IP addresses and Wi-Fi names.

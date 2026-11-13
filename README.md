@@ -176,7 +176,10 @@ Report problems in the [issue tracker](https://github.com/raphael1688dev/ha_xiao
 
 The most recent releases are listed below. Older versions are in the [CHANGELOG](./CHANGELOG.md) and on the [Releases](https://github.com/raphael1688dev/ha_xiaomi_home/releases) page.
 
-### Version 20261113r50 (v0.5.17 Mod) — Latest
+### Version 20261113r51 (v0.5.18 Mod) — Latest
+- **Log In Again and Diagnostics**: When Xiaomi rejects the stored login, Home Assistant asks you to re-authenticate the entry instead of making you remove and add it again. Entries and devices offer Download diagnostics, with the account, names, device IDs, tokens and addresses left out. Also fixed: cloud refresh errors, a login webhook left registered by an abandoned flow, and shared services that kept running after the last entry was removed.
+
+### Version 20261113r50 (v0.5.17 Mod)
 - **More Code Review Fixes**: Retrying a failed login, cleaning up entries that were not set up, translated flow errors, climate modes and fan state, readable errors from failed commands, atomic storage writes and a LAN memory leak. The unused `ffmpeg` dependency and the `construct` and `numpy` requirements are removed.
 
 ### Version 20261113r49 (v0.5.16 Mod)
