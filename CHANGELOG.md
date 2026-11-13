@@ -1,4 +1,18 @@
 # CHANGELOG
+## Unreleased
+### Added
+- When Xiaomi rejects the stored login, Home Assistant asks you to re-authenticate the entry under Settings. Logging in there with the same Xiaomi account updates the login and reloads the entry, keeping its devices and settings. Before, you had to remove the entry and add it again. Logging in with another account is refused and nothing is changed.
+- Diagnostics for an entry and for each device (Download diagnostics). They show the control path (cloud, gateway or LAN), connection states, models, firmware versions and entity counts. They leave out the account, home and device names, device IDs and tokens, IP addresses and Wi-Fi names.
+
+### Fixed
+- Cloud errors in the property refresh (expired login, server errors) are now logged as short warnings. A wrong exception type had sent them to the generic error path.
+- Closing the login step of the configuration or options flow without finishing it now unregisters its login webhook. Before, the webhook stayed registered until Home Assistant restarted.
+- Removing or unloading the last entry stops the shared network check, gateway discovery and LAN control. They kept running until Home Assistant restarted.
+
+### Changed
+- Code that only older Home Assistant versions needed is removed: the vacuum `state` fallback and the fallback unit constants.
+- Every platform sets `PARALLEL_UPDATES` explicitly. The value keeps the current behaviour.
+
 ## v0.5.17 (Mod)
 ### Fixed
 - A failed login in the configuration flow can be retried with "Next"; it used to show the same error again until the dialog was closed.
