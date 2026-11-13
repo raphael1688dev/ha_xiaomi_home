@@ -43,11 +43,22 @@ from .miot_lan_manager import MIoTLanManager
 _LOGGER = logging.getLogger(__name__)
 
 
+def _is_transient_error(err: Exception) -> bool:
+    """Whether a token refresh failed for a reason that can pass."""
+    if isinstance(err, (aiohttp.ClientError, TimeoutError)):
+        return True
+    return (isinstance(err, MIoTOauthError)
+            and err.code == MIoTErrorCode.CODE_UNAVAILABLE)
+
+
 REFRESH_PROPS_DELAY = 0.2
 REFRESH_PROPS_RETRY_DELAY = 3
 REFRESH_CLOUD_DEVICES_DELAY = 6
 REFRESH_CLOUD_DEVICES_RETRY_DELAY = 60
 REFRESH_GATEWAY_DEVICES_DELAY = 3
+# Retry delays after a transient token or certificate refresh failure
+REFRESH_AUTH_RETRY_DELAY_MIN = 60
+REFRESH_AUTH_RETRY_DELAY_MAX = 1800
 
 @dataclass
 class MIoTClientSub:
@@ -205,6 +216,8 @@ class MIoTClient:
         self._mips_local_refresh_retry_counts = {}
         self._refresh_token_timer = None
         self._refresh_cert_timer = None
+        self._refresh_token_retry_delay = REFRESH_AUTH_RETRY_DELAY_MIN
+        self._refresh_cert_retry_delay = REFRESH_AUTH_RETRY_DELAY_MIN
         self._refresh_cloud_devices_timer = None
 
         # Refresh prop
@@ -606,13 +619,25 @@ class MIoTClient:
                 if refresh_time <= 0:
                     raise MIoTClientError('invalid expires time')
             self.__show_client_error_notify(None, 'oauth_info')
+            self._refresh_token_retry_delay = REFRESH_AUTH_RETRY_DELAY_MIN
             self.__request_refresh_auth_info(refresh_time)
 
             _LOGGER.debug(
                 'refresh oauth info (%s, %s) after %ds',
                 self._uid, self._cloud_server, refresh_time)
             return True
-        except MIoTOauthError as err:
+        except (MIoTOauthError, aiohttp.ClientError, TimeoutError) as err:
+            if _is_transient_error(err):
+                # The token stays valid on the server: try again later
+                # instead of asking the user to log in again
+                delay = self._refresh_token_retry_delay
+                self._refresh_token_retry_delay = min(
+                    delay * 2, REFRESH_AUTH_RETRY_DELAY_MAX)
+                _LOGGER.warning(
+                    'refresh oauth info failed (%s, %s), retry in %ds: %r',
+                    self._uid, self._cloud_server, delay, err)
+                self.__request_refresh_auth_info(delay)
+                return False
             self.__show_client_error_notify(
                 message=self._i18n.translate_str(
                     'miot.client.invalid_oauth_info'),
@@ -660,12 +685,23 @@ class MIoTClient:
                 if refresh_time <= 0:
                     raise MIoTClientError('invalid refresh time')
             self.__show_client_error_notify(None, 'user_cert')
+            self._refresh_cert_retry_delay = REFRESH_AUTH_RETRY_DELAY_MIN
             self.__request_refresh_user_cert(refresh_time)
 
             _LOGGER.debug(
                 'refresh user cert (%s, %s) after %ds',
                 self._uid, self._cloud_server, refresh_time)
             return True
+        except (MIoTHttpError, aiohttp.ClientError, TimeoutError) as error:
+            # The cloud did not answer usably: these used to escape (and fail
+            # setup or end the refresh chain), retry later instead
+            delay = self._refresh_cert_retry_delay
+            self._refresh_cert_retry_delay = min(
+                delay * 2, REFRESH_AUTH_RETRY_DELAY_MAX)
+            _LOGGER.warning(
+                'refresh user cert failed (%s, %s), retry in %ds: %r',
+                self._uid, self._cloud_server, delay, error)
+            self.__request_refresh_user_cert(delay)
         except MIoTClientError as error:
             self.__show_client_error_notify(
                 message=self._i18n.translate_str(

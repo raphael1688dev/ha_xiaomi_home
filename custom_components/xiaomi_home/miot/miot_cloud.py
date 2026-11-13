@@ -110,19 +110,25 @@ class MIoTOauthClient:
         if http_res.status == 401:
             raise MIoTOauthError(
                 'unauthorized(401)', MIoTErrorCode.CODE_OAUTH_UNAUTHORIZED)
+        # Server-side failures are transient (CODE_UNAVAILABLE): unlike a
+        # 401 or a refused token, a later attempt can succeed
         if http_res.status != 200:
             raise MIoTOauthError(
-                f'invalid http status code, {http_res.status}')
+                f'invalid http status code, {http_res.status}',
+                MIoTErrorCode.CODE_UNAVAILABLE)
 
         res_str = await http_res.text()
         # The token response carries credentials, never put it in errors
         try:
             res_obj = json.loads(res_str)
         except json.JSONDecodeError:
-            raise MIoTOauthError('invalid http response (not JSON)') from None
+            raise MIoTOauthError(
+                'invalid http response (not JSON)',
+                MIoTErrorCode.CODE_UNAVAILABLE) from None
 
         if not res_obj:
-            raise MIoTOauthError('empty http response')
+            raise MIoTOauthError(
+                'empty http response', MIoTErrorCode.CODE_UNAVAILABLE)
 
         if res_obj.get('code', None) != 0:
             err_code = res_obj.get('code', None)
