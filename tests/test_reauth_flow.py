@@ -89,3 +89,43 @@ def test_reauth_strings_exist() -> None:
                           / "translations/en.json").read_text())
     assert "reauth_confirm" in strings["config"]["step"]
     assert "reauth_account_mismatch" in strings["config"]["abort"]
+
+
+class _StopSetup(Exception):
+    """Ends async_setup_entry right after the client is created."""
+
+
+async def _setup_until_client(auth_rejected: bool):
+    import custom_components.xiaomi_home as xiaomi_home  # pylint: disable=import-outside-toplevel
+    miot_client = MagicMock()
+    miot_client.auth_rejected = auth_rejected
+    miot_client.deinit_async = AsyncMock()
+    hass = MagicMock()
+    hass.data = {DOMAIN: {"miot_clients": {"entry1": miot_client}}}
+    entry = MagicMock()
+    entry.entry_id = "entry1"
+    entry.data = dict(ENTRY_DATA)
+    with patch.object(xiaomi_home, "get_miot_instance_async",
+                      AsyncMock(return_value=miot_client)), \
+            patch.object(xiaomi_home, "persistent_notification"), \
+            patch.object(xiaomi_home, "MIoTSpecParser",
+                         side_effect=_StopSetup):
+        with pytest.raises(_StopSetup):
+            await xiaomi_home.async_setup_entry(hass, entry)
+    return hass, entry, miot_client
+
+
+@pytest.mark.asyncio
+async def test_setup_starts_reauth_when_the_login_was_rejected() -> None:
+    """The token refresh during client creation can already be rejected."""
+    hass, entry, _ = await _setup_until_client(auth_rejected=True)
+    entry.async_start_reauth.assert_called_once_with(hass)
+
+
+@pytest.mark.asyncio
+async def test_a_later_rejection_starts_reauth() -> None:
+    hass, entry, miot_client = await _setup_until_client(auth_rejected=False)
+    entry.async_start_reauth.assert_not_called()
+
+    miot_client.on_auth_rejected()  # the client calls it on a later refresh
+    entry.async_start_reauth.assert_called_once_with(hass)
