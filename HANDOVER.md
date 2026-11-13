@@ -67,6 +67,15 @@ Maintenance of the fork was handed over to Claude Code on 2026-10-16. Decisions 
   - Checked on the owner's `zhimi.fan.za5` (LAN, `fan.sg_406233287_za5`) on 2026-11-13: off at 25 %, `fan.turn_on` with 50 % gave a single state change to on 50 % at +908 ms, where r43 gave on 25 % at +349 ms and then 50 % at +698 ms. The device accepted the level while off (LAN codes other than 0/1 raise, and no refusal was logged).
   - The third write is a safety net for devices that take the level but do not apply it at power on; it costs about one round trip.
   - The result was posted on fork issue #5, which was closed as completed on 2026-11-13 (the owner said "Post and close"). Fork issue #4 (state briefly reverting after a LAN command) stays open.
+- **Status on 2026-11-13, after v0.5.20**: the working tree is clean and matches `origin/main`, CI is green, and no PRs are open.
+  - Upstream: no commits since v0.5.0. The open PRs #1856, #1852, #1848 and #1844 are all ported or decided. New issue #1857 (a Zhengguo solar water heater controller shows the wrong power and energy) gives no model ID and has not been analysed. Next check: PRs after #1856, issues after #1857.
+  - Home Assistant's latest is still 2026.11.1; 2026.12 beta is expected at the end of November.
+  - Open:
+    1. Fork #4: fixed in v0.5.11, never checked on a device. It can be checked on the za5 at .251 like #5, if the owner agrees.
+    2. Upstream #1857: needs the model's spec first.
+  - Never seen on a real installation:
+    - What the cloud or gateway sends on a disconnect.
+    - Reauthentication after a real login rejection.
 - **Enumerated targets**: some devices list the allowed values of a writable number instead of giving a range (the target humidity of `nwt.derh.330ef` is 30, 40, ..., 70). The humidifier takes minimum and maximum from the list, writes the closest listed value because the device rejects any other, and reports the spacing as `target_humidity_step` when it is even (#1856, v0.5.15). Other platforms that read only `value_range` for such a property have the same gap.
 - **Code review against Home Assistant 2026.11.1** (2026-11-13): four parallel reviews (setup and flows, entity platforms, async and thread safety, manifest and translations), each finding checked against the code and the installed core before acting. The first batch of ten fixes is v0.5.16, the second batch of eight is v0.5.17, the third is v0.5.18; every fix has a test that fails on the old code (except the atomic write, which cannot be crashed in a test). v0.5.18 adds:
   - Home Assistant's re-authentication flow. `MIoTClient.on_auth_rejected` calls `entry.async_start_reauth`, and the flow checks the uid before it stores anything.
