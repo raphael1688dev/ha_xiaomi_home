@@ -2,8 +2,10 @@
 ## Unreleased
 ### Fixed
 - Devices whose model ends in an uppercase letter (for example `xiaomi.watch.band1A` and `band1S`) no longer make Home Assistant report invalid entity IDs, and the integration no longer logs a failed entity ID migration for them on every start. Their entity IDs stay as they are. From Home Assistant 2027.2, these entities would not have been added. Entity IDs of other devices do not change.
+- When the cloud or a central hub gateway refuses the MQTT login, the log no longer shows "__on_connect, but mqtt is disconnected" as an error. The warning about a lasting outage now gives the broker's reason, for example "Not authorized".
 
 ### Changed
+- The MQTT connections use paho-mqtt's callback API version 2. Version 1 is deprecated and logged a deprecation warning. Disconnect log levels are unchanged: a lost connection is logged at debug level, rejected credentials as a warning.
 - Each loaded entry keeps its devices and client in the entry's `runtime_data`, which Home Assistant clears on unload, instead of in `hass.data`. Nothing changes for users.
 - The Control Path and IP Address diagnostic sensors take their names from the translation file and their icons from `icons.json`. The names and icons are the same as before.
 
