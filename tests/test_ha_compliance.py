@@ -15,6 +15,7 @@ from homeassistant.components.humidifier.const import (
     MODE_AUTO, MODE_NORMAL, MODE_SLEEP)
 from homeassistant.components.water_heater import WaterHeaterEntity
 from homeassistant.helpers.entity import Entity
+from homeassistant.exceptions import ConfigEntryError
 
 import custom_components.xiaomi_home as xiaomi_home
 from custom_components.xiaomi_home import (
@@ -360,7 +361,7 @@ async def test_entry_methods_return_none() -> None:
     miot_client = MagicMock()
     miot_client.deinit_async = AsyncMock()
     hass = MagicMock()
-    hass.config_entries.async_unload_platforms = AsyncMock(return_value=True)
+    hass.config_entries.async_unload_platforms_or_raise = AsyncMock()
     hass.data = {DOMAIN: {
         "devices": {"entry1": []}, "miot_clients": {"entry1": miot_client}}}
 
@@ -371,3 +372,22 @@ async def test_entry_methods_return_none() -> None:
     assert hass.data[DOMAIN] == {"devices": {}, "miot_clients": {}}
     for method in (async_setup_entry, async_unload_entry, async_remove_entry):
         assert inspect.signature(method).return_annotation is None
+
+
+@pytest.mark.asyncio
+async def test_failed_platform_unload_keeps_the_client() -> None:
+    """Reporting success here left entities on a dead client, and the next
+    reload failed with "already been setup" until Home Assistant restarted."""
+    miot_client = MagicMock()
+    miot_client.deinit_async = AsyncMock()
+    hass = MagicMock()
+    hass.config_entries.async_unload_platforms_or_raise = AsyncMock(
+        side_effect=ConfigEntryError("unload_platforms_failed"))
+    hass.data = {DOMAIN: {
+        "devices": {"entry1": []}, "miot_clients": {"entry1": miot_client}}}
+
+    with pytest.raises(ConfigEntryError):
+        await async_unload_entry(hass, SimpleNamespace(entry_id="entry1"))
+
+    miot_client.deinit_async.assert_not_awaited()
+    assert hass.data[DOMAIN]["miot_clients"] == {"entry1": miot_client}

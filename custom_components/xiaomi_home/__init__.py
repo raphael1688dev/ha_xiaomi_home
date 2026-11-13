@@ -400,17 +400,16 @@ async def async_unload_entry(
 ) -> None:
     """Unload the entry."""
     entry_id = config_entry.entry_id
-    # Unload the platform
-    unload_ok = await hass.config_entries.async_unload_platforms(
+    # Raises when a platform fails to unload: the entry then stays loaded
+    # with its client, instead of reporting success while entities remain
+    await hass.config_entries.async_unload_platforms_or_raise(
         config_entry, SUPPORTED_PLATFORMS)
-    if unload_ok:
-        hass.data[DOMAIN]['devices'].pop(entry_id, None)
+    hass.data[DOMAIN]['devices'].pop(entry_id, None)
     # Remove integration data
     miot_client: MIoTClient = hass.data[DOMAIN]['miot_clients'].pop(
         entry_id, None)
     if miot_client:
         await miot_client.deinit_async()
-    del miot_client
 
 
 async def async_remove_entry(
