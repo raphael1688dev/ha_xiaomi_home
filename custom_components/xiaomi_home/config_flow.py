@@ -429,6 +429,9 @@ class XiaomiMihomeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         except Exception as err:  # pylint: disable=broad-exception-caught
             _LOGGER.error(
                 'async_step_oauth, %s, %s', err, traceback.format_exc())
+            # Without an error, oauth_error would call this step again and
+            # fail the same way, in a loop
+            self._cc_config_rc = str(err) or type(err).__name__
             return self.async_show_progress_done(next_step_id='oauth_error')
 
         # 2: show OAuth2 loading page
@@ -440,6 +443,12 @@ class XiaomiMihomeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             if (error := self._cc_task_oauth.exception()):
                 _LOGGER.error('task_oauth exception, %s', error)
                 self._cc_config_rc = str(error)
+                # Start the next attempt over with a new login link and task;
+                # keeping the failed task made every retry fail the same way
+                self._cc_task_oauth = None
+                if self._miot_oauth:
+                    await self._miot_oauth.deinit_async()
+                    self._miot_oauth = None
                 return self.async_show_progress_done(next_step_id='oauth_error')
             if self._miot_oauth:
                 await self._miot_oauth.deinit_async()
