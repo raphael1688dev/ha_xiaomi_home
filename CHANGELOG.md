@@ -1,4 +1,9 @@
 # CHANGELOG
+## Unreleased
+### Changed
+- Each loaded entry keeps its devices and client in the entry's `runtime_data`, which Home Assistant clears on unload, instead of in `hass.data`. Nothing changes for users.
+- The Control Path and IP Address diagnostic sensors take their names from the translation file and their icons from `icons.json`. The names and icons are the same as before.
+
 ## v0.5.18 (Mod)
 ### Added
 - When Xiaomi rejects the stored login, Home Assistant asks you to re-authenticate the entry under Settings. Logging in there with the same Xiaomi account updates the login and reloads the entry, keeping its devices and settings. Before, you had to remove the entry and add it again. Logging in with another account is refused and nothing is changed.

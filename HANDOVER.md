@@ -63,7 +63,9 @@ Maintenance of the fork was handed over to Claude Code on 2026-10-16. Decisions 
   - Cleanup that stops the shared services after the last entry.
   - `async_remove` on both flows, which unregisters the OAuth webhook.
   - The cloud refresh catches `MIoTHttpError`.
-  The reauth flow has not been tried with a really rejected login. Still open, style only: `runtime_data`, `translation_key`, options vs data.
+  The reauth flow has not been tried with a really rejected login.
+- After v0.5.18, the per-entry devices and client moved to `config_entry.runtime_data` (`data.py`, `XiaomiHomeConfigEntry`). The client registry `hass.data[DOMAIN]['miot_clients']` and the shared services stay in `hass.data`. The configuration and options flows and `get_miot_instance_async` find clients there before an entry is loaded, so do not move them. The two diagnostic sensors use `translation_key` and `icons.json`. No other entity can: their names come from the device spec translations.
+- Decided not to do: moving the user's settings from `entry.data` to `entry.options`. It would need an entry migration and rewrites of both flows, Home Assistant has no plan to deprecate settings in `data`, and users would gain nothing.
 - **README**: describes the code as it is on `main` and is checked against the code when it is rewritten. Its release history lists only the current minor series (v0.5.x); older versions live in `CHANGELOG.md`. Each release adds its README entry and moves the `Latest` marker.
 
 ### Additional red lines
