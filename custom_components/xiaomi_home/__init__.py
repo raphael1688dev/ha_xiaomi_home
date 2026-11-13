@@ -412,6 +412,15 @@ async def async_unload_entry(
         await miot_client.deinit_async()
 
 
+def _get_storage(hass: HomeAssistant, entry_data: dict) -> MIoTStorage:
+    """The shared storage, created when nothing set it up in this run."""
+    domain_data = hass.data.setdefault(DOMAIN, {})
+    if (storage := domain_data.get('miot_storage')) is None:
+        storage = MIoTStorage(entry_data['storage_path'])
+        domain_data['miot_storage'] = storage
+    return storage
+
+
 async def async_remove_entry(
     hass: HomeAssistant, config_entry: ConfigEntry
 ) -> None:
@@ -419,7 +428,7 @@ async def async_remove_entry(
     entry_data = dict(config_entry.data)
     uid: str = entry_data['uid']
     cloud_server: str = entry_data['cloud_server']
-    miot_storage: MIoTStorage = hass.data[DOMAIN]['miot_storage']
+    miot_storage = _get_storage(hass, entry_data)
     miot_cert: MIoTCert = MIoTCert(
         storage=miot_storage, uid=uid, cloud_server=cloud_server)
 
@@ -440,9 +449,6 @@ async def async_remove_config_entry_device(
     device_entry: device_registry.DeviceEntry
 ) -> bool:
     """Remove the device."""
-    miot_client: MIoTClient = await get_miot_instance_async(
-        hass=hass, entry_id=config_entry.entry_id)
-
     if len(device_entry.identifiers) != 1:
         _LOGGER.error(
             'remove device failed, invalid identifiers, %s, %s',
@@ -454,6 +460,23 @@ async def async_remove_config_entry_device(
             'remove device failed, invalid domain, %s, %s',
             device_entry.id, device_entry.identifiers)
         return False
+
+    miot_client: Optional[MIoTClient] = hass.data[DOMAIN].get(
+        'miot_clients', {}).get(config_entry.entry_id)
+    if miot_client is None:
+        # The entry is not loaded (disabled or failed): a device it still
+        # caches would come back when it loads, a stale one can go
+        entry_data = dict(config_entry.data)
+        cached = await _get_storage(hass, entry_data).load_async(
+            domain='miot_devices',
+            name=f'{entry_data["uid"]}_{entry_data["cloud_server"]}',
+            type_=dict) or {}
+        stale = all(
+            slugify_did(cloud_server=entry_data['cloud_server'], did=did)
+            != identifiers[1] for did in cached)
+        _LOGGER.info('remove device of an unloaded entry, %s, allowed: %s',
+                     identifiers[1], stale)
+        return stale
 
     # Remove device
     await miot_client.remove_device2_async(did_tag=identifiers[1])

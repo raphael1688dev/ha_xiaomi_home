@@ -385,10 +385,11 @@ class MIoTClient:
             self._refresh_props_timer = None
         self._refresh_props_list.clear()
         self._refresh_props_retry_count = 0
-        # Cloud mips
-        self._mips_cloud.unsub_mips_state(
-            key=f'{self._uid}-{self._cloud_server}')
-        await self._mips_cloud.deinit_async()
+        # Cloud mips (None when init_async failed before creating it)
+        if self._mips_cloud:
+            self._mips_cloud.unsub_mips_state(
+                key=f'{self._uid}-{self._cloud_server}')
+            await self._mips_cloud.deinit_async()
         # Cancel refresh cloud devices
         if self._refresh_cloud_devices_timer:
             self._refresh_cloud_devices_timer.cancel()
@@ -428,8 +429,10 @@ class MIoTClient:
         if self._show_devices_changed_notify_timer:
             self._show_devices_changed_notify_timer.cancel()
             self._show_devices_changed_notify_timer = None
-        await self._oauth.deinit_async()
-        await self._http.deinit_async()
+        if self._oauth:
+            await self._oauth.deinit_async()
+        if self._http:
+            await self._http.deinit_async()
         # Remove notify
         self._persistence_notify(
             self.__gen_notify_key('dev_list_changed'), None, None)
