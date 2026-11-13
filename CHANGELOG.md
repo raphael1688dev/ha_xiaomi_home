@@ -1,5 +1,5 @@
 # CHANGELOG
-## Unreleased
+## v0.5.20 (Mod)
 ### Fixed
 - A fan that is off and is turned on with a speed (`fan.turn_on` with `percentage`, or `fan.set_percentage`) can start at that speed, instead of running at its previous speed until the new one arrived (raphael1688dev/ha_xiaomi_home#5). The speed is now sent before power-on and again after it. A device that ignores a speed while off behaves as before.
 

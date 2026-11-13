@@ -176,7 +176,10 @@ Report problems in the [issue tracker](https://github.com/raphael1688dev/ha_xiao
 
 The most recent releases are listed below. Older versions are in the [CHANGELOG](./CHANGELOG.md) and on the [Releases](https://github.com/raphael1688dev/ha_xiaomi_home/releases) page.
 
-### Version 20261113r52 (v0.5.19 Mod) — Latest
+### Version 20261113r53 (v0.5.20 Mod) — Latest
+- **Fans Start at the Requested Speed**: A fan turned on with a speed no longer runs at its previous speed first (raphael1688dev/ha_xiaomi_home#5). Entry diagnostics also show whether the cloud MQTT connection is up, and why not.
+
+### Version 20261113r52 (v0.5.19 Mod)
 - **Ready for 2027**: Devices whose model ends in an uppercase letter (such as the `xiaomi.watch.band1A` band) get valid entity IDs before Home Assistant 2027.2 starts refusing invalid ones. Their IDs do not change. The MQTT connections move to paho-mqtt's callback API version 2, and a refused MQTT login now names the broker's reason in the log.
 
 ### Version 20261113r51 (v0.5.18 Mod)
