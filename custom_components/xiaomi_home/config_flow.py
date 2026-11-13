@@ -657,6 +657,21 @@ class XiaomiMihomeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             '__check_oauth_async, webhook.async_unregister: %s',
             self._virtual_did)
 
+    @callback
+    def async_remove(self) -> None:
+        """Clean up when the flow ends, however it ends.
+
+        A flow that is closed or aborted used to leave the OAuth webhook
+        registered and its data in hass.data.
+        """
+        if not self._virtual_did or self.hass is None:
+            return
+        webhook_async_unregister(self.hass, webhook_id=self._virtual_did)
+        flow_data = self.hass.data.get(DOMAIN, {}).pop(self._virtual_did, None)
+        fut = (flow_data or {}).get('fut_oauth_code')
+        if fut is not None and not fut.done():
+            fut.cancel()
+
     # Show setup error message
     async def async_step_oauth_error(self, user_input=None):
         if self._cc_flow_abort is not None:

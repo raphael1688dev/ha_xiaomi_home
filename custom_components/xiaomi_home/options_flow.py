@@ -15,6 +15,7 @@ from homeassistant.components.webhook import (
     async_unregister as webhook_async_unregister,
     async_generate_path as webhook_async_generate_path
 )
+from homeassistant.core import callback
 from homeassistant.data_entry_flow import AbortFlow
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -388,6 +389,21 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         _LOGGER.info(
             '__check_oauth_async, webhook.async_unregister: %s',
             self._virtual_did)
+
+    @callback
+    def async_remove(self) -> None:
+        """Clean up when the flow ends, however it ends.
+
+        A flow that is closed or aborted used to leave the OAuth webhook
+        registered and its data in hass.data.
+        """
+        if not self._virtual_did or self.hass is None:
+            return
+        webhook_async_unregister(self.hass, webhook_id=self._virtual_did)
+        flow_data = self.hass.data.get(DOMAIN, {}).pop(self._virtual_did, None)
+        fut = (flow_data or {}).get('fut_oauth_code')
+        if fut is not None and not fut.done():
+            fut.cancel()
 
     # Show setup error message
     async def async_step_oauth_error(self, user_input=None):
