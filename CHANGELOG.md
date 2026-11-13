@@ -1,5 +1,5 @@
 # CHANGELOG
-## Unreleased
+## v0.5.16 (Mod)
 ### Fixed
 - Lights whose brightness is a list of levels instead of a range no longer fail every state update while on; the levels stay available as effects.
 - Fans whose speed is a value range can select their lowest speed again: on a 1 to 3 range, 33 % sent 0, below the range. Percentages now map onto the range's own steps, like Home Assistant's own fans.

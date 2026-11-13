@@ -176,7 +176,10 @@ Report problems in the [issue tracker](https://github.com/raphael1688dev/ha_xiao
 
 The most recent releases are listed below. Older versions are in the [CHANGELOG](./CHANGELOG.md) and on the [Releases](https://github.com/raphael1688dev/ha_xiaomi_home/releases) page.
 
-### Version 20261112r48 (v0.5.15 Mod) — Latest
+### Version 20261113r49 (v0.5.16 Mod) — Latest
+- **Code Review Fixes**: A review against Home Assistant 2026.11.1 found ten problems, all fixed here: lights with brightness levels, the lowest speed of range-based fans, bath heaters without an off mode, sensor units that changed between restarts, commands and polling that could hang after a gateway or LAN disconnect, failed unloads, token and certificate refreshes that gave up after one error, secrets in the log, Home Assistant freezing while a connection attempt hung, and the missing `webhook` dependency.
+
+### Version 20261112r48 (v0.5.15 Mod)
 - **Listed Target Humidities**: Humidifiers and dehumidifiers that list their allowed target humidities, such as `nwt.derh.330ef`, can show and set the target humidity again, with a slider that moves in the device's own steps. Contributed by @lidicn.
 
 ### Version 20261111r47 (v0.5.14 Mod)
