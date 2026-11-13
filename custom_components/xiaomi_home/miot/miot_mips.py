@@ -18,11 +18,13 @@ from typing import Any, Callable, Optional, final, Coroutine
 from paho.mqtt.client import (
     MQTT_ERR_SUCCESS,
     MQTT_ERR_NO_CONN,
-    MQTT_ERR_CONN_LOST,
-    MQTT_ERR_KEEPALIVE,
+    CallbackAPIVersion,
     Client,
+    ConnectFlags,
+    DisconnectFlags,
     MQTTv5,
     MQTTMessage)
+from paho.mqtt.properties import Properties
 from paho.mqtt.reasoncodes import ReasonCode
 
 # pylint: disable=relative-beyond-top-level
@@ -549,10 +551,12 @@ class _MipsClient(ABC):
     def _on_mips_message(self, topic: str, payload: bytes) -> None: ...
 
     @abstractmethod
-    def _on_mips_connect(self, rc: int, props: dict) -> None: ...
+    def _on_mips_connect(
+            self, rc: ReasonCode, props: Optional[Properties]) -> None: ...
 
     @abstractmethod
-    def _on_mips_disconnect(self, rc: int, props: dict) -> None: ...
+    def _on_mips_disconnect(
+            self, rc: ReasonCode, props: Optional[Properties]) -> None: ...
 
     @final
     def _mips_sub_internal(self, topic: str) -> None:
@@ -661,9 +665,8 @@ class _MipsClient(ABC):
 
     def __mips_loop_thread(self) -> None:
         self.log_info('mips_loop_thread start')
-        # mqtt init for API_VERSION2,
-        # callback_api_version=CallbackAPIVersion.VERSION2,
         self._mqtt = self._mqtt_client_class(
+            callback_api_version=CallbackAPIVersion.VERSION2,
             client_id=self._client_id, protocol=MQTTv5)
         self._mqtt.enable_logger(logger=self._mqtt_logger)
         # Set mqtt config
@@ -694,7 +697,17 @@ class _MipsClient(ABC):
         self._internal_loop.run_forever()
         self.log_info('mips_loop_thread exit!')
 
-    def __on_connect(self, client, user_data, flags, rc, props) -> None:
+    def __on_connect(
+        self, client: Client, user_data: Any, flags: ConnectFlags,
+        reason: ReasonCode, props: Optional[Properties]
+    ) -> None:
+        if reason.is_failure:
+            # The broker refused the connection (for example "Not
+            # authorized"); paho reports the disconnect next, which retries.
+            # Keep the reason for the warning of a lasting outage.
+            self.log_debug(f'mips connect refused, {reason}')
+            self._mips_failure_reason = str(reason)
+            return
         if not self._mqtt:
             _LOGGER.error('__on_connect, but mqtt is None')
             return
@@ -704,11 +717,11 @@ class _MipsClient(ABC):
         if self._mips_failure_warned_at is None:
             log = (self.log_info if self._mips_failure_since is None
                    else self.log_debug)
-            log(f'mips connect, {flags}, {rc}, {props}')
+            log(f'mips connect, {flags}, {reason}, {props}')
         self.__reset_reconnect_time()
         self._mqtt_state = True
         self._internal_loop.call_soon(
-            self._on_mips_connect, rc, props)
+            self._on_mips_connect, reason, props)
         with self._mips_state_sub_map_lock:
             for item in self._mips_state_sub_map.values():
                 if item.handler is None:
@@ -727,22 +740,27 @@ class _MipsClient(ABC):
         # Try to reconnect
         self.__mips_try_reconnect()
 
-    def __on_disconnect(self,  client, user_data, rc, props) -> None:
+    def __on_disconnect(
+        self, client: Client, user_data: Any, flags: DisconnectFlags,
+        reason: ReasonCode, props: Optional[Properties]
+    ) -> None:
+        if flags.is_disconnect_packet_from_server and reason.is_failure:
+            self._mips_failure_reason = str(reason)
         if self._mqtt_state:
-            # rc is a client error code (4 no connection, 7 connection lost,
-            # 16 keepalive timeout) or a ReasonCode sent by the broker.
+            # The reason comes from the broker's DISCONNECT packet, or from
+            # paho for a loss on the client side ("Unspecified error" for no
+            # connection or a lost connection, "Keep alive timeout").
             # Transient losses are retried quietly; a lasting outage is
             # reported by __mips_try_reconnect.
-            if rc == 0:
+            if reason.value == 0:
                 log = self.log_info
-            elif str(rc) in _MQTT_AUTH_REASONS:
+            elif str(reason) in _MQTT_AUTH_REASONS:
                 log = self.log_warning
-            elif not isinstance(rc, ReasonCode) and rc in (
-                    MQTT_ERR_NO_CONN, MQTT_ERR_CONN_LOST, MQTT_ERR_KEEPALIVE):
+            elif not flags.is_disconnect_packet_from_server:
                 log = self.log_debug
             else:
                 log = self.log_info
-            log(f'mips disconnect, {rc}, {props}')
+            log(f'mips disconnect, {reason}, {props}')
             self._mqtt_state = False
             if self._mqtt_timer:
                 self._mqtt_timer.cancel()
@@ -757,7 +775,7 @@ class _MipsClient(ABC):
                 self._mips_sub_pending_timer = None
             self._mips_sub_pending_map = {}
             self._internal_loop.call_soon(
-                self._on_mips_disconnect, rc, props)
+                self._on_mips_disconnect, reason, props)
             # Call state sub handler
             with self._mips_state_sub_map_lock:
                 for item in self._mips_state_sub_map.values():
@@ -1165,13 +1183,15 @@ class MipsCloudClient(_MipsClient):
             del self._msg_matcher[topic]
             self._mips_unsub_internal(topic=topic)
 
-    def _on_mips_connect(self, rc: int, props: dict) -> None:
+    def _on_mips_connect(
+            self, rc: ReasonCode, props: Optional[Properties]) -> None:
         """sub topic."""
         for topic, _ in list(
                 self._msg_matcher.iter_all_nodes()):
             self._mips_sub_internal(topic=topic)
 
-    def _on_mips_disconnect(self, rc: int, props: dict) -> None:
+    def _on_mips_disconnect(
+            self, rc: ReasonCode, props: Optional[Properties]) -> None:
         """unsub topic."""
         pass
 
@@ -1658,7 +1678,8 @@ class MipsLocalClient(_MipsClient):
                 topic=re.sub(f'^{self._did}', 'master', unsub_topic))
 
     @final
-    def _on_mips_connect(self, rc: int, props: dict) -> None:
+    def _on_mips_connect(
+            self, rc: ReasonCode, props: Optional[Properties]) -> None:
         self.log_debug('__on_mips_connect_handler')
         # Sub did/#, include reply topic
         self._mips_sub_internal(f'{self._did}/#')
@@ -1672,7 +1693,8 @@ class MipsLocalClient(_MipsClient):
                 topic=re.sub(f'^{self._did}', 'master', topic))
 
     @final
-    def _on_mips_disconnect(self, rc: int, props: dict) -> None:
+    def _on_mips_disconnect(
+            self, rc: ReasonCode, props: Optional[Properties]) -> None:
         self.log_debug(f'mips local disconnect cleanup, {rc}, {props}')
         for req in list(self._request_map.values()):
             if req.timer:

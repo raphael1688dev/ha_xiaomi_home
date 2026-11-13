@@ -5,7 +5,7 @@ import ssl
 from unittest.mock import MagicMock
 
 import pytest
-from paho.mqtt.client import Client, MQTTv5
+from paho.mqtt.client import CallbackAPIVersion, Client, MQTTv5
 
 from custom_components.xiaomi_home.miot import miot_mips
 from custom_components.xiaomi_home.miot.miot_mips import (
@@ -18,7 +18,8 @@ _ADDRS = ['192.0.2.1', '192.0.2.2', '192.0.2.3']
 
 def test_paho_private_api_is_present() -> None:
     """The override relies on these paho internals (paho-mqtt 2.1)."""
-    client = Client(client_id='test', protocol=MQTTv5)
+    client = Client(callback_api_version=CallbackAPIVersion.VERSION2,
+                    client_id='test', protocol=MQTTv5)
     for name in ('_create_socket', '_ssl_wrap_socket', '_get_proxy'):
         assert callable(getattr(client, name))
     for name in ('_transport', '_ssl', '_host', '_port', '_connect_timeout',
@@ -28,7 +29,9 @@ def test_paho_private_api_is_present() -> None:
 
 def _mqtt(monkeypatch, bad: set[str]) -> tuple[_MipsCloudMQTTClient, list]:
     """A client whose TLS handshake fails on the addresses in bad."""
-    mqtt = _MipsCloudMQTTClient(client_id='test', protocol=MQTTv5)
+    mqtt = _MipsCloudMQTTClient(
+        callback_api_version=CallbackAPIVersion.VERSION2,
+        client_id='test', protocol=MQTTv5)
     mqtt.tls_set(tls_version=ssl.PROTOCOL_TLS_CLIENT)
     mqtt._host = 'broker.test'
     mqtt._port = 8883

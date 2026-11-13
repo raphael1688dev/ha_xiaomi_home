@@ -4,7 +4,9 @@ import threading
 from unittest.mock import MagicMock
 
 import pytest
-from paho.mqtt.client import MQTT_ERR_CONN_LOST, MQTT_ERR_KEEPALIVE
+from paho.mqtt.client import (
+    MQTT_ERR_CONN_LOST, MQTT_ERR_KEEPALIVE, MQTT_ERR_SUCCESS, DisconnectFlags,
+    convert_disconnect_error_code_to_reason_code)
 from paho.mqtt.packettypes import PacketTypes
 from paho.mqtt.reasoncodes import ReasonCode
 
@@ -102,7 +104,7 @@ def test_lasting_outage_warns_once_then_recovers() -> None:
     assert client._mips_reconnect_interval == 0
 
 
-def _disconnect(rc) -> MagicMock:
+def _disconnect(reason: ReasonCode, from_server: bool) -> MagicMock:
     client, _, logger = _client()
     client._mqtt_state = True
     client._mqtt_timer = None
@@ -113,21 +115,30 @@ def _disconnect(rc) -> MagicMock:
     client._mips_state_sub_map_lock = threading.Lock()
     client._event_disconnect = MagicMock()
     client._event_connect = MagicMock()
-    client._MipsClient__on_disconnect(None, None, rc, None)
+    client._MipsClient__on_disconnect(
+        None, None, DisconnectFlags(from_server), reason, None)
     return logger
 
 
-@pytest.mark.parametrize(('rc', 'level'), [
-    (0, 'info'),
-    (MQTT_ERR_CONN_LOST, 'debug'),
-    (MQTT_ERR_KEEPALIVE, 'debug'),
-    (ReasonCode(PacketTypes.DISCONNECT, identifier=135), 'warning'),
-    # Broker reason code 4 is not the client's "no connection" error
-    (ReasonCode(PacketTypes.DISCONNECT, identifier=4), 'info'),
+def _client_side(rc) -> ReasonCode:
+    """What paho 2.1 passes to a callback API v2 client for a client error."""
+    return convert_disconnect_error_code_to_reason_code(rc)
+
+
+@pytest.mark.parametrize(('reason', 'from_server', 'level'), [
+    (_client_side(MQTT_ERR_SUCCESS), False, 'info'),
+    (_client_side(MQTT_ERR_CONN_LOST), False, 'debug'),
+    (_client_side(MQTT_ERR_KEEPALIVE), False, 'debug'),
+    (ReasonCode(PacketTypes.DISCONNECT, identifier=135), True, 'warning'),
+    (ReasonCode(PacketTypes.DISCONNECT, identifier=0), True, 'info'),
+    # The broker's "Disconnect with will message" (4) is not a client loss
+    (ReasonCode(PacketTypes.DISCONNECT, identifier=4), True, 'info'),
+    # A server error stays visible, unlike paho's own "Unspecified error"
+    (ReasonCode(PacketTypes.DISCONNECT, identifier=128), True, 'info'),
 ])
-def test_disconnect_log_level(rc, level: str) -> None:
+def test_disconnect_log_level(reason, from_server, level: str) -> None:
     """Transient losses are quiet, rejected credentials stand out."""
-    logger = _disconnect(rc)
+    logger = _disconnect(reason, from_server)
     calls = [name for name in ('debug', 'info', 'warning', 'error')
              if any('mips disconnect' in call.args[0]
                     for call in getattr(logger, name).call_args_list)]

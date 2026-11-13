@@ -20,7 +20,8 @@ def _check_mqtt_broker(cloud_server: str, uid: str) -> None:
     Blocking (DNS, TCP connect): run it in the executor.
     """
     client = mqtt_client.Client(
-        client_id=f'ha.{uid}', protocol=mqtt_client.MQTTv5)  # type: ignore
+        callback_api_version=mqtt_client.CallbackAPIVersion.VERSION2,
+        client_id=f'ha.{uid}', protocol=mqtt_client.MQTTv5)
     if client.connect(
             host=f'{cloud_server}-{DEFAULT_CLOUD_BROKER_HOST}',
             port=8883) != 0:
