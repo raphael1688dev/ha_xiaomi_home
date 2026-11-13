@@ -1,5 +1,8 @@
 # CHANGELOG
 ## Unreleased
+### Fixed
+- Devices whose model ends in an uppercase letter (for example `xiaomi.watch.band1A` and `band1S`) no longer make Home Assistant report invalid entity IDs, and the integration no longer logs a failed entity ID migration for them on every start. Their entity IDs stay as they are. From Home Assistant 2027.2, these entities would not have been added. Entity IDs of other devices do not change.
+
 ### Changed
 - Each loaded entry keeps its devices and client in the entry's `runtime_data`, which Home Assistant clears on unload, instead of in `hass.data`. Nothing changes for users.
 - The Control Path and IP Address diagnostic sensors take their names from the translation file and their icons from `icons.json`. The names and icons are the same as before.
