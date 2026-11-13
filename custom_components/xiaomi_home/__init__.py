@@ -410,6 +410,20 @@ async def async_unload_entry(
         entry_id, None)
     if miot_client:
         await miot_client.deinit_async()
+    if not hass.data[DOMAIN]['miot_clients']:
+        await _async_stop_shared_services(hass)
+
+
+async def _async_stop_shared_services(hass: HomeAssistant) -> None:
+    """Stop the services the entries share once the last one is gone.
+
+    They used to keep running (network probes every 30 s, the mDNS browser,
+    LAN control) until Home Assistant restarted. LAN control first, it uses
+    the other two; the next setup creates them again.
+    """
+    for key in ('miot_lan', 'mips_service', 'miot_network'):
+        if (service := hass.data[DOMAIN].pop(key, None)) is not None:
+            await service.deinit_async()
 
 
 def _get_storage(hass: HomeAssistant, entry_data: dict) -> MIoTStorage:

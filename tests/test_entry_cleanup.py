@@ -80,3 +80,44 @@ async def test_remove_device_of_an_unloaded_entry(cached, allowed) -> None:
 
     assert await xiaomi_home.async_remove_config_entry_device(
         hass, _entry(), device) is allowed
+
+
+def _unload_hass(clients: dict) -> tuple[MagicMock, list]:
+    stopped: list = []
+    hass = MagicMock()
+    hass.config_entries.async_unload_platforms_or_raise = AsyncMock()
+    services = {}
+    for key in ("miot_lan", "mips_service", "miot_network"):
+        service = MagicMock()
+        service.deinit_async = AsyncMock(
+            side_effect=lambda key=key: stopped.append(key))
+        services[key] = service
+    hass.data = {DOMAIN: {"devices": {}, "miot_clients": clients, **services}}
+    return hass, stopped
+
+
+@pytest.mark.asyncio
+async def test_last_unload_stops_the_shared_services() -> None:
+    """The network probes, mDNS browser and LAN control kept running after
+    the last entry was gone."""
+    client = MagicMock()
+    client.deinit_async = AsyncMock()
+    hass, stopped = _unload_hass({"entry1": client})
+
+    await xiaomi_home.async_unload_entry(hass, _entry())
+
+    assert stopped == ["miot_lan", "mips_service", "miot_network"]
+    assert not {"miot_lan", "mips_service", "miot_network"} & set(
+        hass.data[DOMAIN])
+
+
+@pytest.mark.asyncio
+async def test_unload_keeps_services_while_other_entries_remain() -> None:
+    client = MagicMock()
+    client.deinit_async = AsyncMock()
+    hass, stopped = _unload_hass({"entry1": client, "entry2": MagicMock()})
+
+    await xiaomi_home.async_unload_entry(hass, _entry())
+
+    assert not stopped
+    assert "miot_network" in hass.data[DOMAIN]
