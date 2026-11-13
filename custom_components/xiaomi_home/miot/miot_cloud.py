@@ -14,7 +14,7 @@ from urllib.parse import urlencode
 import aiohttp
 
 # pylint: disable=relative-beyond-top-level
-from .common import calc_group_id
+from .common import calc_group_id, redact_secrets
 from .const import (
     UNSUPPORTED_MODELS,
     DEFAULT_OAUTH2_API_HOST,
@@ -286,7 +286,8 @@ class MIoTHttpClient:
                 f'{res_obj.get("message","")}')
         _LOGGER.debug(
             'mihome api post, %s%s, %s -> %s',
-            self._base_url, url_path, data, res_obj)
+            self._base_url, url_path, redact_secrets(data),
+            redact_secrets(res_obj))
         return res_obj
 
     async def get_user_info_async(self) -> dict:
@@ -509,11 +510,12 @@ class MIoTHttpClient:
                 model = device.get('model', None)
 
                 if did is None or name is None:
-                    _LOGGER.info('invalid device, cloud, %s', device)
+                    _LOGGER.info('invalid device, cloud, %s',
+                                 redact_secrets(device))
                     continue
                 if urn is None or model is None:
                     _LOGGER.info('missing the urn|model field, cloud, %s',
-                                 device)
+                                 redact_secrets(device))
                     continue
                 if did.startswith('miwifi.'):
                     _LOGGER.info('ignore miwifi.* device, cloud, %s', did)

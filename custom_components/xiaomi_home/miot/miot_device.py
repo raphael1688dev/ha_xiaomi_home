@@ -43,7 +43,7 @@ from .specs.specv2entity import (
     SPEC_PROP_TRANS_MAP,
     SPEC_SERVICE_TRANS_MAP
 )
-from .common import slugify_name, slugify_did
+from .common import redact_secrets, slugify_name, slugify_did
 from .const import DOMAIN, LAN_CAPABLE_CONNECT_TYPES, PROP_MSG_POLLED
 from .miot_client import MIoTClient
 from .miot_error import MIoTClientError, MIoTDeviceError
@@ -454,7 +454,7 @@ class MIoTDevice:
         self.miot_client.sub_device_state(
             self._did, self.__on_device_state_changed)
 
-        _LOGGER.debug('miot device init %s', device_info)
+        _LOGGER.debug('miot device init %s', redact_secrets(device_info))
 
     @property
     def online(self) -> bool:

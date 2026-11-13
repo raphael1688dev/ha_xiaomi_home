@@ -39,7 +39,7 @@ async def _handle_oauth_webhook(hass, webhook_id, request):
         fut_oauth_code: asyncio.Future = hass.data[DOMAIN][webhook_id].pop(
             'fut_oauth_code', None)
         fut_oauth_code.set_result(data['code'])
-        _LOGGER.info('webhook code: %s', data['code'])
+        _LOGGER.info('webhook received the OAuth code')
 
         success_trans: dict = {}
         if i18n:

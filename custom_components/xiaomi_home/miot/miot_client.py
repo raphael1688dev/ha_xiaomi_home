@@ -677,7 +677,7 @@ class MIoTClient:
                 crt_str = await self.miot_http.get_central_cert_async(csr_str)
                 if not await self._cert.update_user_cert_async(cert=crt_str):
                     raise MIoTClientError('update user cert error')
-                _LOGGER.info('update_user_cert_async, %s', crt_str)
+                _LOGGER.info('update_user_cert_async, new cert stored')
                 # Create cert update task
                 refresh_time = (
                     await self._cert.user_cert_remaining_time_async() -

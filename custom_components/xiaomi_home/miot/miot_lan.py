@@ -672,7 +672,7 @@ class MIoTLan:
             {'enable_subscribe': enable_subscribe})
 
     def update_devices(self, devices: dict[str, dict]) -> bool:
-        _LOGGER.info('update devices, %s', devices)
+        _LOGGER.info('update devices, %s', list(devices))
         if not self._init_done:
             return False
         self._internal_loop.call_soon_threadsafe(

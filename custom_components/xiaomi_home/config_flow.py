@@ -45,6 +45,7 @@ from .miot.const import (
     MIHOME_CERT_EXPIRE_MARGIN
 )
 from .miot.miot_cloud import MIoTHttpClient, MIoTOauthClient
+from .miot.common import redact_secrets
 from .miot.miot_storage import MIoTStorage, MIoTCert
 from .miot.miot_mdns import MipsService
 from .miot.miot_error import (
@@ -511,7 +512,8 @@ class XiaomiMihomeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 raise MIoTConfigError('http_client_error')
             self._cc_home_info = (
                 await self._miot_http.get_devices_async())
-            _LOGGER.info('get_homeinfos response: %s', self._cc_home_info)
+            _LOGGER.debug('get_homeinfos response: %s',
+                          redact_secrets(self._cc_home_info))
             self._uid = self._cc_home_info['uid']
             if self._uid == self._nick_name:
                 self._nick_name = DEFAULT_NICK_NAME

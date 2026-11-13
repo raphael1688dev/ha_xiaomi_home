@@ -19,6 +19,23 @@ _LOGGER = logging.getLogger(__name__)
 MIOT_ROOT_PATH: str = path.dirname(path.abspath(__file__))
 
 
+# Keys whose values must not reach the log: a device token gives local
+# control of the device, the others are account credentials
+_SECRET_KEYS = frozenset({'token', 'access_token', 'refresh_token'})
+
+
+def redact_secrets(data: Any) -> Any:
+    """Return a copy of data for logging, with secret values hidden."""
+    if isinstance(data, dict):
+        return {
+            key: '**REDACTED**' if key in _SECRET_KEYS and value
+            else redact_secrets(value)
+            for key, value in data.items()}
+    if isinstance(data, (list, tuple)):
+        return [redact_secrets(item) for item in data]
+    return data
+
+
 def gen_absolute_path(relative_path: str) -> str:
     """Generate an absolute path."""
     return path.join(MIOT_ROOT_PATH, relative_path)
