@@ -52,6 +52,12 @@ from .oauth import _handle_oauth_webhook
 
 _LOGGER = logging.getLogger(__name__)
 
+# Errors the oauth_error step shows by key; other failures show oauth_failed
+_OAUTH_ERROR_KEYS = frozenset({
+    'get_cert_error', 'get_homeinfo_error', 'get_token_error',
+    'http_client_error', 'mdns_discovery_error', 'oauth_client_error',
+    'oauth_code_error', 'oauth_code_fut_error'})
+
 
 class OptionsFlowHandler(config_entries.OptionsFlow):
     """Xiaomi MiHome options flow."""
@@ -119,6 +125,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
     _cc_oauth_auth_url: Optional[str]
     _cc_task_oauth: Optional[asyncio.Task[None]]
     _cc_config_rc: Optional[str]
+    _cc_flow_abort: Optional[AbortFlow]
     _cc_fut_oauth_code: Optional[asyncio.Future]
     _cc_devices_local: dict
     _cc_network_detect_addr: str
@@ -183,6 +190,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         self._cc_oauth_auth_url = None
         self._cc_task_oauth = None
         self._cc_config_rc = None
+        self._cc_flow_abort = None
         self._cc_fut_oauth_code = None
         self._cc_devices_local = {}
         self._cc_network_detect_addr = ''
@@ -313,6 +321,8 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 if (error := self._cc_task_oauth.exception()):
                     _LOGGER.error('task_oauth exception, %s', error)
                     self._cc_config_rc = str(error)
+                    if isinstance(error, AbortFlow):
+                        self._cc_flow_abort = error
                     self._cc_task_oauth = None
                     return self.async_show_progress_done(
                         next_step_id='oauth_error')
@@ -370,7 +380,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     uid=self._uid,
                     cloud_server=self._cloud_server,
                     config={'auth_info': auth_info}):
-                raise AbortFlow('storage_error')
+                raise AbortFlow('storage_error_user_config')
             self._auth_info = auth_info
 
         # Auth success, unregister oauth webhook
@@ -381,13 +391,17 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
     # Show setup error message
     async def async_step_oauth_error(self, user_input=None):
+        if self._cc_flow_abort is not None:
+            # Re-raise the original, with its translation and placeholders
+            abort, self._cc_flow_abort = self._cc_flow_abort, None
+            raise abort
         if self._cc_config_rc is None:
             return await self.async_step_oauth()
-        if self._cc_config_rc.startswith('Flow aborted: '):
-            raise AbortFlow(
-                reason=self._cc_config_rc.replace('Flow aborted: ', ''))
         error_reason = self._cc_config_rc
         self._cc_config_rc = None
+        if error_reason not in _OAUTH_ERROR_KEYS:
+            # Free text (an exception message) has no translation
+            error_reason = 'oauth_failed'
         return self.async_show_form(
             step_id='oauth_error',
             data_schema=vol.Schema({}),
@@ -496,9 +510,14 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         if not self._update_user_info:
             return await self.async_step_homes_select()
         if not user_input:
-            nick_name_new = (
-                await self._miot_http.get_user_info_async() or {}).get(
-                    'miliaoNick', DEFAULT_NICK_NAME)
+            try:
+                nick_name_new = (
+                    await self._miot_http.get_user_info_async() or {}).get(
+                        'miliaoNick', DEFAULT_NICK_NAME)
+            except Exception as err:  # pylint: disable=broad-exception-caught
+                # Only the suggestion fails: offer the current nick name
+                _LOGGER.warning('get user info failed, %r', err)
+                nick_name_new = self._nick_name
             return self.async_show_form(
                 step_id='update_user_info',
                 data_schema=vol.Schema({
@@ -526,7 +545,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 _LOGGER.error(
                     'async_update_services error, %s, %s',
                     err, traceback.format_exc())
-                raise MIoTConfigError('mdns_discovery_error') from err
+                raise AbortFlow('mdns_discovery_error') from err
 
             # Get home info
             try:
@@ -535,7 +554,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             except Exception as err:
                 _LOGGER.error(
                     'get_homeinfos error, %s, %s', err, traceback.format_exc())
-                raise MIoTConfigError('get_homeinfo_error') from err
+                raise AbortFlow('get_homeinfo_error') from err
             # Generate devices filter
             home_list = {}
             tip_devices = self._miot_i18n.translate(key='config.other.devices')

@@ -60,6 +60,12 @@ from .network import (
 
 _LOGGER = logging.getLogger(__name__)
 
+# Errors the oauth_error step shows by key; other failures show oauth_failed
+_OAUTH_ERROR_KEYS = frozenset({
+    'get_cert_error', 'get_homeinfo_error', 'get_token_error',
+    'http_client_error', 'mdns_discovery_error', 'oauth_client_error',
+    'oauth_code_error', 'oauth_code_fut_error'})
+
 
 class XiaomiMihomeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Xiaomi Home config flow."""
@@ -107,6 +113,7 @@ class XiaomiMihomeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     _cc_user_cert_done: bool
     _cc_task_oauth: Optional[asyncio.Task[None]]
     _cc_config_rc: Optional[str]
+    _cc_flow_abort: Optional[AbortFlow]
     _cc_fut_oauth_code: Optional[asyncio.Future]
     _opt_check_network_deps: bool
 
@@ -142,6 +149,7 @@ class XiaomiMihomeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._cc_user_cert_done = False
         self._cc_task_oauth = None
         self._cc_config_rc = None
+        self._cc_flow_abort = None
         self._cc_fut_oauth_code = None
         self._opt_check_network_deps = False
 
@@ -443,6 +451,8 @@ class XiaomiMihomeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             if (error := self._cc_task_oauth.exception()):
                 _LOGGER.error('task_oauth exception, %s', error)
                 self._cc_config_rc = str(error)
+                if isinstance(error, AbortFlow):
+                    self._cc_flow_abort = error
                 # Start the next attempt over with a new login link and task;
                 # keeping the failed task made every retry fail the same way
                 self._cc_task_oauth = None
@@ -649,13 +659,17 @@ class XiaomiMihomeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     # Show setup error message
     async def async_step_oauth_error(self, user_input=None):
+        if self._cc_flow_abort is not None:
+            # Re-raise the original, with its translation and placeholders
+            abort, self._cc_flow_abort = self._cc_flow_abort, None
+            raise abort
         if self._cc_config_rc is None:
             return await self.async_step_oauth()
-        if self._cc_config_rc.startswith('Flow aborted: '):
-            raise AbortFlow(
-                reason=self._cc_config_rc.replace('Flow aborted: ', ''))
         error_reason = self._cc_config_rc
         self._cc_config_rc = None
+        if error_reason not in _OAUTH_ERROR_KEYS:
+            # Free text (an exception message) has no translation
+            error_reason = 'oauth_failed'
         return self.async_show_form(
             step_id='oauth_error',
             data_schema=vol.Schema({}),

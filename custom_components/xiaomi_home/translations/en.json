@@ -49,7 +49,8 @@
                     "action_debug": "Action Debug Mode",
                     "hide_non_standard_entities": "Hide Non-Standard Generated Entities",
                     "display_binary_mode": "Binary Sensor Display Mode",
-                    "display_devices_changed_notify": "Display Device Status Change Notifications"
+                    "display_devices_changed_notify": "Display Device Status Change Notifications",
+                    "poll_priority": "Polling priority"
                 }
             },
             "devices_filter": {
@@ -88,14 +89,21 @@
             "unreachable_oauth2_host": "Unable to reach OAuth2 authentication address, please check network configuration.",
             "unreachable_http_host": "Unable to reach Xiaomi HTTP API address, please check network configuration.",
             "unreachable_spec_host": "Unable to reach Xiaomi SPEC API address, please check network configuration.",
-            "unreachable_mqtt_broker": "Unable to reach Xiaomi MQTT Broker address, please check network configuration."
+            "unreachable_mqtt_broker": "Unable to reach Xiaomi MQTT Broker address, please check network configuration.",
+            "devices_storage_failed": "Failed to save the device list. Please try again.",
+            "http_client_error": "Failed to create the Xiaomi Cloud HTTP client. Please try again.",
+            "oauth_client_error": "Failed to create the Xiaomi login client. Please try again.",
+            "oauth_code_error": "No login authorization code was received from Xiaomi. Please log in again.",
+            "oauth_code_fut_error": "The login could not be completed. Please log in again.",
+            "oauth_failed": "Login failed. Check the network connection of Home Assistant and try again."
         },
         "abort": {
             "ha_uuid_get_failed": "Failed to get Home Assistant UUID.",
             "network_connect_error": "Configuration failed. The network connection is abnormal. Please check the equipment network configuration.",
             "already_configured": "Configuration for this user is already completed. Please go to the integration page and click the CONFIGURE button for modifications.",
             "invalid_auth_info": "Authentication information has expired. Please go to the integration page and click the CONFIGURE button to re-authenticate.",
-            "config_flow_error": "Integration configuration error: {error}."
+            "config_flow_error": "Integration configuration error: {error}.",
+            "storage_error": "Integration storage module exception. Please try again or re-add the integration: {error}"
         }
     },
     "options": {
@@ -141,7 +149,8 @@
                 "data": {
                     "home_infos": "Import devices from home",
                     "devices_filter": "Filter devices",
-                    "ctrl_mode": "Control mode"
+                    "ctrl_mode": "Control mode",
+                    "poll_priority": "Polling priority"
                 }
             },
             "devices_filter": {
@@ -212,7 +221,12 @@
             "unreachable_oauth2_host": "Unable to reach OAuth2 authentication address, please check network configuration.",
             "unreachable_http_host": "Unable to reach Xiaomi HTTP API address, please check network configuration.",
             "unreachable_spec_host": "Unable to reach Xiaomi SPEC API address, please check network configuration.",
-            "unreachable_mqtt_broker": "Unable to reach Xiaomi MQTT Broker address, please check network configuration."
+            "unreachable_mqtt_broker": "Unable to reach Xiaomi MQTT Broker address, please check network configuration.",
+            "oauth_code_error": "No login authorization code was received from Xiaomi. Please log in again.",
+            "oauth_code_fut_error": "The login could not be completed. Please log in again.",
+            "oauth_failed": "Login failed. Check the network connection of Home Assistant and try again.",
+            "http_client_error": "Failed to create the Xiaomi Cloud HTTP client. Please try again.",
+            "oauth_client_error": "Failed to create the Xiaomi login client. Please try again."
         },
         "abort": {
             "network_connect_error": "Configuration failed. The network connection is abnormal. Please check the equipment network configuration.",
@@ -222,7 +236,9 @@
             "storage_error_net_config": "Integration storage error: failed to update network configuration. Please try again or re-add the integration.",
             "storage_error_save_devices": "Integration storage error: failed to save device list. Please try again or re-add the integration.",
             "storage_error_user_config": "Integration storage error: failed to update user configuration. Please try again or re-add the integration.",
-            "inconsistent_account": "Account information is inconsistent. Please login with the correct account."
+            "inconsistent_account": "Account information is inconsistent. Please login with the correct account.",
+            "mdns_discovery_error": "Local device discovery service exception.",
+            "get_homeinfo_error": "Failed to retrieve home information."
         }
     }
 }
