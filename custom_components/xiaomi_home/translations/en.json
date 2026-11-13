@@ -245,5 +245,15 @@
             "mdns_discovery_error": "Local device discovery service exception.",
             "get_homeinfo_error": "Failed to retrieve home information."
         }
+    },
+    "entity": {
+        "sensor": {
+            "control_path": {
+                "name": "Control Path"
+            },
+            "ip_address": {
+                "name": "IP Address"
+            }
+        }
     }
 }

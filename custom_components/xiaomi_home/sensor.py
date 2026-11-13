@@ -192,10 +192,9 @@ class MIoTControlPathSensor(SensorEntity):
     def __init__(self, miot_device: MIoTDevice, entry_id: str) -> None:
         self.miot_device = miot_device
         self._attr_unique_id = f'{entry_id}_{miot_device.did}_control_path'
-        self._attr_name = 'Control Path'
+        self._attr_translation_key = 'control_path'
         self._attr_entity_category = EntityCategory.DIAGNOSTIC
         self._attr_entity_registry_enabled_default = False
-        self._attr_icon = 'mdi:transit-connection-variant'
         self._attr_has_entity_name = True
         self._attr_should_poll = True
         self.entity_id = f'sensor.{miot_device.entity_id_prefix}_control_path'
@@ -221,10 +220,9 @@ class MIoTIPAddressSensor(SensorEntity):
     def __init__(self, miot_device: MIoTDevice, entry_id: str) -> None:
         self.miot_device = miot_device
         self._attr_unique_id = f'{entry_id}_{miot_device.did}_ip_address'
-        self._attr_name = 'IP Address'
+        self._attr_translation_key = 'ip_address'
         self._attr_entity_category = EntityCategory.DIAGNOSTIC
         self._attr_entity_registry_enabled_default = False
-        self._attr_icon = 'mdi:ip-network'
         self._attr_has_entity_name = True
         self._attr_should_poll = True
         self.entity_id = f'sensor.{miot_device.entity_id_prefix}_ip_address'
