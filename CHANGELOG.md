@@ -1,5 +1,5 @@
 # CHANGELOG
-## Unreleased
+## v0.5.19 (Mod)
 ### Fixed
 - Devices whose model ends in an uppercase letter (for example `xiaomi.watch.band1A` and `band1S`) no longer make Home Assistant report invalid entity IDs, and the integration no longer logs a failed entity ID migration for them on every start. Their entity IDs stay as they are. From Home Assistant 2027.2, these entities would not have been added. Entity IDs of other devices do not change.
 - When the cloud or a central hub gateway refuses the MQTT login, the log no longer shows "__on_connect, but mqtt is disconnected" as an error. The warning about a lasting outage now gives the broker's reason, for example "Not authorized".
