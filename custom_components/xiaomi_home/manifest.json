@@ -12,6 +12,7 @@
         "http",
         "persistent_notification",
         "ffmpeg",
+        "webhook",
         "zeroconf"
     ],
     "documentation": "https://github.com/raphael1688dev/ha_xiaomi_home/blob/main/README.md",

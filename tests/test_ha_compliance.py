@@ -391,3 +391,14 @@ async def test_failed_platform_unload_keeps_the_client() -> None:
 
     miot_client.deinit_async.assert_not_awaited()
     assert hass.data[DOMAIN]["miot_clients"] == {"entry1": miot_client}
+
+
+def test_manifest_lists_the_integrations_the_flows_use() -> None:
+    """The OAuth redirect is a webhook; its HTTP view is only registered by
+    the webhook integration's own setup, which default_config does not
+    always load."""
+    with open("custom_components/xiaomi_home/manifest.json",
+              encoding="utf-8") as manifest_file:
+        dependencies = json.load(manifest_file)["dependencies"]
+    for used in ("http", "webhook", "zeroconf"):
+        assert used in dependencies
