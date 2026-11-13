@@ -189,10 +189,16 @@ class MIoTStorage:
                     type(data).__name__)
                 return False
 
-            with open(full_path, 'wb') as w_file:
+            # Write a temporary file and swap it in: an interrupted write
+            # (power loss, crash) must not leave a file that fails its hash
+            tmp_path = f'{full_path}.tmp'
+            with open(tmp_path, 'wb') as w_file:
                 w_file.write(w_bytes)
                 if with_hash:
                     w_file.write(hashlib.sha256(w_bytes).digest())
+                w_file.flush()
+                os.fsync(w_file.fileno())
+            os.replace(tmp_path, full_path)
             return True
         except (OSError, TypeError) as e:
             _LOGGER.error('save error, %s, %s', e, traceback.format_exc())
@@ -210,10 +216,11 @@ class MIoTStorage:
     ) -> bool:
         full_path = self.__get_full_path(
             domain=domain, name=name, suffix=type(data).__name__)
-        if full_path in self._file_future:
-            # Waiting for the last task to be completed
-            fut = self._file_future[full_path][1]
-            await fut
+        # Wait until no task is pending on this file. Re-check after each
+        # wait: another waiter may have started a write meanwhile, and two
+        # writes to one file must not run at the same time
+        while full_path in self._file_future:
+            await self._file_future[full_path][1]
         fut = self._main_loop.run_in_executor(
             None, self.__save, full_path, data)
         if not fut.done():
