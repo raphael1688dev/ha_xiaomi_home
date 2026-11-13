@@ -176,7 +176,10 @@ Report problems in the [issue tracker](https://github.com/raphael1688dev/ha_xiao
 
 The most recent releases are listed below. Older versions are in the [CHANGELOG](./CHANGELOG.md) and on the [Releases](https://github.com/raphael1688dev/ha_xiaomi_home/releases) page.
 
-### Version 20261113r49 (v0.5.16 Mod) — Latest
+### Version 20261113r50 (v0.5.17 Mod) — Latest
+- **More Code Review Fixes**: Retrying a failed login, cleaning up entries that were not set up, translated flow errors, climate modes and fan state, readable errors from failed commands, atomic storage writes and a LAN memory leak. The unused `ffmpeg` dependency and the `construct` and `numpy` requirements are removed.
+
+### Version 20261113r49 (v0.5.16 Mod)
 - **Code Review Fixes**: A review against Home Assistant 2026.11.1 found ten problems, all fixed here: lights with brightness levels, the lowest speed of range-based fans, bath heaters without an off mode, sensor units that changed between restarts, commands and polling that could hang after a gateway or LAN disconnect, failed unloads, token and certificate refreshes that gave up after one error, secrets in the log, Home Assistant freezing while a connection attempt hung, and the missing `webhook` dependency.
 
 ### Version 20261112r48 (v0.5.15 Mod)

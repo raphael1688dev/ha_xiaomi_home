@@ -1,5 +1,5 @@
 # CHANGELOG
-## Unreleased
+## v0.5.17 (Mod)
 ### Fixed
 - A failed login in the configuration flow can be retried with "Next"; it used to show the same error again until the dialog was closed.
 - Removing an entry that was not set up since Home Assistant started now deletes its stored login, certificate and device list; it failed with an error and left them on disk. A failed setup reports its real error, and a device of an entry that is not loaded can be deleted when the entry no longer has it.
