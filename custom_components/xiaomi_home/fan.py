@@ -8,6 +8,7 @@ import asyncio
 import math
 
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.components.fan import (
     FanEntity,
@@ -176,17 +177,14 @@ class Fan(MIoTServiceEntity, FanEntity):
         preset_mode: Optional[str] = None, **kwargs: Any
     ) -> None:
         """Turn the fan on."""
+        level = (self.__speed_value(percentage)
+                 if percentage is not None and percentage > 0 else None)
         turned_on_by_us = False
-        # Ensure device is turned on first to prevent rejecting subsequent
-        # commands while off
         if not self.is_on and not self._is_turning_on:
             self._is_turning_on = True
             turned_on_by_us = True
             try:
-                await self.set_property_async(prop=self._prop_on, value=True)
-                self._prop_value_map[self._prop_on] = True
-                if hasattr(self.miot_device, 'props_cache'):
-                    self.miot_device.props_cache[self._prop_on.name] = True
+                await self.__power_on(level)
             except Exception:
                 self._is_turning_on = False
                 raise
@@ -195,7 +193,8 @@ class Fan(MIoTServiceEntity, FanEntity):
             # Optimized: Use asyncio.gather to concurrently execute commands and
             # reduce latency
             tasks = []
-            if percentage is not None:
+            if percentage is not None and not (
+                    turned_on_by_us and level is not None):
                 tasks.append(self.async_set_percentage(percentage))
             if preset_mode is not None:
                 tasks.append(self.async_set_preset_mode(preset_mode))
@@ -217,32 +216,57 @@ class Fan(MIoTServiceEntity, FanEntity):
     async def async_set_percentage(self, percentage: int) -> None:
         """Set the percentage of the fan speed."""
         if percentage > 0:
+            level = self.__speed_value(percentage)
             if not self.is_on and not self._is_turning_on:
                 self._is_turning_on = True
                 try:
-                    await self.set_property_async(prop=self._prop_on,
-                                                  value=True)
-                    self._prop_value_map[self._prop_on] = True
-                    if hasattr(self.miot_device, 'props_cache'):
-                        self.miot_device.props_cache[self._prop_on.name] = True
+                    await self.__power_on(level)
                 finally:
                     self._is_turning_on = False
-
-            if self._speed_names:
-                # Optimized: Use O(1) reverse lookup map to replace O(N)
-                # get_map_key scan
-                speed_str = percentage_to_ordered_list_item(
-                    self._speed_names, percentage)
-                speed_val = self._speed_name_reverse_map.get(speed_str)
-                if speed_val is not None:
-                    await self.set_property_async(prop=self._prop_fan_level,
-                                                  value=speed_val)
-            else:
+                return
+            if level is not None:
                 await self.set_property_async(
-                    prop=self._prop_fan_level,
-                    value=self.__percentage_to_level(percentage))
+                    prop=self._prop_fan_level, value=level)
         else:
             await self.set_property_async(prop=self._prop_on, value=False)
+
+    def __speed_value(self, percentage: int) -> Any:
+        """The fan-level value for a percentage, None without one."""
+        if self._prop_fan_level is None:
+            return None
+        if self._speed_names:
+            # Optimized: Use O(1) reverse lookup map to replace O(N)
+            # get_map_key scan
+            speed_str = percentage_to_ordered_list_item(
+                self._speed_names, percentage)
+            return self._speed_name_reverse_map.get(speed_str)
+        return self.__percentage_to_level(percentage)
+
+    async def __power_on(self, level: Any = None) -> None:
+        """Turn the fan on, at level when one is given.
+
+        raphael1688dev/ha_xiaomi_home#5: powering on first made the fan run
+        at its previous speed until the level arrived a round trip later.
+        The level is written first so the fan can start at it, and once more
+        after power on for a device that ignores or refuses it while off.
+        That device behaves as before; a refusal is not an error.
+        """
+        if level is not None:
+            try:
+                await self.set_property_async(
+                    prop=self._prop_fan_level, value=level,
+                    write_ha_state=False)
+            except HomeAssistantError as err:
+                _LOGGER.debug(
+                    'fan level before power on refused, %s, %s',
+                    self.entity_id, err)
+        await self.set_property_async(prop=self._prop_on, value=True)
+        self._prop_value_map[self._prop_on] = True
+        if hasattr(self.miot_device, 'props_cache'):
+            self.miot_device.props_cache[self._prop_on.name] = True
+        if level is not None:
+            await self.set_property_async(
+                prop=self._prop_fan_level, value=level)
 
     async def async_set_preset_mode(self, preset_mode: str) -> None:
         """Set the preset mode."""
