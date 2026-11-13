@@ -65,7 +65,12 @@ Maintenance of the fork was handed over to Claude Code on 2026-10-16. Decisions 
   - The cloud refresh catches `MIoTHttpError`.
   The reauth flow has not been tried with a really rejected login.
 - After v0.5.18, the per-entry devices and client moved to `config_entry.runtime_data` (`data.py`, `XiaomiHomeConfigEntry`). The client registry `hass.data[DOMAIN]['miot_clients']` and the shared services stay in `hass.data`. The configuration and options flows and `get_miot_instance_async` find clients there before an entry is loaded, so do not move them. The two diagnostic sensors use `translation_key` and `icons.json`. No other entity can: their names come from the device spec translations.
-- Decided not to do: moving the user's settings from `entry.data` to `entry.options`. It would need an entry migration and rewrites of both flows, Home Assistant has no plan to deprecate settings in `data`, and users would gain nothing.
+- Decided not to do (the owner agreed on 2026-11-13): moving the user's settings from `entry.data` to `entry.options`. The review raised it as a style point. Home Assistant expects later changeable settings in `options`, saved by `async_create_entry(data=...)` with `OptionsFlowWithReload`. This integration, like upstream, keeps everything in `data`: the options flow overwrites it with `async_update_entry` and returns an empty `async_create_entry` (options_flow.py, the end of the flow). Reasons to leave it:
+  1. It works, and Home Assistant has no plan to deprecate settings in `data`.
+  2. Moving them needs an entry migration for every user and rewrites of both flows. One missed field changes a user's settings on upgrade.
+  3. The options flow also does account-level work (log in again, nickname and title, home selection, device removal) that belongs in `data`, so the split would not be clean.
+  4. It would diverge from upstream and make porting its flow fixes harder.
+  Reconsider only if Home Assistant starts deprecating it or the owner asks.
 - **README**: describes the code as it is on `main` and is checked against the code when it is rewritten. Its release history lists only the current minor series (v0.5.x); older versions live in `CHANGELOG.md`. Each release adds its README entry and moves the `Latest` marker.
 
 ### Additional red lines
