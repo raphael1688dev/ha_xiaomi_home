@@ -92,7 +92,7 @@ def _unload_hass(clients: dict) -> tuple[MagicMock, list]:
         service.deinit_async = AsyncMock(
             side_effect=lambda key=key: stopped.append(key))
         services[key] = service
-    hass.data = {DOMAIN: {"devices": {}, "miot_clients": clients, **services}}
+    hass.data = {DOMAIN: {"miot_clients": clients, **services}}
     return hass, stopped
 
 

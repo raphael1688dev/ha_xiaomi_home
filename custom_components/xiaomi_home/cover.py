@@ -6,16 +6,15 @@ from typing import Any, Optional
 import re
 import logging
 
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.components.cover import (ATTR_POSITION, CoverEntity,
                                             CoverEntityFeature,
                                             CoverDeviceClass)
 
+from .data import XiaomiHomeConfigEntry
 from .miot.miot_spec import MIoTSpecProperty
 from .miot.miot_device import MIoTDevice, MIoTEntityData, MIoTServiceEntity
-from .miot.const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -31,11 +30,12 @@ _DEVICE_CLASS_MAP = {
     'airer': CoverDeviceClass.BLIND
 }
 
-async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry,
-                            async_add_entities: AddEntitiesCallback) -> None:
+async def async_setup_entry(
+        hass: HomeAssistant, config_entry: XiaomiHomeConfigEntry,
+        async_add_entities: AddEntitiesCallback) -> None:
     """Set up a config entry."""
-    device_list: list[MIoTDevice] = hass.data[DOMAIN]['devices'][
-        config_entry.entry_id]
+    # pylint: disable=unused-argument
+    device_list: list[MIoTDevice] = config_entry.runtime_data.devices
 
     new_entities = []
     for miot_device in device_list:

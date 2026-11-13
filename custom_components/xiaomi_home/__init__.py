@@ -29,6 +29,7 @@ from .miot.const import (
 from .miot.miot_error import MIoTOauthError
 from .miot.miot_device import MIoTDevice
 from .miot.miot_client import MIoTClient, get_miot_instance_async
+from .data import XiaomiHomeConfigEntry, XiaomiHomeData
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -40,7 +41,6 @@ async def async_setup(hass: HomeAssistant, hass_config: dict) -> bool:
     hass.data.setdefault(DOMAIN, {})
     # {[entry_id:str]: MIoTClient}, miot client instance
     hass.data[DOMAIN].setdefault('miot_clients', {})
-    hass.data[DOMAIN].setdefault('devices', {})
     MIoTHttp.set_shared_session(async_get_clientsession(hass))
     return True
 
@@ -186,7 +186,7 @@ async def _async_remove_deleted_devices(
 
 
 async def async_setup_entry(
-    hass: HomeAssistant, config_entry: ConfigEntry
+    hass: HomeAssistant, config_entry: XiaomiHomeConfigEntry
 ) -> None:
     """Set up an entry."""
     def ha_persistent_notify(
@@ -360,7 +360,8 @@ async def async_setup_entry(
                                                   piid=prop.iid)
                     ])
 
-        hass.data[DOMAIN]['devices'][entry_id] = miot_devices
+        config_entry.runtime_data = XiaomiHomeData(
+            miot_client=miot_client, devices=miot_devices)
 
         # Pre-register devices in the device registry.
         # This prevents a race condition where HA generates entity_ids for
@@ -404,7 +405,7 @@ async def async_setup_entry(
 
 
 async def async_unload_entry(
-    hass: HomeAssistant, config_entry: ConfigEntry
+    hass: HomeAssistant, config_entry: XiaomiHomeConfigEntry
 ) -> None:
     """Unload the entry."""
     entry_id = config_entry.entry_id
@@ -412,7 +413,6 @@ async def async_unload_entry(
     # with its client, instead of reporting success while entities remain
     await hass.config_entries.async_unload_platforms_or_raise(
         config_entry, SUPPORTED_PLATFORMS)
-    hass.data[DOMAIN]['devices'].pop(entry_id, None)
     # Remove integration data
     miot_client: MIoTClient = hass.data[DOMAIN]['miot_clients'].pop(
         entry_id, None)

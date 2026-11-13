@@ -53,8 +53,8 @@ def _client() -> SimpleNamespace:
 
 def _hass(client) -> MagicMock:
     hass = MagicMock()
-    hass.data = {DOMAIN: {"miot_clients": {"entry1": client} if client else {},
-                          "devices": {}}}
+    hass.data = {DOMAIN: {
+        "miot_clients": {"entry1": client} if client else {}}}
     return hass
 
 
@@ -93,10 +93,11 @@ async def test_device_diagnostics() -> None:
         entity_list={"fan": [object()], "climate": []},
         prop_list={"sensor": [object(), object()]},
         event_list={}, action_list={"button": [object()]})
-    hass.data[DOMAIN]["devices"]["entry1"] = [miot_device]
+    entry = _entry()
+    entry.runtime_data = SimpleNamespace(devices=[miot_device])
 
     data = await diagnostics.async_get_device_diagnostics(
-        hass, _entry(), SimpleNamespace(identifiers={(DOMAIN, "cn_did-123")}))
+        hass, entry, SimpleNamespace(identifiers={(DOMAIN, "cn_did-123")}))
 
     for secret in _SECRETS:
         assert secret not in json.dumps(data), secret
@@ -108,5 +109,5 @@ async def test_device_diagnostics() -> None:
     assert data["actions"] == {"button": 1}
 
     other = await diagnostics.async_get_device_diagnostics(
-        hass, _entry(), SimpleNamespace(identifiers={(DOMAIN, "cn_other")}))
+        hass, entry, SimpleNamespace(identifiers={(DOMAIN, "cn_other")}))
     assert other == {"device": None}

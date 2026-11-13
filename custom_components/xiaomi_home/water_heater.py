@@ -5,7 +5,6 @@ Water heater entities for Xiaomi Home.
 import logging
 from typing import Any, Optional
 
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -14,7 +13,7 @@ from homeassistant.components.water_heater import (STATE_ON, STATE_OFF,
                                                    WaterHeaterEntity,
                                                    WaterHeaterEntityFeature)
 
-from .miot.const import DOMAIN
+from .data import XiaomiHomeConfigEntry
 from .miot.miot_device import MIoTDevice, MIoTEntityData, MIoTServiceEntity
 from .miot.miot_spec import MIoTSpecProperty
 
@@ -27,12 +26,12 @@ PARALLEL_UPDATES = 0
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    config_entry: ConfigEntry,
+    config_entry: XiaomiHomeConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up a config entry."""
-    device_list: list[MIoTDevice] = hass.data[DOMAIN]['devices'][
-        config_entry.entry_id]
+    # pylint: disable=unused-argument
+    device_list: list[MIoTDevice] = config_entry.runtime_data.devices
 
     # Optimization: flatten nested loop with list comprehension for
     # initialization performance

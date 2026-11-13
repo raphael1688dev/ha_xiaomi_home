@@ -15,6 +15,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceEntry
 
+from .data import XiaomiHomeData
 from .miot.const import DOMAIN
 from .miot.miot_client import MIoTClient
 from .miot.miot_device import MIoTDevice
@@ -104,8 +105,10 @@ async def async_get_device_diagnostics(
     miot_client = _get_client(hass, entry)
     if miot_client is None:
         return {'client': None}
-    miot_devices: list[MIoTDevice] = hass.data[DOMAIN].get(
-        'devices', {}).get(entry.entry_id, [])
+    runtime_data: Optional[XiaomiHomeData] = getattr(
+        entry, 'runtime_data', None)
+    miot_devices: list[MIoTDevice] = (
+        runtime_data.devices if runtime_data else [])
     for miot_device in miot_devices:
         if (DOMAIN, miot_device.did_tag) not in device.identifiers:
             continue

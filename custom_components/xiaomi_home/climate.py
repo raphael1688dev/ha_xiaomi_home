@@ -6,7 +6,6 @@ from decimal import Decimal
 import logging
 from typing import Any, Optional
 
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.const import UnitOfTemperature
@@ -16,7 +15,7 @@ from homeassistant.components.climate import (
     ATTR_HVAC_MODE, ATTR_TEMPERATURE, HVACMode, HVACAction, ClimateEntity,
     ClimateEntityFeature)
 
-from .miot.const import DOMAIN
+from .data import XiaomiHomeConfigEntry
 from .miot.miot_device import MIoTDevice, MIoTServiceEntity, MIoTEntityData
 from .miot.miot_spec import MIoTSpecProperty
 
@@ -27,11 +26,12 @@ _LOGGER = logging.getLogger(__name__)
 PARALLEL_UPDATES = 0
 
 
-async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry,
-                            async_add_entities: AddEntitiesCallback) -> None:
+async def async_setup_entry(
+        hass: HomeAssistant, config_entry: XiaomiHomeConfigEntry,
+        async_add_entities: AddEntitiesCallback) -> None:
     """Set up a config entry."""
-    device_list: list[MIoTDevice] = hass.data[DOMAIN]['devices'][
-        config_entry.entry_id]
+    # pylint: disable=unused-argument
+    device_list: list[MIoTDevice] = config_entry.runtime_data.devices
 
     new_entities = []
 

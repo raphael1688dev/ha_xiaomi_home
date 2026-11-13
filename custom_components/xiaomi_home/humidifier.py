@@ -5,7 +5,6 @@ Humidifier entities for Xiaomi Home.
 import logging
 from typing import Any, Optional
 
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.components.humidifier import (HumidifierEntity,
@@ -16,9 +15,9 @@ from homeassistant.components.humidifier.const import (
     MODE_NORMAL, MODE_ECO, MODE_BOOST, MODE_COMFORT, MODE_SLEEP, MODE_AUTO)
 from slugify import slugify
 
+from .data import XiaomiHomeConfigEntry
 from .miot.miot_spec import MIoTSpecProperty
 from .miot.miot_device import MIoTDevice, MIoTEntityData, MIoTServiceEntity
-from .miot.const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -46,12 +45,12 @@ _MODE_NAME_TRANS: dict[str, str] = {
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    config_entry: ConfigEntry,
+    config_entry: XiaomiHomeConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up a config entry."""
-    device_list: list[MIoTDevice] = hass.data[DOMAIN]['devices'][
-        config_entry.entry_id]
+    # pylint: disable=unused-argument
+    device_list: list[MIoTDevice] = config_entry.runtime_data.devices
 
     new_entities = []
     for miot_device in device_list:

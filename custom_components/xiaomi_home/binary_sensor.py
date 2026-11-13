@@ -3,14 +3,13 @@
 Binary sensor entities for Xiaomi Home.
 """
 
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.components.binary_sensor import BinarySensorEntity
 
+from .data import XiaomiHomeConfigEntry
 from .miot.miot_spec import MIoTSpecProperty
 from .miot.miot_device import MIoTDevice, MIoTPropertyEntity
-from .miot.const import DOMAIN
 
 
 # Commands and polls go to the cloud, the gateway or the device on their
@@ -20,12 +19,12 @@ PARALLEL_UPDATES = 0
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    config_entry: ConfigEntry,
+    config_entry: XiaomiHomeConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up a config entry."""
-    device_list: list[MIoTDevice] = hass.data[DOMAIN]['devices'][
-        config_entry.entry_id]
+    # pylint: disable=unused-argument
+    device_list: list[MIoTDevice] = config_entry.runtime_data.devices
 
     # Optimized: Flatten nested loops using list comprehension, improving
     # loading performance with large device counts

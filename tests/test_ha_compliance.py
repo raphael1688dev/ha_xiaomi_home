@@ -362,14 +362,13 @@ async def test_entry_methods_return_none() -> None:
     miot_client.deinit_async = AsyncMock()
     hass = MagicMock()
     hass.config_entries.async_unload_platforms_or_raise = AsyncMock()
-    hass.data = {DOMAIN: {
-        "devices": {"entry1": []}, "miot_clients": {"entry1": miot_client}}}
+    hass.data = {DOMAIN: {"miot_clients": {"entry1": miot_client}}}
 
     result = await async_unload_entry(hass, SimpleNamespace(entry_id="entry1"))
 
     assert result is None
     miot_client.deinit_async.assert_awaited_once()
-    assert hass.data[DOMAIN] == {"devices": {}, "miot_clients": {}}
+    assert hass.data[DOMAIN] == {"miot_clients": {}}
     for method in (async_setup_entry, async_unload_entry, async_remove_entry):
         assert inspect.signature(method).return_annotation is None
 
@@ -383,8 +382,7 @@ async def test_failed_platform_unload_keeps_the_client() -> None:
     hass = MagicMock()
     hass.config_entries.async_unload_platforms_or_raise = AsyncMock(
         side_effect=ConfigEntryError("unload_platforms_failed"))
-    hass.data = {DOMAIN: {
-        "devices": {"entry1": []}, "miot_clients": {"entry1": miot_client}}}
+    hass.data = {DOMAIN: {"miot_clients": {"entry1": miot_client}}}
 
     with pytest.raises(ConfigEntryError):
         await async_unload_entry(hass, SimpleNamespace(entry_id="entry1"))

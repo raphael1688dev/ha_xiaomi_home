@@ -6,13 +6,12 @@ from typing import Any, Optional
 import re
 import logging
 
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.components.vacuum import (StateVacuumEntity,
                                              VacuumEntityFeature)
 
-from .miot.const import DOMAIN
+from .data import XiaomiHomeConfigEntry
 from .miot.miot_device import MIoTDevice, MIoTServiceEntity, MIoTEntityData
 from .miot.miot_spec import (MIoTSpecAction, MIoTSpecProperty)
 
@@ -48,11 +47,11 @@ VACUUM_STATUS_CLEANING_WORDS = {
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    config_entry: ConfigEntry,
+    config_entry: XiaomiHomeConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    device_list: list[MIoTDevice] = hass.data[DOMAIN]['devices'][
-        config_entry.entry_id]
+    # pylint: disable=unused-argument
+    device_list: list[MIoTDevice] = config_entry.runtime_data.devices
 
     # Optimization: flatten nested loop with list comprehension for
     # initialization performance
