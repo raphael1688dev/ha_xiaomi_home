@@ -16,6 +16,9 @@ from homeassistant.const import (
     PERCENTAGE,
     SIGNAL_STRENGTH_DECIBELS,
     UnitOfBloodGlucoseConcentration,
+    UnitOfConductivity,
+    UnitOfDensity,
+    UnitOfRatio,
     UnitOfEnergy,
     UnitOfElectricCurrent,
     UnitOfElectricPotential,
@@ -71,41 +74,15 @@ _POLL_SKIP_AFTER_WRITE: float = 2.0
 # =========================================================
 # GLOBALS MAPS: Optimized for O(1) Lookup
 # =========================================================
-try:
-    from homeassistant.const import UnitOfConductivity  # type: ignore
-    _MICROSIEMENS_PER_CM = UnitOfConductivity.MICROSIEMENS_PER_CM
-except (ImportError, AttributeError):
-    _MICROSIEMENS_PER_CM = 'μS/cm'
-
-try:
-    from homeassistant.const import UnitOfDensity  # type: ignore
-    CONCENTRATION_MICROGRAMS_PER_CUBIC_METER = (
-        UnitOfDensity.MICROGRAMS_PER_CUBIC_METER)
-    CONCENTRATION_MILLIGRAMS_PER_CUBIC_METER = (
-        UnitOfDensity.MILLIGRAMS_PER_CUBIC_METER)
-except (ImportError, AttributeError):
-    try:
-        from homeassistant.const import (  # type: ignore
-            CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
-            CONCENTRATION_MILLIGRAMS_PER_CUBIC_METER,
-        )
-    except (ImportError, AttributeError):
-        CONCENTRATION_MICROGRAMS_PER_CUBIC_METER = 'μg/m³'
-        CONCENTRATION_MILLIGRAMS_PER_CUBIC_METER = 'mg/m³'
-
-try:
-    from homeassistant.const import UnitOfRatio  # type: ignore
-    CONCENTRATION_PARTS_PER_BILLION = UnitOfRatio.PARTS_PER_BILLION
-    CONCENTRATION_PARTS_PER_MILLION = UnitOfRatio.PARTS_PER_MILLION
-except (ImportError, AttributeError):
-    try:
-        from homeassistant.const import (  # type: ignore
-            CONCENTRATION_PARTS_PER_BILLION,
-            CONCENTRATION_PARTS_PER_MILLION,
-        )
-    except (ImportError, AttributeError):
-        CONCENTRATION_PARTS_PER_BILLION = 'ppb'
-        CONCENTRATION_PARTS_PER_MILLION = 'ppm'
+# The unit enums exist in every supported core (2026.11+); the old
+# CONCENTRATION_* constants they replace are deprecated
+_MICROSIEMENS_PER_CM = UnitOfConductivity.MICROSIEMENS_PER_CM
+CONCENTRATION_MICROGRAMS_PER_CUBIC_METER = (
+    UnitOfDensity.MICROGRAMS_PER_CUBIC_METER)
+CONCENTRATION_MILLIGRAMS_PER_CUBIC_METER = (
+    UnitOfDensity.MILLIGRAMS_PER_CUBIC_METER)
+CONCENTRATION_PARTS_PER_BILLION = UnitOfRatio.PARTS_PER_BILLION
+CONCENTRATION_PARTS_PER_MILLION = UnitOfRatio.PARTS_PER_MILLION
 
 MIOT_UNIT_MAP = {
     'percentage':

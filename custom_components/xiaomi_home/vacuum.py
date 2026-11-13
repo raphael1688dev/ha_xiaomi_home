@@ -16,11 +16,7 @@ from .miot.const import DOMAIN
 from .miot.miot_device import MIoTDevice, MIoTServiceEntity, MIoTEntityData
 from .miot.miot_spec import (MIoTSpecAction, MIoTSpecProperty)
 
-try:  # VacuumActivity is introduced in HA core 2025.1.0
-    from homeassistant.components.vacuum import VacuumActivity
-    HA_CORE_HAS_ACTIVITY = True
-except ImportError:
-    HA_CORE_HAS_ACTIVITY = False
+from homeassistant.components.vacuum import VacuumActivity
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -233,34 +229,22 @@ class Vacuum(MIoTServiceEntity, StateVacuumEntity):
         # Optimized: Retrieve directly using O(1) dictionary with safe fallback
         return self._fan_level_map.get(val) if val is not None else None
 
-    if HA_CORE_HAS_ACTIVITY:
-
-        @property
-        def activity(self) -> Optional[str]:
-            """The current vacuum activity."""
-            if not self._prop_status:
-                return None
-            status = self.get_prop_value(prop=self._prop_status)
-            if status is None:
-                return None
-            if status in self._prop_status_cleaning:
-                return VacuumActivity.CLEANING
-            if status in self._prop_status_docked:
-                return VacuumActivity.DOCKED
-            if status in self._prop_status_paused:
-                return VacuumActivity.PAUSED
-            if status in self._prop_status_returning:
-                return VacuumActivity.RETURNING
-            if status in self._prop_status_error:
-                return VacuumActivity.ERROR
-            return VacuumActivity.IDLE
-
-    else:
-
-        @property
-        def state(self) -> Optional[str]:
-            """The current state of the vacuum."""
-            if not self._status_map or not self._prop_status:
-                return None
-            status = self.get_prop_value(prop=self._prop_status)
-            return self._status_map.get(status) if status is not None else None
+    @property
+    def activity(self) -> Optional[str]:
+        """The current vacuum activity."""
+        if not self._prop_status:
+            return None
+        status = self.get_prop_value(prop=self._prop_status)
+        if status is None:
+            return None
+        if status in self._prop_status_cleaning:
+            return VacuumActivity.CLEANING
+        if status in self._prop_status_docked:
+            return VacuumActivity.DOCKED
+        if status in self._prop_status_paused:
+            return VacuumActivity.PAUSED
+        if status in self._prop_status_returning:
+            return VacuumActivity.RETURNING
+        if status in self._prop_status_error:
+            return VacuumActivity.ERROR
+        return VacuumActivity.IDLE

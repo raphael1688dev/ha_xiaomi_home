@@ -12,26 +12,13 @@ from homeassistant.components.binary_sensor import BinarySensorDeviceClass
 from homeassistant.const import (EntityCategory, LIGHT_LUX, UnitOfEnergy,
                                  UnitOfPower, UnitOfElectricCurrent,
                                  UnitOfElectricPotential, UnitOfTemperature,
-                                 UnitOfPressure, PERCENTAGE)
+                                 UnitOfPressure, UnitOfDensity, UnitOfRatio,
+                                 PERCENTAGE)
 
-try:
-    from homeassistant.const import UnitOfDensity  # type: ignore
-    CONCENTRATION_MICROGRAMS_PER_CUBIC_METER = (
-        UnitOfDensity.MICROGRAMS_PER_CUBIC_METER)
-except (ImportError, AttributeError):
-    try:
-        from homeassistant.const import CONCENTRATION_MICROGRAMS_PER_CUBIC_METER  # type: ignore
-    except (ImportError, AttributeError):
-        CONCENTRATION_MICROGRAMS_PER_CUBIC_METER = 'μg/m³'
-
-try:
-    from homeassistant.const import UnitOfRatio  # type: ignore
-    CONCENTRATION_PARTS_PER_MILLION = UnitOfRatio.PARTS_PER_MILLION
-except (ImportError, AttributeError):
-    try:
-        from homeassistant.const import CONCENTRATION_PARTS_PER_MILLION  # type: ignore
-    except (ImportError, AttributeError):
-        CONCENTRATION_PARTS_PER_MILLION = 'ppm'
+# The unit enums exist in every supported core (2026.11+)
+CONCENTRATION_MICROGRAMS_PER_CUBIC_METER = (
+    UnitOfDensity.MICROGRAMS_PER_CUBIC_METER)
+CONCENTRATION_PARTS_PER_MILLION = UnitOfRatio.PARTS_PER_MILLION
 
 # Optimized: Define shared immutable permission constants to reduce memory
 # re-allocation
