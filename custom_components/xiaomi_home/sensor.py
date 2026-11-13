@@ -19,6 +19,10 @@ from .miot.const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
+# Commands and polls go to the cloud, the gateway or the device on their
+# own; Home Assistant does not need to serialise them
+PARALLEL_UPDATES = 0
+
 # Units for device classes whose MIoT properties come without one. MIoT gives
 # durations in seconds; other classes take their first unit in sorted order,
 # so the unit stays the same across restarts (a set has no stable order).

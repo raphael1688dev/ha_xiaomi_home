@@ -22,6 +22,10 @@ from .miot.const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
+# Commands and polls go to the cloud, the gateway or the device on their
+# own; Home Assistant does not need to serialise them
+PARALLEL_UPDATES = 0
+
 # Value-list names are slugified when the spec is loaded (Chinese names become
 # pinyin, e.g. '\u6807\u51c6' -> 'biao_zhun'), so normalize the keys the same
 # way.

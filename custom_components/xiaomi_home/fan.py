@@ -29,6 +29,10 @@ from .miot.miot_device import MIoTDevice, MIoTEntityData, MIoTServiceEntity
 
 _LOGGER = logging.getLogger(__name__)
 
+# Commands and polls go to the cloud, the gateway or the device on their
+# own; Home Assistant does not need to serialise them
+PARALLEL_UPDATES = 0
+
 
 async def async_setup_entry(
         hass: HomeAssistant,
