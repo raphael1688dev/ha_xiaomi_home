@@ -2,18 +2,18 @@
 # pylint: disable=protected-access
 from types import SimpleNamespace
 from typing import Optional
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from homeassistant.components.climate import (
-    FAN_OFF, ClimateEntityFeature, HVACMode)
+    ATTR_HVAC_MODE, ATTR_TEMPERATURE, FAN_OFF, ClimateEntityFeature, HVACMode)
 from homeassistant.util.unit_system import METRIC_SYSTEM
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS, ATTR_EFFECT, ColorMode)
 
 from custom_components.xiaomi_home.climate import (
-    FeatureFanMode, PtcBathHeater)
+    AirConditioner, FeatureFanMode, FeatureTargetTemperature, PtcBathHeater)
 from custom_components.xiaomi_home.light import Light
 from custom_components.xiaomi_home.miot.miot_spec import MIoTSpecProperty
 
@@ -218,3 +218,68 @@ def test_bath_heater_with_idle_mode_reports_off() -> None:
     assert heater.hvac_mode == HVACMode.OFF
     heater._prop_value_map = {mode: 1}
     assert heater.hvac_mode == HVACMode.AUTO
+
+
+def _climate(cls, platform: str, *props):
+    entity_data = _mock_service_entity_data(platform, list(props))
+    entity_data.get_prop = lambda name, service=None: next(
+        (p for p in props if p.name == name
+         and (service is None or p.service.name == service)), None)
+    entity = cls(miot_device=_mock_miot_device(), entity_data=entity_data)
+    entity.async_write_ha_state = MagicMock()
+    sent: list = []
+
+    async def fake_set_property_async(prop, value, **_kwargs):
+        sent.append((prop.name, value))
+        entity._prop_value_map[prop] = value
+        return True
+
+    entity.set_property_async = fake_set_property_async
+    return entity, sent
+
+
+@pytest.mark.asyncio
+async def test_set_temperature_applies_the_hvac_mode_first() -> None:
+    """climate.set_temperature with hvac_mode only set the temperature."""
+    target = _prop("target-temperature", "air-conditioner", "float",
+                   value_range=[16, 30, 0.5], precision=1)
+    entity, sent = _climate(FeatureTargetTemperature, "air-conditioner",
+                            target)
+    calls: list = []
+    entity.async_set_hvac_mode = AsyncMock(
+        side_effect=lambda mode: calls.append(("hvac_mode", mode)))
+
+    await entity.async_set_temperature(
+        **{ATTR_TEMPERATURE: 24, ATTR_HVAC_MODE: HVACMode.COOL})
+
+    assert calls == [("hvac_mode", HVACMode.COOL)]
+    assert sent == [("target-temperature", 24)]
+
+
+def test_air_conditioner_lists_each_hvac_mode_once() -> None:
+    mode = _prop("mode", "air-conditioner", "uint8", value_list=[
+        {"value": 0, "description": "Idle", "name": "idle"},
+        {"value": 1, "description": "Off", "name": "off"},
+        {"value": 2, "description": "Cool", "name": "cool"}])
+    entity, _ = _climate(AirConditioner, "air-conditioner",
+                         _prop("on", "air-conditioner", "bool"), mode)
+    assert entity.hvac_modes == [HVACMode.OFF, HVACMode.COOL]
+
+
+@pytest.mark.asyncio
+async def test_fan_level_with_fan_switch_reports_and_leaves_off() -> None:
+    """With a fan switch and a level, the level was shown while the fan was
+    off, and picking a level did not start the fan."""
+    fan_on = _prop("on", "fan-control", "bool")
+    level = _prop("fan-level", "fan-control", "uint8", value_list=[
+        {"value": 1, "description": "Low", "name": "low"},
+        {"value": 2, "description": "High", "name": "high"}])
+    entity, sent = _climate(FeatureFanMode, "fan-control", level, fan_on)
+    entity._prop_value_map = {fan_on: False, level: 2}
+
+    assert entity.fan_modes == ["Low", "High", FAN_OFF]
+    assert entity.fan_mode == FAN_OFF
+
+    await entity.async_set_fan_mode("Low")
+    assert sent == [("on", True), ("fan-level", 1)]
+    assert entity.fan_mode == "Low"

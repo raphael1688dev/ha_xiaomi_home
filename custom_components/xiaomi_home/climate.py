@@ -12,7 +12,8 @@ from homeassistant.const import UnitOfTemperature
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.components.climate import (
     FAN_ON, FAN_OFF, SWING_OFF, SWING_BOTH, SWING_VERTICAL, SWING_HORIZONTAL,
-    ATTR_TEMPERATURE, HVACMode, HVACAction, ClimateEntity, ClimateEntityFeature)
+    ATTR_HVAC_MODE, ATTR_TEMPERATURE, HVACMode, HVACAction, ClimateEntity,
+    ClimateEntityFeature)
 
 from .miot.const import DOMAIN
 from .miot.miot_device import MIoTDevice, MIoTServiceEntity, MIoTEntityData
@@ -112,6 +113,9 @@ class FeatureTargetTemperature(MIoTServiceEntity, ClimateEntity):
 
     async def async_set_temperature(self, **kwargs):
         """Set the target temperature."""
+        # climate.set_temperature may carry a mode, which core leaves to us
+        if (hvac_mode := kwargs.get(ATTR_HVAC_MODE)) is not None:
+            await self.async_set_hvac_mode(hvac_mode)
         if ATTR_TEMPERATURE in kwargs:
             temp = kwargs[ATTR_TEMPERATURE]
             if temp > self._attr_max_temp:
@@ -247,6 +251,10 @@ class FeatureFanMode(MIoTServiceEntity, ClimateEntity):
             return
 
         mode_value = self._fan_mode_reverse_map.get(fan_mode)
+        if (mode_value is not None and self._prop_fan_on
+                and not self.get_prop_value(prop=self._prop_fan_on)):
+            # A level set while the fan is off would not start it
+            await self.set_property_async(prop=self._prop_fan_on, value=True)
         if mode_value is None or not await self.set_property_async(
                 prop=self._prop_fan_level, value=mode_value):
             raise RuntimeError(f'set climate prop.fan_mode failed, {fan_mode}, '
@@ -262,6 +270,11 @@ class FeatureFanMode(MIoTServiceEntity, ClimateEntity):
             if is_on is None:
                 return None
             return FAN_ON if is_on else FAN_OFF
+        fan_on = (self.get_prop_value(prop=self._prop_fan_on)
+                  if self._prop_fan_on else None)
+        if fan_on is not None and not fan_on:
+            # The level keeps its value while the fan is off
+            return FAN_OFF
 
         val = self.get_prop_value(prop=self._prop_fan_level)
         return self._fan_mode_map.get(val) if (self._fan_mode_map and
@@ -523,7 +536,9 @@ class AirConditioner(FeatureOnOff, FeatureTargetTemperature,
                 self._hvac_mode_reverse_map = {
                     v: k for k, v in self._hvac_mode_map.items()
                 }
-                self._attr_hvac_modes = list(self._hvac_mode_map.values())
+                # 'off' and 'idle' both map to OFF: list each mode once
+                self._attr_hvac_modes = list(
+                    dict.fromkeys(self._hvac_mode_map.values()))
                 self._prop_mode = prop
 
         if prop := entity_data.get_prop('ac-state'):
