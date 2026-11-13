@@ -467,12 +467,12 @@ async def async_remove_config_entry_device(
         # The entry is not loaded (disabled or failed): a device it still
         # caches would come back when it loads, a stale one can go
         entry_data = dict(config_entry.data)
+        uid, cloud_server = entry_data['uid'], entry_data['cloud_server']
         cached = await _get_storage(hass, entry_data).load_async(
-            domain='miot_devices',
-            name=f'{entry_data["uid"]}_{entry_data["cloud_server"]}',
+            domain='miot_devices', name=f'{uid}_{cloud_server}',
             type_=dict) or {}
         stale = all(
-            slugify_did(cloud_server=entry_data['cloud_server'], did=did)
+            slugify_did(cloud_server=cloud_server, did=did)
             != identifiers[1] for did in cached)
         _LOGGER.info('remove device of an unloaded entry, %s, allowed: %s',
                      identifiers[1], stale)

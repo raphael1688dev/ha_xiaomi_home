@@ -258,8 +258,9 @@ class FeatureFanMode(MIoTServiceEntity, ClimateEntity):
             await self.set_property_async(prop=self._prop_fan_on, value=True)
         if mode_value is None or not await self.set_property_async(
                 prop=self._prop_fan_level, value=mode_value):
-            raise HomeAssistantError(f'set climate prop.fan_mode failed, {fan_mode}, '
-                               f'{self.entity_id}')
+            raise HomeAssistantError(
+                f'set climate prop.fan_mode failed, {fan_mode}, '
+                f'{self.entity_id}')
 
     @property
     def fan_mode(self) -> Optional[str]:
