@@ -5,6 +5,7 @@ from typing import Optional
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from homeassistant.exceptions import HomeAssistantError
 
 from homeassistant.components.climate import (
     ATTR_HVAC_MODE, ATTR_TEMPERATURE, FAN_OFF, ClimateEntityFeature, HVACMode)
@@ -76,7 +77,7 @@ async def test_fan_level_range_reads_and_writes_values() -> None:
     assert entity.fan_mode == "4"
     await entity.async_set_fan_mode("2")
     assert sent == [2]
-    with pytest.raises(RuntimeError):
+    with pytest.raises(HomeAssistantError):
         await entity.async_set_fan_mode("9")
 
 

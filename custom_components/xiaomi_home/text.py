@@ -10,7 +10,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.components.text import TextEntity
 from homeassistant.util import yaml
-from homeassistant.exceptions import HomeAssistantError
+from homeassistant.exceptions import (
+    HomeAssistantError, ServiceValidationError)
 
 from .miot.const import DOMAIN
 from .miot.miot_spec import MIoTSpecAction, MIoTSpecProperty
@@ -101,7 +102,7 @@ class ActionText(MIoTActionEntity, TextEntity):
             _LOGGER.error(
                 'action exec failed, %s(%s), invalid action params format, %s',
                 self.name, self.entity_id, value)
-            raise ValueError(
+            raise ServiceValidationError(
                 f'action exec failed, {self.name}({self.entity_id}), '
                 f'invalid action params format, {value}') from e
 
@@ -112,7 +113,7 @@ class ActionText(MIoTActionEntity, TextEntity):
             _LOGGER.error(
                 'action exec failed, %s(%s), invalid action params, %s',
                 self.name, self.entity_id, value)
-            raise ValueError(
+            raise ServiceValidationError(
                 f'action exec failed, {self.name}({self.entity_id}), '
                 f'invalid action params, {value}')
 
@@ -146,7 +147,7 @@ class ActionText(MIoTActionEntity, TextEntity):
                     self.name, self.entity_id, prop.description_trans,
                     prop.format_.__name__, raw_val,
                     type(raw_val).__name__, value)
-                raise ValueError(
+                raise ServiceValidationError(
                     f'action exec failed, {self.name}({self.entity_id}), '
                     'invalid params item, which '
                     f'item({prop.description_trans}) '

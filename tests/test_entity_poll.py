@@ -4,6 +4,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from homeassistant.exceptions import HomeAssistantError
 
 from custom_components.xiaomi_home.climate import FeatureFanMode
 from custom_components.xiaomi_home.miot.const import PROP_MSG_POLLED
@@ -92,7 +93,7 @@ async def test_failed_command_does_not_skip_the_poll() -> None:
         side_effect=MIoTClientError("offline"))
     entity = _switch(miot_device)
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(HomeAssistantError):
         await entity.async_turn_on()
     await entity.async_update()
     assert _refreshes(miot_device) == 1

@@ -7,6 +7,7 @@ from functools import cached_property
 import logging
 
 from homeassistant.core import callback
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import Entity
 from homeassistant.const import (
     DEGREE,
@@ -1242,17 +1243,17 @@ class MIoTServiceEntity(Entity):
         update_value: bool = True, write_ha_state: bool = True
     ) -> bool:
         if not prop:
-            raise RuntimeError(
+            raise HomeAssistantError(
                 f'set property failed, property is None, '
                 f'{self.name}')
         value = prop.value_format(value)
         value = prop.value_precision(value)
         if prop not in self.entity_data.props:
-            raise RuntimeError(
+            raise HomeAssistantError(
                 f'set property failed, unknown property, '
                 f'{self.name}, {prop.name}')
         if not prop.writable:
-            raise RuntimeError(
+            raise HomeAssistantError(
                 f'set property failed, not writable, '
                 f'{self.name}, {prop.name}')
         try:
@@ -1270,7 +1271,7 @@ class MIoTServiceEntity(Entity):
                 did=self.miot_device.did, siid=prop.service.iid,
                 piid=prop.iid, value=value, props=props_dict, max_val=max_val)
         except MIoTClientError as e:
-            raise RuntimeError(
+            raise HomeAssistantError(
                 f'{e}, {self.name}, {prop.name}') from e
         self._last_write_time = self._main_loop.time()
         if update_value:
@@ -1309,14 +1310,14 @@ class MIoTServiceEntity(Entity):
         self, action: MIoTSpecAction, in_list: Optional[list] = None
     ) -> bool:
         if not action:
-            raise RuntimeError(
+            raise HomeAssistantError(
                 f'action failed, action is None, {self.name}')
         try:
             await self.miot_device.miot_client.action_async(
                 did=self.miot_device.did, siid=action.service.iid,
                 aiid=action.iid, in_list=in_list or [])
         except MIoTClientError as e:
-            raise RuntimeError(
+            raise HomeAssistantError(
                 f'{e}, {self.name}, {action.name}') from e
         return True
 
@@ -1519,7 +1520,7 @@ class MIoTPropertyEntity(Entity):
 
     async def set_property_async(self, value: Any) -> bool:
         if not self.spec.writable:
-            raise RuntimeError(
+            raise HomeAssistantError(
                 f'set property failed, not writable, '
                 f'{self.name}')
         value = self.spec.value_format(value)
@@ -1543,7 +1544,7 @@ class MIoTPropertyEntity(Entity):
                 props=props_dict,
                 max_val=max_val)
         except MIoTClientError as e:
-            raise RuntimeError(
+            raise HomeAssistantError(
                 f'{e}, {self.name}') from e
         self._last_write_time = self._main_loop.time()
         self._value = value
@@ -1837,7 +1838,7 @@ class MIoTActionEntity(Entity):
                 aiid=self.spec.iid,
                 in_list=in_list or [])
         except MIoTClientError as e:
-            raise RuntimeError(f'{e}, {self.name}') from e
+            raise HomeAssistantError(f'{e}, {self.name}') from e
 
     def __on_device_state_changed(
         self, key: str, state: MIoTDeviceState

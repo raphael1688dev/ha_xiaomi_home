@@ -8,6 +8,7 @@ from typing import Any, Optional
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.const import UnitOfTemperature
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.components.climate import (
@@ -257,7 +258,7 @@ class FeatureFanMode(MIoTServiceEntity, ClimateEntity):
             await self.set_property_async(prop=self._prop_fan_on, value=True)
         if mode_value is None or not await self.set_property_async(
                 prop=self._prop_fan_level, value=mode_value):
-            raise RuntimeError(f'set climate prop.fan_mode failed, {fan_mode}, '
+            raise HomeAssistantError(f'set climate prop.fan_mode failed, {fan_mode}, '
                                f'{self.entity_id}')
 
     @property
@@ -336,7 +337,7 @@ class FeatureSwingMode(MIoTServiceEntity, ClimateEntity):
                 await self.set_property_async(prop=self._prop_vertical_swing,
                                               value=False)
         else:
-            raise RuntimeError(
+            raise HomeAssistantError(
                 f'unknown swing_mode, {swing_mode}, {self.entity_id}')
 
     @property
@@ -558,7 +559,7 @@ class AirConditioner(FeatureOnOff, FeatureTargetTemperature,
         if hvac_mode == HVACMode.OFF:
             if not await self.set_property_async(prop=self._prop_on,
                                                  value=False):
-                raise RuntimeError(
+                raise HomeAssistantError(
                     f'set climate prop.on failed, {hvac_mode}, {self.entity_id}'
                 )
             return
@@ -577,7 +578,7 @@ class AirConditioner(FeatureOnOff, FeatureTargetTemperature,
         mode_value = self._hvac_mode_reverse_map.get(hvac_mode)
         if mode_value is None or not await self.set_property_async(
                 prop=self._prop_mode, value=mode_value):
-            raise RuntimeError(
+            raise HomeAssistantError(
                 f'set climate prop.mode failed, {hvac_mode}, {self.entity_id}')
 
     @property
@@ -720,7 +721,7 @@ class PtcBathHeater(FeatureTargetTemperature, FeatureTemperature,
         mode_value = self._hvac_mode_reverse_map.get(hvac_mode)
         if mode_value is None or not await self.set_property_async(
                 prop=self._prop_mode, value=mode_value):
-            raise RuntimeError(
+            raise HomeAssistantError(
                 f'set ptc-bath-heater {hvac_mode} failed, {self.entity_id}')
 
     @property

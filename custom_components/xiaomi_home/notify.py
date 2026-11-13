@@ -10,7 +10,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.components.notify import NotifyEntity
 from homeassistant.util import yaml
-from homeassistant.exceptions import HomeAssistantError
+from homeassistant.exceptions import (
+    HomeAssistantError, ServiceValidationError)
 
 from .miot.miot_spec import MIoTSpecAction
 from .miot.miot_device import MIoTDevice, MIoTActionEntity
@@ -55,25 +56,23 @@ class Notify(MIoTActionEntity, NotifyEntity):
         in_list = []
         try:
             in_list = yaml.parse_yaml(message)
+        # Bad input used to be logged and dropped, so the call looked
+        # successful; report it to the caller instead
         except HomeAssistantError as err:
-            _LOGGER.error(
-                'action exec failed, %s(%s), parse message error, %s',
-                self.name, self.entity_id, err)
-            return
+            raise ServiceValidationError(
+                f'action exec failed, {self.name}({self.entity_id}), '
+                f'parse message error, {err}') from err
 
         if not isinstance(in_list, list):
-            _LOGGER.error(
-                'action exec failed, %s(%s), params must be a list, %s',
-                self.name, self.entity_id, message)
-            return
+            raise ServiceValidationError(
+                f'action exec failed, {self.name}({self.entity_id}), '
+                f'params must be a list, {message}')
 
         if len(in_list) != len(self.spec.in_):
-            _LOGGER.error(
-                'action exec failed, %s(%s), missing params, '
-                'requires %s params, but %s provided, %s',
-                self.name, self.entity_id, len(self.spec.in_),
-                len(in_list), message)
-            return
+            raise ServiceValidationError(
+                f'action exec failed, {self.name}({self.entity_id}), '
+                f'missing params, requires {len(self.spec.in_)} params, '
+                f'but {len(in_list)} provided, {message}')
 
         in_value: list[dict] = []
         for index, prop in enumerate(self.spec.in_):
@@ -99,13 +98,12 @@ class Notify(MIoTActionEntity, NotifyEntity):
 
             # Invalid params type, raise error.
             if not is_valid:
-                _LOGGER.error(
-                    'action exec failed, %s(%s), invalid params item, '
-                    'which item(%s) in the list must be %s, %s type was %s, %s',
-                    self.name, self.entity_id, prop.description_trans,
-                    prop.format_.__name__, raw_val,
-                    type(raw_val).__name__, message)
-                return
+                raise ServiceValidationError(
+                    f'action exec failed, {self.name}({self.entity_id}), '
+                    f'invalid params item, which item '
+                    f'({prop.description_trans}) in the list must be '
+                    f'{prop.format_.__name__}, {raw_val} type was '
+                    f'{type(raw_val).__name__}, {message}')
 
             in_value.append({'piid': prop.iid, 'value': parsed_val})
 
