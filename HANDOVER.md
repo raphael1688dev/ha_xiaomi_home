@@ -37,7 +37,7 @@ To prevent the codebase from regressing into a buggy, laggy state, observe these
 ---
 *Signed, Raphael & Antigravity (May 2026)*
 
-## October 2026 Update (v0.5.1 to v0.5.19)
+## October 2026 Update (v0.5.1 to v0.5.20)
 
 Maintenance of the fork was handed over to Claude Code on 2026-10-16. Decisions and conventions since then:
 
@@ -59,7 +59,13 @@ Maintenance of the fork was handed over to Claude Code on 2026-10-16. Decisions 
   - `__on_connect` and `__on_disconnect` take `ConnectFlags` / `DisconnectFlags` and a `ReasonCode`. A refused CONNACK (`reason.is_failure`) returns early and keeps the reason in `_mips_failure_reason`; paho then reports the disconnect, which schedules the retry.
   - `tests/test_mips_paho_v2.py` drives the callbacks through paho's real dispatch with a fake MQTT v5 broker on a socket pair.
   - paho 2.1 quirks: our own disconnect arrives as "Normal disconnection", reported only after the packet is written. A broker DISCONNECT is decoded only when properties follow the reason code (remaining length above 2); otherwise it arrives as "Normal disconnection" too.
-  - What the Xiaomi cloud and the central hub gateway really send has not been seen on a real installation.
+  - What the Xiaomi cloud and the central hub gateway send on a disconnect has not been seen on a real installation yet. On the owner's second Home Assistant (192.168.88.251, v0.5.20, 2026-11-13), the cloud and gateway MQTT connections come up with v2.
+- **Real-device checks on the owner's second Home Assistant** (192.168.88.251): read-only API access with the long-lived token in `~/ha-xiaomi-template-fan-matterbridge/.env` (`HA251_*`). Never print the token. SSH does not accept any key from this Mac.
+  - Releases can be installed there through the Marketplace update entity `update.xiaomi_home_mod_update`. Reload the Marketplace config entry first so it sees the new tag, run `update.install`, run `check_config`, then `homeassistant.restart`.
+  - Do this only when the owner asks for a test there. It restarts their Home Assistant and moves real devices.
+- **Fans start at the requested speed** (fork #5, v0.5.20): `Fan.__power_on(level)` writes the fan level, then power on, then the level again; a refusal of the first write is only logged at debug level.
+  - Checked on the owner's `zhimi.fan.za5` (LAN, `fan.sg_406233287_za5`) on 2026-11-13: off at 25 %, `fan.turn_on` with 50 % gave a single state change to on 50 % at +908 ms, where r43 gave on 25 % at +349 ms and then 50 % at +698 ms. The device accepted the level while off (LAN codes other than 0/1 raise, and no refusal was logged).
+  - The third write is a safety net for devices that take the level but do not apply it at power on; it costs about one round trip.
 - **Enumerated targets**: some devices list the allowed values of a writable number instead of giving a range (the target humidity of `nwt.derh.330ef` is 30, 40, ..., 70). The humidifier takes minimum and maximum from the list, writes the closest listed value because the device rejects any other, and reports the spacing as `target_humidity_step` when it is even (#1856, v0.5.15). Other platforms that read only `value_range` for such a property have the same gap.
 - **Code review against Home Assistant 2026.11.1** (2026-11-13): four parallel reviews (setup and flows, entity platforms, async and thread safety, manifest and translations), each finding checked against the code and the installed core before acting. The first batch of ten fixes is v0.5.16, the second batch of eight is v0.5.17, the third is v0.5.18; every fix has a test that fails on the old code (except the atomic write, which cannot be crashed in a test). v0.5.18 adds:
   - Home Assistant's re-authentication flow. `MIoTClient.on_auth_rejected` calls `entry.async_start_reauth`, and the flow checks the uid before it stores anything.
