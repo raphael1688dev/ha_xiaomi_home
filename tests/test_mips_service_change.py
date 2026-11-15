@@ -3,6 +3,7 @@
 import asyncio
 import logging
 import threading
+import time
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -137,3 +138,33 @@ async def test_device_list_interrupted_by_a_disconnect_is_not_a_warning(
     with caplog.at_level(logging.DEBUG):
         await client._MIoTClient__on_gw_device_list_changed(mips, ["1"])
     assert [r for r in caplog.records if r.levelno == logging.WARNING]
+
+
+def test_disconnect_from_two_threads_closes_the_loop_once() -> None:
+    """On .250 two disconnects ran at once in executor threads; both closed
+    the internal loop and the second failed inside asyncio."""
+    mips = object.__new__(MipsLocalClient)
+    mips._mips_disconnect_lock = threading.Lock()
+    loop = MagicMock()
+    thread = MagicMock()
+    thread.join.side_effect = lambda: time.sleep(0.2)  # MQTT thread stopping
+    mips._mips_thread = thread
+    mips._internal_loop = loop
+    errors: list = []
+
+    def disconnect() -> None:
+        try:
+            super(MipsLocalClient, mips).disconnect()
+        except Exception as err:  # pylint: disable=broad-exception-caught
+            errors.append(err)
+
+    callers = [threading.Thread(target=disconnect) for _ in range(2)]
+    for caller in callers:
+        caller.start()
+    for caller in callers:
+        caller.join()
+
+    assert not errors
+    assert loop.close.call_count == 1
+    assert thread.join.call_count == 1
+    assert mips._mips_thread is None

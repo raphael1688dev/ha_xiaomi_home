@@ -278,6 +278,8 @@ class _MipsClient(ABC):
     _event_disconnect: asyncio.Event
     _internal_loop: asyncio.AbstractEventLoop
     _mips_thread: Optional[threading.Thread]
+    # Serializes disconnect(): two callers used to close the loop twice
+    _mips_disconnect_lock: threading.Lock
     _mips_reconnect_tag: bool
     _mips_reconnect_interval: float
     _mips_reconnect_timer: Optional[asyncio.TimerHandle]
@@ -323,6 +325,7 @@ class _MipsClient(ABC):
         self._event_connect = asyncio.Event()
         self._event_disconnect = asyncio.Event()
         self._mips_thread = None
+        self._mips_disconnect_lock = threading.Lock()
         self._mips_reconnect_tag = False
         self._mips_reconnect_interval = 0
         self._mips_reconnect_timer = None
@@ -383,13 +386,20 @@ class _MipsClient(ABC):
         await self._event_connect.wait()
 
     def disconnect(self) -> None:
-        """mips disconnect."""
-        if not self._mips_thread:
-            return
-        self._internal_loop.call_soon_threadsafe(self.__mips_disconnect)
-        self._mips_thread.join()
-        self._mips_thread = None
-        self._internal_loop.close()
+        """mips disconnect.
+
+        Safe to call from several threads at once (disconnect_async runs it
+        in the executor): the first caller stops the thread and closes the
+        loop, the others wait for it and return. Two callers used to close
+        the loop twice, and the second failed with AttributeError.
+        """
+        with self._mips_disconnect_lock:
+            if not self._mips_thread:
+                return
+            self._internal_loop.call_soon_threadsafe(self.__mips_disconnect)
+            self._mips_thread.join()
+            self._mips_thread = None
+            self._internal_loop.close()
 
     async def disconnect_async(self) -> None:
         """mips disconnect, without blocking the event loop.

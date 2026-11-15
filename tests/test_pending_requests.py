@@ -1,5 +1,6 @@
 """Requests in flight when a gateway or LAN connection goes away must end."""
 # pylint: disable=protected-access
+import threading
 import asyncio
 import json
 import time
@@ -20,6 +21,7 @@ def _mips() -> MipsLocalClient:
         mips = MipsLocalClient()  # pylint: disable=no-value-for-parameter
     mips.log_debug = MagicMock()
     mips._mips_thread = None  # base disconnect has nothing to stop
+    mips._mips_disconnect_lock = threading.Lock()
     mips.main_loop = MagicMock()
     return mips
 
