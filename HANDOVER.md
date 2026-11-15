@@ -37,7 +37,7 @@ To prevent the codebase from regressing into a buggy, laggy state, observe these
 ---
 *Signed, Raphael & Antigravity (May 2026)*
 
-## October 2026 Update (v0.5.1 to v0.5.20)
+## October 2026 Update (v0.5.1 to v0.5.21)
 
 Maintenance of the fork was handed over to Claude Code on 2026-10-16. Decisions and conventions since then:
 
@@ -123,13 +123,20 @@ Maintenance of the fork was handed over to Claude Code on 2026-10-16. Decisions 
   - The `fork-unit-tests` job in `.github/workflows/test.yaml` installs `homeassistant==2026.11.1` on Python 3.14, pins shared packages with Home Assistant's `package_constraints.txt`, and runs `pytest -q tests/`.
   - When the local `test_env` moves to a new Home Assistant version, change that pin in the same commit.
   - A workflow change can be tried before merging: push a branch, then `gh workflow run Tests --ref <branch>` (the workflow has `workflow_dispatch`).
-- **CLAUDE.md audit** (2026-11-13, owner said "全部修正"): a prompt audit against the code corrected several stale facts, and the May 2026 history section became "Fork-specific behavior to keep". Facts in CLAUDE.md are checked against the code when they are touched. Corrected facts:
+- **CLAUDE.md audit** (2026-11-13, the owner asked for every fix): a prompt audit against the code corrected several stale facts, and the May 2026 history section became "Fork-specific behavior to keep". Facts in CLAUDE.md are checked against the code when they are touched. Corrected facts:
   - test commands
   - one `MIoTDevice` per device
   - region codes `de`/`i2`
   - the MIIO model list is `miot/miio_specs.py`, not every `zhimi.fan`
   - spec YAML needs a restart
   - the gateway is China only
+- **Central hub gateway reconnects** (v0.5.21, 2026-11-15): both of the owner's Home Assistants (.250, .251; two `xiaomi.gateway.hub1` hubs in one home) logged "Task exception was never retrieved" several times a day. Close mDNS announcements replaced the same gateway client at once. The fixes:
+  - `MIoTClient.__on_mips_service_state_change` takes a per-group `asyncio.Lock`.
+  - `unsub_mips_state` is idempotent.
+  - `_MipsClient.disconnect()` holds `_mips_disconnect_lock`.
+  - The -10001 teardown reply is `CODE_UNAVAILABLE` and logged at debug level.
+  Not yet known: whether the two hubs take turns answering mDNS and so cause the churn itself; the logs are at WARNING level.
+- **The repository sits on the iCloud-synced Desktop**. iCloud once created "* 2.*" copies of 30 files and of `.git/index`, `refs/heads/main` and `refs/remotes/origin/main`. The copies were old versions; they made pytest collect a stale test and `check_rule_format` count `en 2.json`. On 2026-11-15 they were moved to `~/.Trash/ha_xiaomi_home iCloud duplicates 2026-11-15/` with the owner's OK. If unexplained failures appear, check `git ls-files --others` for " 2" names first. Moving the repository off iCloud is the owner's call.
 - The lint job fails on any pylint message, even when the score rounds to 10.00/10: check `pylint $(git ls-files '*.py')` by its exit code, never by the last lines of its output (v0.5.17's first push failed this way).
 - CI is fully green since 2026-10-24 and must stay that way: pylint reports zero findings (deliberate catch-all handlers carry an inline `# pylint: disable=broad-exception-caught`, as upstream does), and the HACS license check is skipped with `ignore: license` because `LICENSE.md` is Xiaomi's custom license without an SPDX identifier.
 - If a push triggers no CI run, check `gh run list --commit <sha>` and try `gh workflow run Tests` / `gh workflow run Validate`. An HTTP 422 "Actions has been disabled for this repository" is a repository or account setting for the owner, even when the permissions API still reports Actions as enabled (this happened on 2026-11-08 and the owner re-enabled it). Do not publish a release until CI has run on its target. The workflows use `actions/checkout@v7` and `actions/setup-python@v7` (Node.js 24); GitHub forces actions built for Node.js 20 onto 24 and warns about it, so bump the major version when that warning shows up in a run log. Scheduled workflows did not resume on their own after that outage: `Upstream Release Tracker` (`upstream_tracker.yaml`, daily, cron 02:00 UTC, in practice it starts around 08:20 to 08:50 UTC) last ran on schedule on 2026-11-06. A manual `gh workflow run upstream_tracker.yaml` worked, and with the owner's go-ahead the workflow was disabled and enabled again on 2026-11-11 to register the schedule anew, and scheduled runs came back the same day (2026-11-11 and 2026-11-12, around 09:00 UTC). When checking upstream, also check that `gh run list --workflow upstream_tracker.yaml` shows a recent `schedule` run; enabling or disabling a workflow is a repository setting and needs the owner's go-ahead.
