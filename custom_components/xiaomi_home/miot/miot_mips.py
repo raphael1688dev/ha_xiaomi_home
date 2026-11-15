@@ -489,7 +489,8 @@ class _MipsClient(ABC):
         if isinstance(key, str) is False:
             raise MIoTMipsError('invalid params')
         with self._mips_state_sub_map_lock:
-            del self._mips_state_sub_map[key]
+            # deinit clears the map; unsubscribing afterwards is harmless
+            self._mips_state_sub_map.pop(key, None)
         self.log_debug(f'mips unregister mips state, {key}')
         return True
 
@@ -1534,6 +1535,11 @@ class MipsLocalClient(_MipsClient):
                     err_msg = err.get('message', 'unknown error')
                     if err_code == -10006:
                         raise MIoTMipsError(f'request timeout ({timeout_ms}ms)')
+                    if err_code == MIoTErrorCode.CODE_UNAVAILABLE.value:
+                        # Answered while the connection was torn down
+                        raise MIoTMipsError(
+                            f'gateway error ({err_code}): {err_msg}',
+                            MIoTErrorCode.CODE_UNAVAILABLE)
                     raise MIoTMipsError(
                         f'gateway error ({err_code}): {err_msg}')
                 raise MIoTMipsError(f'gateway error: {err}')

@@ -1,4 +1,9 @@
 # CHANGELOG
+## Unreleased
+### Fixed
+- When a central hub gateway's mDNS announcement changes, Home Assistant no longer logs "Task exception was never retrieved" with a `KeyError` from `unsub_mips_state`. Two announcements close together used to replace the same gateway connection at once, so the second one failed and its address could be lost. They are now applied one after the other. A gateway whose current address is still announced, in any order, keeps its connection.
+- A gateway device list request that is cut off by such a reconnect is logged at debug level instead of as a "mips disconnected" warning. The list is fetched again when the gateway reconnects.
+
 ## v0.5.20 (Mod)
 ### Fixed
 - A fan that is off and is turned on with a speed (`fan.turn_on` with `percentage`, or `fan.set_percentage`) can start at that speed, instead of running at its previous speed until the new one arrived (raphael1688dev/ha_xiaomi_home#5). The speed is now sent before power-on and again after it. A device that ignores a speed while off behaves as before.

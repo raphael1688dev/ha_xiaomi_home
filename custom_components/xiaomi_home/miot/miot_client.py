@@ -28,7 +28,7 @@ from .const import (
 from .miot_cloud import MIoTHttpClient, MIoTOauthClient
 from .miot_error import (
     MIoTClientError, MIoTHttpError, MIoTErrorCode,
-    MIoTOauthError)
+    MIoTOauthError, MIoTMipsError)
 from .miot_mips import (
     MIoTDeviceState, MipsCloudClient, MipsDeviceState,
     MipsLocalClient)
@@ -118,6 +118,8 @@ class MIoTClient:
 
     # Multi local mips client, key=group_id
     _mips_local: dict[str, MipsLocalClient]
+    # One lock per gateway group: mDNS changes for it are applied in order
+    _mips_service_change_locks: dict[str, asyncio.Lock]
     # Cloud mips client
     _mips_cloud: MipsCloudClient
     # MIoT lan client
@@ -200,6 +202,7 @@ class MIoTClient:
         self._user_config = None
 
         self._mips_local = {}
+        self._mips_service_change_locks = {}
         self._mips_cloud = None
         self._miot_lan = miot_lan
 
@@ -1208,12 +1211,24 @@ class MIoTClient:
     ) -> None:
         _LOGGER.debug(
             'mips service state changed, %s, %s, %s', group_id, state, data)
+        # mDNS answers arrive as separate tasks. Two close together used to
+        # replace the same gateway client at once: the later one failed with
+        # a KeyError and its address was lost. Handle them one at a time,
+        # each against the client the previous one left.
+        lock = self._mips_service_change_locks.setdefault(
+            group_id, asyncio.Lock())
+        async with lock:
+            await self.__apply_mips_service_change(group_id, data)
 
+    async def __apply_mips_service_change(
+        self, group_id: str, data: dict
+    ) -> None:
         mips = self._mips_local.get(group_id, None)
         if mips:
-            if ( # ADDED or UPDATED
+            if (  # ADDED or UPDATED
                 mips.client_id == self._entry_data['virtual_did']
-                and mips.host == data['addresses'][0]
+                # Still announced, in whatever order: keep the connection
+                and mips.host in data['addresses']
                 and mips.port == data['port']
             ):
                 return
@@ -1440,6 +1455,17 @@ class MIoTClient:
         try:
             gw_list = await mips.get_dev_list_async(
                 payload=json.dumps(payload))
+        except MIoTMipsError as err:
+            if err.code == MIoTErrorCode.CODE_UNAVAILABLE:
+                # The connection went away during the request; the gateway
+                # devices are refreshed again when it reconnects
+                _LOGGER.debug(
+                    'local mips get_dev_list_async interrupted by a '
+                    'disconnect, %s', mips.group_id)
+                return
+            _LOGGER.warning(
+                'local mips get_dev_list_async failed, %s: %s', did_list, err)
+            return
         except Exception as err:  # pylint: disable=broad-exception-caught
             _LOGGER.warning(
                 'local mips get_dev_list_async failed, %s: %s', did_list, err)
