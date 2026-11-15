@@ -176,7 +176,10 @@ Report problems in the [issue tracker](https://github.com/raphael1688dev/ha_xiao
 
 The most recent releases are listed below. Older versions are in the [CHANGELOG](./CHANGELOG.md) and on the [Releases](https://github.com/raphael1688dev/ha_xiaomi_home/releases) page.
 
-### Version 20261113r53 (v0.5.20 Mod) — Latest
+### Version 20261115r54 (v0.5.21 Mod) — Latest
+- **Steadier Gateway Reconnects**: When a central hub gateway's mDNS announcement changes, its connection is replaced cleanly. Before, Home Assistant logged "Task exception was never retrieved" with a `KeyError` or `AttributeError`, and the newest gateway address could be lost.
+
+### Version 20261113r53 (v0.5.20 Mod)
 - **Fans Start at the Requested Speed**: A fan turned on with a speed no longer runs at its previous speed first (raphael1688dev/ha_xiaomi_home#5). Entry diagnostics also show whether the cloud MQTT connection is up, and why not.
 
 ### Version 20261113r52 (v0.5.19 Mod)
