@@ -1,4 +1,8 @@
 # CHANGELOG
+## Unreleased
+### Added
+- Pet feeders whose manual feed action (`pet-food-out`) takes a portion count get a button that feeds one portion, next to the existing notify entity, which still takes any count. The button works on a dashboard, through HomeKit Bridge and with voice assistants. Contributed by @mutlutekir (XiaoMi/ha_xiaomi_home#1858, fixes XiaoMi/ha_xiaomi_home#1734).
+
 ## v0.5.21 (Mod)
 ### Fixed
 - When a central hub gateway's mDNS announcement changes, Home Assistant no longer logs "Task exception was never retrieved" with a `KeyError` from `unsub_mips_state` or an `AttributeError` from closing the connection's event loop. Two announcements close together used to replace the same gateway connection at once, so the second one failed and its address could be lost. They are now applied one after the other. A gateway whose current address is still announced, in any order, keeps its connection.

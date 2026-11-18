@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """MIoT device and the base classes of its Home Assistant entities."""
 import asyncio
+import copy
 from abc import abstractmethod
 from typing import Any, Callable, Optional
 from functools import cached_property
@@ -990,6 +991,13 @@ class MIoTDevice:
                 else:
                     action.platform = 'button'
                 self.append_action(action=action)
+                if action.name == 'pet-food-out' and action.in_:
+                    # A pet feeder's manual feed takes the portion count, so
+                    # it becomes a notify entity; also add a one-press button
+                    # that feeds one portion
+                    feed_button = copy.copy(action)
+                    feed_button.platform = 'button'
+                    self.append_action(action=feed_button)
 
     def unit_convert(self, spec_unit: str) -> Optional[str]:
         """Convert MIoT unit to Home Assistant unit (Optimized)."""
