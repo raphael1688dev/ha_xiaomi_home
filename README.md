@@ -176,7 +176,10 @@ Report problems in the [issue tracker](https://github.com/raphael1688dev/ha_xiao
 
 The most recent releases are listed below. Older versions are in the [CHANGELOG](./CHANGELOG.md) and on the [Releases](https://github.com/raphael1688dev/ha_xiaomi_home/releases) page.
 
-### Version 20261115r54 (v0.5.21 Mod) — Latest
+### Version 20261119r55 (v0.5.22 Mod) — Latest
+- **Fewer Unknown States and a Feeder Button**: A property the cloud does not return is now read through the central hub gateway or LAN, and each queued property gets its own retries (from XiaoMi/ha_xiaomi_home#1862 by @Wuty-zju). Pet feeders get a button that feeds one portion (from XiaoMi/ha_xiaomi_home#1858 by @mutlutekir).
+
+### Version 20261115r54 (v0.5.21 Mod)
 - **Steadier Gateway Reconnects**: When a central hub gateway's mDNS announcement changes, its connection is replaced cleanly. Before, Home Assistant logged "Task exception was never retrieved" with a `KeyError` or `AttributeError`, and the newest gateway address could be lost.
 
 ### Version 20261113r53 (v0.5.20 Mod)
