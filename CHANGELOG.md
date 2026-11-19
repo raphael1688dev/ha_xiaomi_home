@@ -1,5 +1,8 @@
 # CHANGELOG
 ## Unreleased
+### Fixed
+- A property the cloud does not return when entities are refreshed (left out, or returned with an error code) is now read through the central hub gateway or LAN when one of them can reach the device. Before, it was dropped until the device pushed a change. Each queued property also gets its own three attempts: one that kept failing could use up a shared limit and clear properties that had not been read yet. Rewritten from XiaoMi/ha_xiaomi_home#1862 by @Wuty-zju.
+
 ### Added
 - Pet feeders whose manual feed action (`pet-food-out`) takes a portion count get a button that feeds one portion, next to the existing notify entity, which still takes any count. The button works on a dashboard, through HomeKit Bridge and with voice assistants. Contributed by @mutlutekir (XiaoMi/ha_xiaomi_home#1858, fixes XiaoMi/ha_xiaomi_home#1734).
 

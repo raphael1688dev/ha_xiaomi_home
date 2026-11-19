@@ -28,16 +28,14 @@ class MIoTCloudManager:
         if not self.client.refresh_props_list:
             return False
 
-        request_items = {}
-        if len(self.client.refresh_props_list) <= patch_len:
-            request_items = self.client.refresh_props_list.copy()
-            self.client.refresh_props_list.clear()
-        else:
-            # PERFORMANCE FIX: Efficient dictionary slicing using itertools
-            request_items = dict(
-                islice(self.client.refresh_props_list.items(), patch_len))
-            for k in request_items:
-                del self.client.refresh_props_list[k]
+        # Properties the cloud did not return before wait for the gateway
+        # or LAN instead of being asked for again
+        missed = self.client.refresh_props_cloud_missed
+        request_items = dict(islice(
+            ((key, val) for key, val in self.client.refresh_props_list.items()
+             if key not in missed), patch_len))
+        for k in request_items:
+            del self.client.refresh_props_list[k]
 
         clean_request_list = {}
         clean_params = []
@@ -61,6 +59,7 @@ class MIoTCloudManager:
                 params=clean_params)
             if not results:
                 raise MIoTClientError('get_props_async failed')
+            delivered = False
             for result in results:
                 if (
                     not isinstance(result, dict)
@@ -72,20 +71,29 @@ class MIoTCloudManager:
                     continue
                 did, siid, piid = (
                     result['did'], result['siid'], result['piid'])
-                clean_request_list.pop(f'{did}|{siid}|{piid}', None)
+                key = f'{did}|{siid}|{piid}'
+                if clean_request_list.pop(key, None) is None:
+                    continue
                 self.client.on_prop_msg(
                     params={**result, PROP_MSG_POLLED: True}, ctx=None)
+                self.client.refresh_prop_done(key)
+                delivered = True
             if clean_request_list:
+                # Not returned or returned with an error code: left to the
+                # gateway or LAN when they can read the device
                 _LOGGER.debug(
                     'refresh props failed, cloud, %s',
                     list(clean_request_list.keys()))
-            return True
+                for key, params in clean_request_list.items():
+                    self.client.refresh_prop_failed(
+                        key, params, cloud_miss=True)
+            return delivered
         except (TimeoutError, asyncio.TimeoutError, aiohttp.ClientError) as err:
             err_msg = f'{type(err).__name__}: {err}' if str(err) else type(
                 err).__name__
             _LOGGER.warning(
                 'refresh props failed, cloud network/timeout: %s', err_msg)
-            self.client.refresh_props_list.update(clean_request_list)
+            self.__requeue(clean_request_list)
             return False
         # MIoTHttpError is not a MIoTClientError: without it here, a 401 or
         # 5xx from the cloud fell through to the generic ERROR with a trace
@@ -112,11 +120,20 @@ class MIoTCloudManager:
                     'refresh props error, cloud, %s, %s',
                     err, traceback.format_exc())
             # Add failed request back to the list
-            self.client.refresh_props_list.update(clean_request_list)
+            self.__requeue(clean_request_list)
             return False
         except Exception as err:  # pylint: disable=broad-exception-caught
             _LOGGER.error(
                 'refresh props error, cloud, %s, %s',
                 err, traceback.format_exc())
-            self.client.refresh_props_list.update(clean_request_list)
+            self.__requeue(clean_request_list)
             return False
+
+    def __requeue(self, request_list: dict) -> None:
+        """The cloud request failed as a whole: queue the properties again.
+
+        This does not use up their attempts. The gateway or LAN may still
+        read them, one property per device per cycle, and while nothing can
+        read them the refresh gives up after three idle cycles.
+        """
+        self.client.refresh_props_list.update(request_list)

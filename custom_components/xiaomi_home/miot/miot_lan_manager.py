@@ -16,6 +16,18 @@ class MIoTLanManager:
     def __init__(self, client: 'MIoTClient') -> None:
         self.client = client
 
+    def can_refresh(self, did: str) -> bool:
+        """Whether the gateway or LAN refresh can read this device.
+
+        The same routing checks the two readers below use; LAN readiness is
+        left out, the refresh cycle waits for it.
+        """
+        device_gw = self.client.device_list_gateway.get(did, None)
+        if device_gw and self.client.mips_local.get(
+                device_gw.get('group_id'), None):
+            return True
+        return did in self.client.device_list_lan
+
     async def refresh_props_from_lan(self) -> bool:
         if not self.client.miot_lan.init_done:
             return False
@@ -63,11 +75,13 @@ class MIoTLanManager:
                     PROP_MSG_POLLED: True},
                 ctx=None)
             succeed_once = True
+            self.client.refresh_prop_done(key)
 
         if failed_requests:
             _LOGGER.debug(
                 'refresh props failed, lan, %s', list(failed_requests.keys()))
-            self.client.refresh_props_list.update(failed_requests)
+            for key, params in failed_requests.items():
+                self.client.refresh_prop_failed(key, params)
 
         return succeed_once
 
@@ -123,10 +137,12 @@ class MIoTLanManager:
                     PROP_MSG_POLLED: True},
                 ctx=None)
             succeed_once = True
+            self.client.refresh_prop_done(key)
 
         if failed_requests:
             _LOGGER.debug(
                 'refresh props failed, gw, %s', list(failed_requests.keys()))
-            self.client.refresh_props_list.update(failed_requests)
+            for key, params in failed_requests.items():
+                self.client.refresh_prop_failed(key, params)
 
         return succeed_once

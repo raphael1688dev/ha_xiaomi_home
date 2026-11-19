@@ -26,12 +26,9 @@ async def test_lan_manager_coroutine_safety() -> None:
     success = await manager.refresh_props_from_lan()
 
     assert success is False
-    # Check that failed request was re-queued cleanly without 'fut' coroutine
-    # object
-    assert "dev1|2|1" in client.refresh_props_list
-    requeued = client.refresh_props_list["dev1|2|1"]
-    assert "fut" not in requeued
-    assert requeued == {"did": "dev1", "siid": 2, "piid": 1}
+    # The failed request goes back cleanly, without a 'fut' coroutine object
+    client.refresh_prop_failed.assert_called_once_with(
+        "dev1|2|1", {"did": "dev1", "siid": 2, "piid": 1})
 
 
 @pytest.mark.asyncio
@@ -87,12 +84,9 @@ async def test_cloud_manager_timeout_handling() -> None:
     success = await manager.refresh_props()
 
     assert success is False
-    assert "dev1|2|1" in client.refresh_props_list
     assert client.refresh_props_list["dev1|2|1"] == {
-        "did": "dev1",
-        "siid": 2,
-        "piid": 1
-    }
+        "did": "dev1", "siid": 2, "piid": 1}
+    client.refresh_prop_failed.assert_not_called()
 
 
 def _refresh_client() -> MagicMock:

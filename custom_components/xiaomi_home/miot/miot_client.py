@@ -53,6 +53,8 @@ def _is_transient_error(err: Exception) -> bool:
 
 REFRESH_PROPS_DELAY = 0.2
 REFRESH_PROPS_RETRY_DELAY = 3
+# Reads of one queued property before it is given up
+REFRESH_PROPS_MAX_ATTEMPTS = 3
 REFRESH_CLOUD_DEVICES_DELAY = 6
 REFRESH_CLOUD_DEVICES_RETRY_DELAY = 60
 REFRESH_GATEWAY_DEVICES_DELAY = 3
@@ -148,7 +150,14 @@ class MIoTClient:
     # Refresh prop
     _refresh_props_list: dict[str, dict]
     _refresh_props_timer: Optional[asyncio.TimerHandle]
+    # Consecutive refresh cycles in which no reader could take any property
     _refresh_props_retry_count: int
+    # Failed reads per queued property
+    _refresh_props_attempts: dict[str, int]
+    # Properties the cloud did not return, left to the gateway or LAN
+    _refresh_props_cloud_missed: set[str]
+    # Whether any reader took a property in the current refresh cycle
+    _refresh_props_attempted: bool
 
     # Persistence notify handler, params: notify_id, title, message
     _persistence_notify: Callable[[str, Optional[str], Optional[str]], None]
@@ -227,6 +236,9 @@ class MIoTClient:
         self._refresh_props_list = {}
         self._refresh_props_timer = None
         self._refresh_props_retry_count = 0
+        self._refresh_props_attempts = {}
+        self._refresh_props_cloud_missed = set()
+        self._refresh_props_attempted = False
 
         self._persistence_notify = None
         self._on_auth_rejected = None
@@ -390,6 +402,8 @@ class MIoTClient:
             self._refresh_props_timer = None
         self._refresh_props_list.clear()
         self._refresh_props_retry_count = 0
+        self._refresh_props_attempts.clear()
+        self._refresh_props_cloud_missed.clear()
         # Cloud mips (None when init_async failed before creating it)
         if self._mips_cloud:
             self._mips_cloud.unsub_mips_state(
@@ -582,6 +596,50 @@ class MIoTClient:
     @property
     def refresh_props_list(self) -> dict:
         return self._refresh_props_list
+
+    @property
+    def refresh_props_cloud_missed(self) -> set[str]:
+        """Queued properties the cloud refresh leaves to the local readers."""
+        return self._refresh_props_cloud_missed
+
+    def refresh_prop_done(self, key: str) -> None:
+        """A queued property was read; forget its retry state."""
+        self._refresh_props_attempted = True
+        self.__forget_refresh_prop(key)
+
+    def refresh_prop_failed(
+        self, key: str, params: dict, cloud_miss: bool = False
+    ) -> None:
+        """Queue a property again after a failed read.
+
+        Each property gets REFRESH_PROPS_MAX_ATTEMPTS reads of its own; the
+        cycle limit used to be shared, so properties still waiting for their
+        first read were cleared with the ones that kept failing. A property
+        the cloud did not return (cloud_miss) stays queued for the gateway or
+        LAN when one of them can read the device, and the cloud refresh
+        skips it from then on.
+        """
+        self._refresh_props_attempted = True
+        if cloud_miss:
+            if (
+                self._ctrl_mode == CtrlMode.CLOUD
+                or not self._lan_manager.can_refresh(params['did'])
+            ):
+                self.__forget_refresh_prop(key)
+                return
+            self._refresh_props_cloud_missed.add(key)
+        attempts = self._refresh_props_attempts.get(key, 0) + 1
+        if attempts >= REFRESH_PROPS_MAX_ATTEMPTS:
+            _LOGGER.debug(
+                'refresh prop given up after %d attempts, %s', attempts, key)
+            self.__forget_refresh_prop(key)
+            return
+        self._refresh_props_attempts[key] = attempts
+        self._refresh_props_list[key] = params
+
+    def __forget_refresh_prop(self, key: str) -> None:
+        self._refresh_props_attempts.pop(key, None)
+        self._refresh_props_cloud_missed.discard(key)
 
     @property
     def persistent_notify(self) -> Callable:
@@ -1891,6 +1949,7 @@ class MIoTClient:
             return
 
         handled = False
+        self._refresh_props_attempted = False
 
         # Determine execution order based on ctrl_mode and poll_priority
         if self._ctrl_mode == CtrlMode.LOCAL:
@@ -1929,27 +1988,36 @@ class MIoTClient:
 
         if handled:
             self._refresh_props_retry_count = 0
-            if self._refresh_props_list:
-                self._refresh_props_timer = self._main_loop.call_later(
-                    REFRESH_PROPS_DELAY, lambda: self._create_tracked_task(
-                        self.__refresh_props_handler()))
-            else:
-                self._refresh_props_timer = None
+            self.__schedule_refresh_props(REFRESH_PROPS_DELAY)
             return
 
-        if self._refresh_props_retry_count >= 3:
+        if self._refresh_props_attempted:
+            # Reads failed: each property counts its own attempts
+            self._refresh_props_retry_count = 0
+        elif self._refresh_props_retry_count >= 3:
+            # No reader could take any queued property (LAN not ready, no
+            # network, no route) for three cycles in a row
             self._refresh_props_list = {}
+            self._refresh_props_attempts.clear()
+            self._refresh_props_cloud_missed.clear()
             self._refresh_props_retry_count = 0
             if self._refresh_props_timer:
                 self._refresh_props_timer.cancel()
                 self._refresh_props_timer = None
             _LOGGER.debug('refresh props failed, retry count exceed')
             return
-        self._refresh_props_retry_count += 1
-        _LOGGER.debug(
-            'refresh props failed, retry, %s', self._refresh_props_retry_count)
+        else:
+            self._refresh_props_retry_count += 1
+            _LOGGER.debug('refresh props failed, retry, %s',
+                          self._refresh_props_retry_count)
+        self.__schedule_refresh_props(REFRESH_PROPS_RETRY_DELAY)
+
+    def __schedule_refresh_props(self, delay: float) -> None:
+        if not self._refresh_props_list:
+            self._refresh_props_timer = None
+            return
         self._refresh_props_timer = self._main_loop.call_later(
-            REFRESH_PROPS_RETRY_DELAY, lambda: self._create_tracked_task(
+            delay, lambda: self._create_tracked_task(
                 self.__refresh_props_handler()))
 
     @final

@@ -23,6 +23,8 @@ async def test_deinit_after_an_early_init_failure() -> None:
     client._ctrl_mode = CtrlMode.CLOUD
     client._refresh_props_timer = None
     client._refresh_props_list = {}
+    client._refresh_props_attempts = {}
+    client._refresh_props_cloud_missed = set()
     client._refresh_cloud_devices_timer = None
     client._refresh_token_timer = client._refresh_cert_timer = None
     client._show_devices_changed_notify_timer = None
