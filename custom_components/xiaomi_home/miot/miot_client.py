@@ -57,6 +57,9 @@ REFRESH_PROPS_RETRY_DELAY = 3
 REFRESH_PROPS_MAX_ATTEMPTS = 3
 REFRESH_CLOUD_DEVICES_DELAY = 6
 REFRESH_CLOUD_DEVICES_RETRY_DELAY = 60
+# A central hub gateway must stay disconnected this long before the
+# disconnect is notified; brief reconnects are common
+CENTRAL_DISCONNECT_NOTIFY_DELAY = 120
 REFRESH_GATEWAY_DEVICES_DELAY = 3
 # Retry delays after a transient token or certificate refresh failure
 REFRESH_AUTH_RETRY_DELAY_MIN = 60
@@ -143,6 +146,10 @@ class MIoTClient:
     _sub_device_state: dict[str, MipsDeviceState]
 
     _mips_local_state_changed_timers: dict[str, asyncio.TimerHandle]
+    # Pending disconnect notifications per gateway group, and the groups
+    # whose disconnect is shown
+    _central_disconnect_timers: dict[str, asyncio.TimerHandle]
+    _central_disconnect_notified: set[str]
     _mips_local_refresh_retry_counts: dict[str, int]
     _refresh_token_timer: Optional[asyncio.TimerHandle]
     _refresh_cert_timer: Optional[asyncio.TimerHandle]
@@ -225,6 +232,8 @@ class MIoTClient:
         self._sub_device_state = {}
 
         self._mips_local_state_changed_timers = {}
+        self._central_disconnect_timers = {}
+        self._central_disconnect_notified = set()
         self._mips_local_refresh_retry_counts = {}
         self._refresh_token_timer = None
         self._refresh_cert_timer = None
@@ -428,6 +437,10 @@ class MIoTClient:
                         timer_item.cancel()
                     self._mips_local_state_changed_timers.clear()
                 self._mips_local_refresh_retry_counts.clear()
+                for timer_item in self._central_disconnect_timers.values():
+                    timer_item.cancel()
+                self._central_disconnect_timers.clear()
+                self._central_disconnect_notified.clear()
             self._miot_lan.unsub_lan_state(
                 key=f'{self._uid}-{self._cloud_server}')
             if self._miot_lan.init_done:
@@ -1366,7 +1379,7 @@ class MIoTClient:
         if not mips:
             _LOGGER.debug(
                 'local mips state changed, mips not exist, %s', group_id)
-            self.__show_central_state_changed_notify(False)
+            self.__on_central_state_changed(group_id, False)
             return
         if state:
             # Connected
@@ -1406,7 +1419,7 @@ class MIoTClient:
                 if sub and sub.handler:
                     sub.handler(did, MIoTDeviceState.OFFLINE, sub.handler_ctx)
             self.__request_show_devices_changed_notify()
-        self.__show_central_state_changed_notify(state)
+        self.__on_central_state_changed(group_id, state)
 
     @final
     async def __on_miot_lan_state_change(self, state: bool) -> None:
@@ -2158,6 +2171,44 @@ class MIoTClient:
             delay_sec, self.__show_devices_changed_notify)
 
     @final
+    def __on_central_state_changed(
+        self, group_id: str, connected: bool
+    ) -> None:
+        """Notify a central hub gateway disconnect only once it lasts.
+
+        Every connect and disconnect used to create a persistent notification,
+        so brief reconnects left "Connected" notifications behind
+        (XiaoMi/ha_xiaomi_home#1868). A disconnect is shown when the gateway
+        is still disconnected after CENTRAL_DISCONNECT_NOTIFY_DELAY, and the
+        notification is dismissed when every gateway is connected again.
+        """
+        if connected:
+            timer = self._central_disconnect_timers.pop(group_id, None)
+            if timer:
+                timer.cancel()
+            self._central_disconnect_notified.discard(group_id)
+            if not self._central_disconnect_notified:
+                self._persistence_notify(
+                    self.__gen_notify_key('central_state_changed'),
+                    None, None)
+            return
+        if (
+            group_id in self._central_disconnect_timers
+            or group_id in self._central_disconnect_notified
+        ):
+            return
+        self._central_disconnect_timers[group_id] = self._main_loop.call_later(
+            CENTRAL_DISCONNECT_NOTIFY_DELAY,
+            self.__on_central_disconnect_timeout, group_id)
+
+    def __on_central_disconnect_timeout(self, group_id: str) -> None:
+        self._central_disconnect_timers.pop(group_id, None)
+        mips = self._mips_local.get(group_id, None)
+        if mips is not None and mips.mips_state:
+            return
+        self._central_disconnect_notified.add(group_id)
+        self.__show_central_state_changed_notify(False)
+
     def __show_central_state_changed_notify(self, connected: bool) -> None:
         conn_status: str = (
             self._i18n.translate_str('miot.client.central_state_connected') or

@@ -1,4 +1,8 @@
 # CHANGELOG
+## Unreleased
+### Fixed
+- A central hub gateway that reconnects within two minutes no longer leaves a persistent notification behind. Before, every disconnect and every reconnect created one, so brief network glitches piled up "Connected" notifications. A disconnect that lasts two minutes is still notified, and that notification is dismissed when the gateway reconnects (XiaoMi/ha_xiaomi_home#1868).
+
 ## v0.5.22 (Mod)
 ### Fixed
 - A property the cloud does not return when entities are refreshed (left out, or returned with an error code) is now read through the central hub gateway or LAN when one of them can reach the device. Before, it was dropped until the device pushed a change. Each queued property also gets its own three attempts: one that kept failing could use up a shared limit and clear properties that had not been read yet. Rewritten from XiaoMi/ha_xiaomi_home#1862 by @Wuty-zju.
