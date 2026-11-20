@@ -1,5 +1,5 @@
 # CHANGELOG
-## Unreleased
+## v0.5.23 (Mod)
 ### Fixed
 - A central hub gateway that reconnects within two minutes no longer leaves a persistent notification behind. Before, every disconnect and every reconnect created one, so brief network glitches piled up "Connected" notifications. A disconnect that lasts two minutes is still notified, and that notification is dismissed when the gateway reconnects (XiaoMi/ha_xiaomi_home#1868).
 

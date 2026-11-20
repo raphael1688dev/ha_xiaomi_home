@@ -176,7 +176,10 @@ Report problems in the [issue tracker](https://github.com/raphael1688dev/ha_xiao
 
 The most recent releases are listed below. Older versions are in the [CHANGELOG](./CHANGELOG.md) and on the [Releases](https://github.com/raphael1688dev/ha_xiaomi_home/releases) page.
 
-### Version 20261119r55 (v0.5.22 Mod) — Latest
+### Version 20261121r56 (v0.5.23 Mod) — Latest
+- **Quieter Gateway Notifications**: A central hub gateway that reconnects within two minutes no longer leaves a persistent notification behind. A longer disconnect is still notified, and the notification is dismissed when the gateway reconnects (XiaoMi/ha_xiaomi_home#1868).
+
+### Version 20261119r55 (v0.5.22 Mod)
 - **Fewer Unknown States and a Feeder Button**: A property the cloud does not return is now read through the central hub gateway or LAN, and each queued property gets its own retries (from XiaoMi/ha_xiaomi_home#1862 by @Wuty-zju). Pet feeders get a button that feeds one portion (from XiaoMi/ha_xiaomi_home#1858 by @mutlutekir).
 
 ### Version 20261115r54 (v0.5.21 Mod)
