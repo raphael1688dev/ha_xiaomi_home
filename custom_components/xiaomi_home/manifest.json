@@ -22,7 +22,7 @@
         "paho-mqtt",
         "psutil"
     ],
-    "version": "20261121r56",
+    "version": "20261124r57",
     "zeroconf": [
         "_miot-central._tcp.local."
     ]

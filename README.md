@@ -176,7 +176,10 @@ Report problems in the [issue tracker](https://github.com/raphael1688dev/ha_xiao
 
 The most recent releases are listed below. Older versions are in the [CHANGELOG](./CHANGELOG.md) and on the [Releases](https://github.com/raphael1688dev/ha_xiaomi_home/releases) page.
 
-### Version 20261121r56 (v0.5.23 Mod) — Latest
+### Version 20261124r57 (v0.5.24 Mod) — Latest
+- **No OAuth State in the Log**: When the login callback arrives with the wrong state, the error no longer contains the expected or the received state value (from XiaoMi/ha_xiaomi_home#1873 by @sheva-di).
+
+### Version 20261121r56 (v0.5.23 Mod)
 - **Quieter Gateway Notifications**: A central hub gateway that reconnects within two minutes no longer leaves a persistent notification behind. A longer disconnect is still notified, and the notification is dismissed when the gateway reconnects (XiaoMi/ha_xiaomi_home#1868).
 
 ### Version 20261119r55 (v0.5.22 Mod)
@@ -279,7 +282,7 @@ The most recent releases are listed below. Older versions are in the [CHANGELOG]
 
 ## 🙏 Credits
 
-Thanks to the people whose fixes were reviewed and merged here, many of them first proposed upstream: @theodorx7, @Wuty-zju, @Blueve, @MGrin, @reginaldalfret, @xuilen, @0xSixtos, @gaofeng21cn, @jackjinke, @rz467fzs7d and @lidicn, and to the Xiaomi team for the original integration.
+Thanks to the people whose fixes were reviewed and merged here, many of them first proposed upstream: @theodorx7, @Wuty-zju, @Blueve, @MGrin, @reginaldalfret, @xuilen, @0xSixtos, @gaofeng21cn, @jackjinke, @rz467fzs7d, @lidicn, @mutlutekir and @sheva-di, and to the Xiaomi team for the original integration.
 
 ## 📄 License & Attribution
 

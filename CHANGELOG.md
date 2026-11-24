@@ -1,5 +1,5 @@
 # CHANGELOG
-## Unreleased
+## v0.5.24 (Mod)
 ### Fixed
 - When the OAuth callback arrives with the wrong `state`, the error no longer contains the expected or the received state value. It was logged at ERROR with its traceback, and the expected state stayed valid for the rest of the login. Contributed by @sheva-di (XiaoMi/ha_xiaomi_home#1873); the fork already stopped logging the authorization code in v0.5.3.
 
