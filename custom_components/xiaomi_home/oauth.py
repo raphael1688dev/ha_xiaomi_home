@@ -32,9 +32,8 @@ async def _handle_oauth_webhook(hass, webhook_id, request):
 
         if data['state'] != hass.data[DOMAIN][webhook_id]['oauth_state']:
             raise MIoTConfigError(
-                f'inconsistent state, '
-                f'{hass.data[DOMAIN][webhook_id]["oauth_state"]}!='
-                f'{data["state"]}', MIoTErrorCode.CODE_CONFIG_INVALID_STATE)
+                'inconsistent OAuth state',
+                MIoTErrorCode.CODE_CONFIG_INVALID_STATE)
 
         fut_oauth_code: asyncio.Future = hass.data[DOMAIN][webhook_id].pop(
             'fut_oauth_code', None)
