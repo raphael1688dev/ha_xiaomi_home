@@ -1,4 +1,8 @@
 # CHANGELOG
+## Unreleased
+### Fixed
+- When the OAuth callback arrives with the wrong `state`, the error no longer contains the expected or the received state value. It was logged at ERROR with its traceback, and the expected state stayed valid for the rest of the login. Contributed by @sheva-di (XiaoMi/ha_xiaomi_home#1873); the fork already stopped logging the authorization code in v0.5.3.
+
 ## v0.5.23 (Mod)
 ### Fixed
 - A central hub gateway that reconnects within two minutes no longer leaves a persistent notification behind. Before, every disconnect and every reconnect created one, so brief network glitches piled up "Connected" notifications. A disconnect that lasts two minutes is still notified, and that notification is dismissed when the gateway reconnects (XiaoMi/ha_xiaomi_home#1868).
