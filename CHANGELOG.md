@@ -1,5 +1,5 @@
 # CHANGELOG
-## Unreleased
+## v0.5.25 (Mod)
 ### Fixed
 - A lost MQTT connection is no longer logged as an ERROR by `paho.mqtt.client` ("failed to receive on socket"). A central hub gateway that kept rejecting the TLS handshake logged one on every retry, about once a minute; an ordinary gateway restart logged one too. The connection is retried as before, the error is logged at debug level, and the warning about a lasting outage now gives it as the reason. Other messages from paho still reach `paho.mqtt.client`.
 - When that reason is a "certificate expired" TLS alert, the warning suggests checking the clocks of the broker and of Home Assistant: a gateway whose clock is wrong, for example after a power cut, sends this alert for a certificate that is still valid (reported in XiaoMi/ha_xiaomi_home#1700).

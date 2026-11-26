@@ -176,7 +176,10 @@ Report problems in the [issue tracker](https://github.com/raphael1688dev/ha_xiao
 
 The most recent releases are listed below. Older versions are in the [CHANGELOG](./CHANGELOG.md) and on the [Releases](https://github.com/raphael1688dev/ha_xiaomi_home/releases) page.
 
-### Version 20261124r57 (v0.5.24 Mod) — Latest
+### Version 20261126r58 (v0.5.25 Mod) — Latest
+- **Quieter Connection Losses**: A lost MQTT connection, for example a central hub gateway that restarts or keeps rejecting the TLS handshake, is no longer logged as an ERROR by `paho.mqtt.client` on every retry. The warning about a lasting outage gives the reason instead, and for a "certificate expired" alert it suggests checking the clocks.
+
+### Version 20261124r57 (v0.5.24 Mod)
 - **No OAuth State in the Log**: When the login callback arrives with the wrong state, the error no longer contains the expected or the received state value (from XiaoMi/ha_xiaomi_home#1873 by @sheva-di).
 
 ### Version 20261121r56 (v0.5.23 Mod)
