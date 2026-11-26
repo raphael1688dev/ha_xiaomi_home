@@ -6,7 +6,9 @@ callback API v2 really passes. What the Xiaomi cloud and the central hub
 gateway send in practice can only be seen on a real installation.
 """
 # pylint: disable=protected-access
+import logging
 import socket
+import ssl
 import threading
 import warnings
 from unittest.mock import MagicMock
@@ -67,6 +69,7 @@ def _mips_with_paho() -> tuple[MipsCloudClient, _MipsCloudMQTTClient,
     mqtt.on_connect_fail = mips._MipsClient__on_connect_failed
     mqtt.on_disconnect = mips._MipsClient__on_disconnect
     mqtt.on_message = mips._MipsClient__on_message
+    mqtt.on_log = mips._MipsClient__on_mqtt_log
     mqtt.suppress_exceptions = False  # a wrong signature fails the test
     mips._mqtt = mqtt
     assert mqtt.connect('broker.test', 1883) == 0
@@ -142,3 +145,62 @@ def test_own_disconnect_is_logged_as_info(connected) -> None:
 
     assert mips._mqtt_state is False
     assert _logged(logger, 'info', 'mips disconnect, Normal disconnection')
+
+
+def _lose_connection(mqtt, error: OSError) -> None:
+    """The next read fails the way the socket or TLS layer reports it."""
+    def sock_recv(bufsize: int) -> bytes:
+        del bufsize
+        raise error
+    mqtt._sock_recv = sock_recv
+    mqtt.loop_read()
+
+
+CERT_EXPIRED = ssl.SSLError(
+    1, '[SSL: SSLV3_ALERT_CERTIFICATE_EXPIRED] ssl/tls alert certificate '
+    'expired (_ssl.c:2710)')
+
+
+@pytest.mark.parametrize('error', [
+    CERT_EXPIRED, ConnectionResetError(54, 'Connection reset by peer')])
+def test_socket_errors_are_not_paho_errors(connected, caplog, error) -> None:
+    """paho logged every lost connection at ERROR under paho.mqtt.client,
+    so a gateway that kept refusing the handshake logged one each retry
+    (upstream issue XiaoMi/ha_xiaomi_home#1700). The error is now a debug
+    log and the reason of the lasting-outage warning."""
+    mips, mqtt, _, logger = connected
+    with caplog.at_level(logging.DEBUG, logger='paho.mqtt.client'):
+        _lose_connection(mqtt, error)
+
+    assert mips._mqtt_state is False
+    assert not caplog.records
+    assert not logger.error.called
+    assert _logged(logger, 'debug', 'mqtt failed to receive on socket')
+    assert mips._mips_failure_reason == str(error)
+    assert mips._mips_reconnect_timer is not None
+
+
+def test_lasting_certificate_alert_mentions_the_clocks(connected) -> None:
+    mips, mqtt, _, logger = connected
+    _lose_connection(mqtt, CERT_EXPIRED)
+    mips._mips_failure_since -= mips.MIPS_FAILURE_WARNING_DELAY
+    mips._mips_reconnect_timer = None
+    mips._MipsClient__mips_try_reconnect()
+
+    msg, *args = logger.warning.call_args.args
+    warning = msg % tuple(args)
+    assert 'CERTIFICATE_EXPIRED' in warning
+    assert 'check the clocks' in warning
+
+
+def test_other_paho_messages_still_reach_its_logger(connected,
+                                                    caplog) -> None:
+    mips, _, _, _ = connected
+    with caplog.at_level(logging.DEBUG, logger='paho.mqtt.client'):
+        mips._MipsClient__on_mqtt_log(
+            None, None, 8, 'Caught exception in on_message: boom')
+        mips._MipsClient__on_mqtt_log(None, None, 16, 'Sending PINGREQ')
+
+    assert [(r.levelno, r.getMessage()) for r in caplog.records] == [
+        (logging.ERROR, 'Caught exception in on_message: boom'),
+        (logging.DEBUG, 'Sending PINGREQ')]

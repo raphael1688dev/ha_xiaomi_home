@@ -16,8 +16,10 @@ from enum import Enum, auto
 from typing import Any, Callable, Optional, final, Coroutine
 
 from paho.mqtt.client import (
+    LOGGING_LEVEL,
     MQTT_ERR_SUCCESS,
     MQTT_ERR_NO_CONN,
+    MQTT_LOG_ERR,
     CallbackAPIVersion,
     Client,
     ConnectFlags,
@@ -37,6 +39,10 @@ from .const import (
 from .miot_error import MIoTErrorCode, MIoTMipsError
 
 _LOGGER = logging.getLogger(__name__)
+# Where paho logs when it is given no logger of its own
+_PAHO_LOGGER = logging.getLogger('paho.mqtt.client')
+# paho logs these at ERROR whenever a connection is lost
+_MQTT_SOCKET_ERRORS = ('failed to receive on socket: ', 'timeout on socket: ')
 
 # Reply given to requests still pending when a gateway connection goes away
 _MIPS_DISCONNECTED_REPLY = (
@@ -685,7 +691,9 @@ class _MipsClient(ABC):
         self._mqtt = self._mqtt_client_class(
             callback_api_version=CallbackAPIVersion.VERSION2,
             client_id=self._client_id, protocol=MQTTv5)
-        self._mqtt.enable_logger(logger=self._mqtt_logger)
+        if self._mqtt_logger:
+            self._mqtt.enable_logger(logger=self._mqtt_logger)
+        self._mqtt.on_log = self.__on_mqtt_log
         # Set mqtt config
         if self._username:
             self._mqtt.username_pw_set(
@@ -713,6 +721,21 @@ class _MipsClient(ABC):
         # Run event loop
         self._internal_loop.run_forever()
         self.log_info('mips_loop_thread exit!')
+
+    def __on_mqtt_log(
+        self, client: Client, user_data: Any, level: int, buf: str
+    ) -> None:
+        if level == MQTT_LOG_ERR and buf.startswith(_MQTT_SOCKET_ERRORS):
+            # A lost connection, for example a gateway that restarts or
+            # rejects the TLS handshake. paho logged it at ERROR on every
+            # retry. It is retried, and a lasting outage is warned about
+            # with this reason.
+            self.log_debug(f'mqtt {buf}')
+            self._mips_failure_reason = buf.split(': ', 1)[1]
+            return
+        level_std = LOGGING_LEVEL[level]
+        if _PAHO_LOGGER.isEnabledFor(level_std):
+            _PAHO_LOGGER.log(level_std, buf)
 
     def __on_connect(
         self, client: Client, user_data: Any, flags: ConnectFlags,
@@ -923,6 +946,11 @@ class _MipsClient(ABC):
                          >= self.MIPS_FAILURE_WARNING_INTERVAL)):
                 reason = (f' ({self._mips_failure_reason})'
                           if self._mips_failure_reason else '')
+                if 'CERTIFICATE_EXPIRED' in reason:
+                    # A broker also sends this alert when its clock is
+                    # wrong, e.g. a central hub gateway after a power cut
+                    reason += (', check the clocks of the broker and of '
+                               'Home Assistant')
                 self.log_warning('mips connection remains unavailable%s; '
                                  'retrying in the background', reason)
                 self._mips_failure_warned_at = now
